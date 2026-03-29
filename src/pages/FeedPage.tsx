@@ -4,6 +4,7 @@ import SwipeCard from '../components/SwipeCard'
 import Layout from '../components/Layout'
 import type { Event } from '../types'
 import { MOCK_EVENTS } from '../data/mockEvents'
+import { useAuth } from '../context/AuthContext'
 
 /**
  * FeedPage — Pantalla principal de eMeet.
@@ -21,6 +22,8 @@ import { MOCK_EVENTS } from '../data/mockEvents'
  *  - toast: mensaje temporal de feedback tras swipe.
  */
 export default function FeedPage() {
+  const { user } = useAuth()
+  const firstName = user?.name?.trim().split(' ')[0] ?? ''
   const [events, setEvents] = useState<Event[]>(MOCK_EVENTS)
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
   const [toast, setToast] = useState<{ message: string; type: 'like' | 'nope' | 'save' } | null>(null)
@@ -76,6 +79,15 @@ export default function FeedPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ── Saludo personalizado ──────────────────────────────────────── */}
+        {firstName && (
+          <div className="flex-shrink-0 px-4 pt-3 pb-1 lg:px-5">
+            <p className="text-white font-semibold text-base">
+              ¡Hola, {firstName}! 👋
+            </p>
+          </div>
+        )}
 
         {/* ── Stack de tarjetas ─────────────────────────────────────────── */}
         <div className="relative flex min-h-0 flex-1 px-4 pb-4 pt-3 lg:px-5 lg:pb-5 lg:pt-4">
