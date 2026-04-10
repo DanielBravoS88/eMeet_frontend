@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import BottomNavBar from './BottomNavBar'
+import BottomBar from './BottomBar'
 import BellavistaMap from './BellavistaMap'
 
 interface LayoutProps {
@@ -57,6 +58,7 @@ export default function Layout({
           </main>
 
           <BottomNavBar />
+          <BottomBar />
         </section>
 
         <aside className="hidden min-w-0 flex-1 lg:flex lg:flex-col lg:gap-5 lg:py-8">

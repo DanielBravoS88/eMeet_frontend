@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import SwipeCard from '../src/components/SwipeCard'
 import Layout from '../src/components/Layout'
+import BellavistaMap from '../src/components/BellavistaMap'
 import { placeToEvent } from '../src/data/placeFeedAdapter'
 import { useNearbyPlacesContext } from '../src/context/NearbyPlacesContext'
 import { useChatContext } from '../src/context/ChatContext'
@@ -30,6 +31,7 @@ export default function HomePage() {
     address: string
     mapUrl: string
   } | null>(null)
+  const [viewMode, setViewMode] = useState<'cards' | 'map'>('cards')
 
   const events = useMemo(() => {
     if (!userLocation) return []
@@ -187,79 +189,129 @@ export default function HomePage() {
           )}
         </AnimatePresence>
 
-        <div className="relative flex min-h-0 flex-1 px-4 pb-4 pt-3 lg:px-5 lg:pb-5 lg:pt-4">
-          {invalidApiKey ? (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center">
-              <span className="text-5xl">🔑</span>
-              <h2 className="text-xl font-bold text-white">Configura tu API key de Google Maps</h2>
-              <p className="text-sm text-muted">
-                El feed de eventos cercanos usa lugares reales según tu ubicación.
-              </p>
-            </div>
-          ) : loading || locating || !userLocation ? (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center">
-              <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              <h2 className="text-xl font-bold text-white">Buscando lugares cerca de ti</h2>
-              <p className="text-sm text-muted">
-                Estamos obteniendo tu ubicación y cargando restaurantes, bares y discotecas cercanas.
-              </p>
-            </div>
-          ) : visibleEvents.length > 0 ? (
-            <div className="card-stack mx-auto h-full w-full max-w-[420px]">
-              {[...visibleEvents].reverse().map((event, reverseIndex) => {
-                const stackIndex = visibleEvents.length - 1 - reverseIndex
-                return (
-                  <SwipeCard
-                    key={event.id}
-                    event={event}
-                    stackIndex={stackIndex}
-                    onSwipeRight={handleSwipeRight}
-                    onSwipeLeft={handleSwipeLeft}
-                    onSave={handleSave}
-                  />
-                )
-              })}
-            </div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex h-full flex-col items-center justify-center gap-5 px-6 text-center"
+        {/* ── Toggle Tarjetas / Mapa ──────────────────────────────────────── */}
+        <div className="flex-shrink-0 flex justify-center px-4 py-2.5">
+          <div className="flex rounded-full border border-white/10 bg-white/[0.06] p-1 gap-1">
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-5 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 ${
+                viewMode === 'cards'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-muted'
+              }`}
             >
-              <span className="text-6xl">🎉</span>
-              <h2 className="text-2xl font-bold text-white">No quedan más lugares cercanos</h2>
-              <p className="text-sm text-muted">
-                Ya recorriste los resultados cercanos a tu ubicación actual.
-              </p>
-              <div className="mt-2 flex flex-col items-center gap-3">
-                <button
-                  onClick={() => {
-                    setDismissedIds(new Set())
-                    refreshPlaces()
-                  }}
-                  className="rounded-full bg-primary px-6 py-3 font-semibold text-white transition-colors active:scale-95 hover:bg-primary-dark"
-                >
-                  Ver de nuevo
-                </button>
-                <button
-                  onClick={() => requestUserLocation(true)}
-                  className="text-sm font-medium text-primary-light"
-                >
-                  Actualizar mi ubicación
-                </button>
-              </div>
-            </motion.div>
-          )}
+              Tarjetas
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`px-5 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 ${
+                viewMode === 'map'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-muted'
+              }`}
+            >
+              Mapa
+            </button>
+          </div>
         </div>
 
-        {visibleEvents.length > 0 && (
-          <div className="flex items-center justify-center gap-3 px-4 pb-2 lg:px-5 lg:pb-3">
-            <span className="text-xs text-muted">{events.length} lugares cerca de ti</span>
-            {likedIds.size > 0 && (
-              <span className="text-xs font-medium text-green-400">· {likedIds.size} te interesaron</span>
-            )}
-          </div>
-        )}
+        <AnimatePresence mode="wait" initial={false}>
+          {viewMode === 'map' ? (
+            <motion.div
+              key="map"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="h-[calc(100dvh-10.5rem)] overflow-hidden"
+            >
+              <BellavistaMap />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="cards"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              <div className="relative flex min-h-0 flex-1 px-4 pb-4 pt-3 lg:px-5 lg:pb-5 lg:pt-4">
+                {invalidApiKey ? (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center">
+                    <span className="text-5xl">🔑</span>
+                    <h2 className="text-xl font-bold text-white">Configura tu API key de Google Maps</h2>
+                    <p className="text-sm text-muted">
+                      El feed de eventos cercanos usa lugares reales según tu ubicación.
+                    </p>
+                  </div>
+                ) : loading || locating || !userLocation ? (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center">
+                    <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <h2 className="text-xl font-bold text-white">Buscando lugares cerca de ti</h2>
+                    <p className="text-sm text-muted">
+                      Estamos obteniendo tu ubicación y cargando restaurantes, bares y discotecas cercanas.
+                    </p>
+                  </div>
+                ) : visibleEvents.length > 0 ? (
+                  <div className="card-stack mx-auto h-full w-full max-w-[420px]">
+                    {[...visibleEvents].reverse().map((event, reverseIndex) => {
+                      const stackIndex = visibleEvents.length - 1 - reverseIndex
+                      return (
+                        <SwipeCard
+                          key={event.id}
+                          event={event}
+                          stackIndex={stackIndex}
+                          onSwipeRight={handleSwipeRight}
+                          onSwipeLeft={handleSwipeLeft}
+                          onSave={handleSave}
+                        />
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex h-full flex-col items-center justify-center gap-5 px-6 text-center"
+                  >
+                    <span className="text-6xl">🎉</span>
+                    <h2 className="text-2xl font-bold text-white">No quedan más lugares cercanos</h2>
+                    <p className="text-sm text-muted">
+                      Ya recorriste los resultados cercanos a tu ubicación actual.
+                    </p>
+                    <div className="mt-2 flex flex-col items-center gap-3">
+                      <button
+                        onClick={() => {
+                          setDismissedIds(new Set())
+                          refreshPlaces()
+                        }}
+                        className="rounded-full bg-primary px-6 py-3 font-semibold text-white transition-colors active:scale-95 hover:bg-primary-dark"
+                      >
+                        Ver de nuevo
+                      </button>
+                      <button
+                        onClick={() => requestUserLocation(true)}
+                        className="text-sm font-medium text-primary-light"
+                      >
+                        Actualizar mi ubicación
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
+              {visibleEvents.length > 0 && (
+                <div className="flex items-center justify-center gap-3 px-4 pb-2 lg:px-5 lg:pb-3">
+                  <span className="text-xs text-muted">{events.length} lugares cerca de ti</span>
+                  {likedIds.size > 0 && (
+                    <span className="text-xs font-medium text-green-400">· {likedIds.size} te interesaron</span>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </Layout>
   )
