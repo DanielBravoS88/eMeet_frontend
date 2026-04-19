@@ -10,6 +10,18 @@ import { ImageUpload } from '@/src/components/ImageUpload'
 import { VideoUpload } from '@/src/components/VideoUpload'
 import { DateTimePicker } from '@/src/components/DateTimePicker'
 import { LocationPickerMap } from '@/src/components/LocationPickerMap'
+import {
+  activatePromotion,
+  confirmMercadoPagoPayment,
+  confirmTransbankPayment,
+  createTokenPurchase,
+  getTokenPacks,
+  getWallet,
+  type PromotionCampaign,
+  type TokenPack,
+  type TokenPaymentProvider,
+  type TokenWallet,
+} from '@/src/services/monetizationService'
 
 const EMPTY_FORM = {
   title: '',
@@ -23,6 +35,14 @@ const EMPTY_FORM = {
   category: 'fiesta' as EventCategory,
 }
 
+function formatCLP(value: number) {
+  return new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: 'CLP',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
 export default function LocatarioPage() {
   const { user, logout } = useAuth()
   const { createLocatarioEvent, locatarioEvents, removeLocatarioEvent, isLoading } = useLocatarioEvents()
@@ -32,6 +52,14 @@ export default function LocatarioPage() {
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [wallet, setWallet] = useState<TokenWallet | null>(null)
+  const [tokenPacks, setTokenPacks] = useState<TokenPack[]>([])
+  const [campaigns, setCampaigns] = useState<PromotionCampaign[]>([])
+  const [monetizationLoading, setMonetizationLoading] = useState(false)
+  const [monetizationAction, setMonetizationAction] = useState<string | null>(null)
+  const [packsError, setPacksError] = useState<string | null>(null)
+  const [walletError, setWalletError] = useState<string | null>(null)
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [eventForm, setEventForm] = useState({
     ...EMPTY_FORM,
@@ -48,6 +76,83 @@ export default function LocatarioPage() {
       if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current)
     }
   }, [feedback])
+
+  const loadMonetization = async () => {
+    setMonetizationLoading(true)
+    setPacksError(null)
+    setWalletError(null)
+    try {
+      const packs = await getTokenPacks()
+      setTokenPacks(packs)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudieron cargar los packs de tokens.'
+      setTokenPacks([])
+      setPacksError(message)
+    }
+
+    try {
+      const walletResponse = await getWallet()
+      setWallet(walletResponse.wallet)
+      setCampaigns(walletResponse.campaigns)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo cargar la monetizacion.'
+      setWallet(null)
+      setCampaigns([])
+      setWalletError(message)
+    } finally {
+      setMonetizationLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!user || user.role !== 'locatario') return
+    loadMonetization()
+  }, [user?.id, user?.role])
+
+  useEffect(() => {
+    if (!user || user.role !== 'locatario' || typeof window === 'undefined') return
+
+    const params = new URLSearchParams(window.location.search)
+    const payment = params.get('payment')
+    const orderId = params.get('order') ?? params.get('external_reference')
+    const tokenWs = params.get('token_ws')
+    const mercadoPagoPaymentId = params.get('payment_id') ?? params.get('collection_id')
+
+    if (!payment) return
+
+    if (payment === 'transbank_failed' || payment === 'failure') {
+      setFeedback({ message: 'El pago no fue aprobado. No se acreditaron tokens.', type: 'error' })
+      window.history.replaceState({}, '', window.location.pathname)
+      return
+    }
+
+    if (payment === 'pending') {
+      setFeedback({ message: 'El pago quedo pendiente de confirmacion.', type: 'error' })
+      window.history.replaceState({}, '', window.location.pathname)
+      return
+    }
+
+    if (!orderId) return
+
+    ;(async () => {
+      try {
+        if (payment === 'transbank' && tokenWs) {
+          await confirmTransbankPayment(orderId, tokenWs)
+          setFeedback({ message: 'Pago confirmado. Tokens acreditados en tu saldo.', type: 'success' })
+        } else if (payment === 'transbank_success') {
+          setFeedback({ message: 'Pago confirmado. Tokens acreditados en tu saldo.', type: 'success' })
+        } else if (payment === 'success' && mercadoPagoPaymentId) {
+          await confirmMercadoPagoPayment(orderId, mercadoPagoPaymentId)
+          setFeedback({ message: 'Pago confirmado. Tokens acreditados en tu saldo.', type: 'success' })
+        }
+        await loadMonetization()
+        window.history.replaceState({}, '', window.location.pathname)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'No se pudo confirmar el pago.'
+        setFeedback({ message, type: 'error' })
+      }
+    })()
+  }, [user?.id, user?.role])
 
   const handleLogout = () => {
     logout()
@@ -98,6 +203,59 @@ export default function LocatarioPage() {
       setFeedback({ message: 'No se pudo eliminar el evento.', type: 'error' })
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const redirectToCheckout = (checkoutUrl: string, checkoutToken?: string | null) => {
+    if (!checkoutToken) {
+      window.location.href = checkoutUrl
+      return
+    }
+
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = checkoutUrl
+    form.style.display = 'none'
+
+    const tokenInput = document.createElement('input')
+    tokenInput.type = 'hidden'
+    tokenInput.name = 'token_ws'
+    tokenInput.value = checkoutToken
+    form.appendChild(tokenInput)
+
+    document.body.appendChild(form)
+    form.submit()
+  }
+
+  const handleBuyTokens = async (packCode: TokenPack['code'], provider: TokenPaymentProvider) => {
+    setMonetizationAction(`${packCode}-${provider}`)
+    try {
+      const order = await createTokenPurchase(packCode, provider)
+      if (order.checkout_url) {
+        redirectToCheckout(order.checkout_url, provider === 'transbank_webpay' ? order.checkout_token : null)
+        return
+      }
+      setFeedback({ message: 'Orden creada, pero el proveedor no devolvio una URL de pago.', type: 'error' })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo iniciar la compra de tokens.'
+      setFeedback({ message, type: 'error' })
+    } finally {
+      setMonetizationAction(null)
+    }
+  }
+
+  const handlePromoteEvent = async (eventId: string) => {
+    setMonetizationAction(`promote-${eventId}`)
+    try {
+      const result = await activatePromotion(eventId, 'featured', 1)
+      setWallet(result.wallet)
+      setCampaigns((prev) => [result.campaign, ...prev])
+      setFeedback({ message: 'Evento destacado por 24 horas.', type: 'success' })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo activar la promocion.'
+      setFeedback({ message, type: 'error' })
+    } finally {
+      setMonetizationAction(null)
     }
   }
 
@@ -233,6 +391,77 @@ export default function LocatarioPage() {
           )
         })()}
 
+        {/* Monetizacion por tokens */}
+        <section className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-6 mb-8">
+          <div className="bg-card border border-card rounded-lg p-6">
+            <p className="text-sm text-muted">Saldo promocional</p>
+            <div className="mt-2 text-4xl font-bold text-primary-light">
+              {monetizationLoading ? <FiLoader className="animate-spin" size={32} /> : `${wallet?.balance ?? 0} tokens`}
+            </div>
+            <p className="mt-3 text-sm text-muted">
+              Usa tokens para destacar eventos, ampliar alcance y activar promociones con cupones QR.
+            </p>
+            <p className="mt-3 text-sm text-green-400">
+              {campaigns.filter((campaign) => campaign.status === 'active').length} promociones activas
+            </p>
+            {walletError && (
+              <p className="mt-4 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                {walletError}
+              </p>
+            )}
+          </div>
+
+          <div className="bg-card border border-card rounded-lg p-6">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Comprar tokens</h3>
+                <p className="text-sm text-muted">Paga de forma segura con Mercado Pago o Transbank Webpay Plus.</p>
+              </div>
+              {monetizationLoading && <FiLoader className="animate-spin text-accent" size={20} />}
+            </div>
+
+            {packsError && (
+              <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-5 text-sm text-red-300">
+                {packsError}
+              </div>
+            )}
+
+            {!monetizationLoading && !packsError && tokenPacks.length === 0 && (
+              <div className="rounded-lg border border-white/10 bg-surface/60 px-4 py-5 text-sm text-muted">
+                No hay packs de tokens configurados por el momento.
+              </div>
+            )}
+
+            {tokenPacks.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {tokenPacks.map((pack) => (
+                  <article key={pack.code} className="rounded-lg border border-white/10 bg-surface/60 p-4">
+                    <h4 className="text-sm font-semibold text-white">{pack.name}</h4>
+                    <p className="mt-2 text-2xl font-bold text-accent">{pack.tokens} tokens</p>
+                    <p className="text-xs text-muted">{formatCLP(pack.amountClp)}</p>
+                    <div className="mt-4 grid grid-cols-1 gap-2">
+                      <button
+                        onClick={() => handleBuyTokens(pack.code, 'transbank_webpay')}
+                        disabled={monetizationAction === `${pack.code}-transbank_webpay`}
+                        className="rounded-lg bg-primary hover:bg-primary-dark px-3 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-60"
+                      >
+                        Webpay Plus
+                      </button>
+                      <button
+                        onClick={() => handleBuyTokens(pack.code, 'mercadopago')}
+                        disabled={monetizationAction === `${pack.code}-mercadopago`}
+                        className="rounded-lg bg-silver hover:bg-primary-light px-3 py-2 text-sm font-semibold text-surface transition-colors disabled:opacity-60"
+                      >
+                        Mercado Pago
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Tabla de eventos */}
         <div className="bg-card border border-card rounded-lg overflow-hidden mb-8">
           <div className="px-6 py-4 border-b border-card flex items-center gap-2">
@@ -284,6 +513,13 @@ export default function LocatarioPage() {
                         : <span className="text-muted">—</span>}
                     </td>
                     <td className="px-6 py-4 text-sm">
+                      <button
+                        onClick={() => handlePromoteEvent(event.id)}
+                        disabled={monetizationAction === `promote-${event.id}`}
+                        className="mr-4 text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
+                      >
+                        {monetizationAction === `promote-${event.id}` ? 'Destacando...' : 'Destacar'}
+                      </button>
                       <button
                         onClick={() => handleDelete(event.id)}
                         disabled={deletingId === event.id}

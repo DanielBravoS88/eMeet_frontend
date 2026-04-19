@@ -156,6 +156,7 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
       if (!data.session) {
         if (!mounted) return
         setLocatarioEvents(loadEventsFromStorage())
+        setIsLoading(false)
         return
       }
 
@@ -178,7 +179,24 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
     })
 
-    return () => { mounted = false }
+    const { data: authListener } = getSupabaseBrowserClient().auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        apiFetch<LocatarioEventRow[]>('/events/locatario')
+          .then((rows) => {
+            if (!mounted) return
+            setLocatarioEvents(rows.map(dbRowToEvent))
+          })
+          .catch(() => {
+            if (!mounted) return
+            setLocatarioEvents(loadEventsFromStorage())
+          })
+      }
+    })
+
+    return () => {
+      mounted = false
+      authListener.subscription.unsubscribe()
+    }
   }, [])
 
   const createLocatarioEvent = useCallback(async (input: CreateLocatarioEventInput): Promise<Event> => {
