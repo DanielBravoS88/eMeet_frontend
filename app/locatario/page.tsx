@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/src/context/AuthContext'
 import { useLocatarioEvents } from '@/src/context/LocatarioEventsContext'
+import { hasSupabaseEnv } from '@/src/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { FiLogOut, FiPlus, FiBarChart2, FiCalendar, FiAlertCircle, FiLoader, FiTrash2, FiHome, FiMapPin } from 'react-icons/fi'
 import { useEffect, useRef, useState } from 'react'
@@ -44,7 +45,7 @@ function formatCLP(value: number) {
 }
 
 export default function LocatarioPage() {
-  const { user, logout } = useAuth()
+  const { user, logout, isAuthReady, accessToken } = useAuth()
   const { createLocatarioEvent, locatarioEvents, removeLocatarioEvent, isLoading } = useLocatarioEvents()
   const router = useRouter()
 
@@ -59,7 +60,6 @@ export default function LocatarioPage() {
   const [monetizationAction, setMonetizationAction] = useState<string | null>(null)
   const [packsError, setPacksError] = useState<string | null>(null)
   const [walletError, setWalletError] = useState<string | null>(null)
-  const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [eventForm, setEventForm] = useState({
     ...EMPTY_FORM,
@@ -105,12 +105,12 @@ export default function LocatarioPage() {
   }
 
   useEffect(() => {
-    if (!user || user.role !== 'locatario') return
+    if (!isAuthReady || !user || user.role !== 'locatario' || (hasSupabaseEnv && !accessToken)) return
     loadMonetization()
-  }, [user?.id, user?.role])
+  }, [isAuthReady, user?.id, user?.role, accessToken])
 
   useEffect(() => {
-    if (!user || user.role !== 'locatario' || typeof window === 'undefined') return
+    if (!isAuthReady || !user || user.role !== 'locatario' || (hasSupabaseEnv && !accessToken) || typeof window === 'undefined') return
 
     const params = new URLSearchParams(window.location.search)
     const payment = params.get('payment')
@@ -141,8 +141,8 @@ export default function LocatarioPage() {
           setFeedback({ message: 'Pago confirmado. Tokens acreditados en tu saldo.', type: 'success' })
         } else if (payment === 'transbank_success') {
           setFeedback({ message: 'Pago confirmado. Tokens acreditados en tu saldo.', type: 'success' })
-        } else if (payment === 'success' && mercadoPagoPaymentId) {
-          await confirmMercadoPagoPayment(orderId, mercadoPagoPaymentId)
+        } else if (payment === 'success') {
+          await confirmMercadoPagoPayment(orderId, mercadoPagoPaymentId ?? undefined)
           setFeedback({ message: 'Pago confirmado. Tokens acreditados en tu saldo.', type: 'success' })
         }
         await loadMonetization()
@@ -152,10 +152,10 @@ export default function LocatarioPage() {
         setFeedback({ message, type: 'error' })
       }
     })()
-  }, [user?.id, user?.role])
+  }, [isAuthReady, user?.id, user?.role, accessToken])
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     router.push('/auth')
   }
 
@@ -259,7 +259,15 @@ export default function LocatarioPage() {
     }
   }
 
-  if (!user || user.role !== 'locatario') {
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <FiLoader className="animate-spin text-accent" size={28} />
+      </div>
+    )
+  }
+
+  if (!user || user.role !== 'locatario' || (hasSupabaseEnv && !accessToken)) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">
         <div className="text-center">

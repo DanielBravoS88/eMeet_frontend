@@ -73,6 +73,7 @@ export interface User {
 export interface AuthState {
   user: User | null
   isAuthenticated: boolean
+  accessToken: string | null
 }
 
 // ─── Google Maps Places ──────────────────────────────────────────────────────
