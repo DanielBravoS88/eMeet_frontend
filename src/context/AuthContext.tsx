@@ -190,8 +190,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       avatarUrl: profile.avatar_url ?? '',
       bio: profile.bio ?? '',
       interests: profile.interests ?? [],
-      likedEvents: likedEvents.map((row) => row.event_id),
-      savedEvents: savedEvents.map((row) => row.event_id),
+      likedEvents: Array.from(new Set([
+        ...likedEvents.map((row) => row.event_id),
+        ...(loadLocalUser()?.likedEvents ?? []),
+      ])),
+      savedEvents: Array.from(new Set([
+        ...savedEvents.map((row) => row.event_id),
+        ...(loadLocalUser()?.savedEvents ?? []),
+      ])),
       location: profile.location ?? '',
       isVerified: true,
       businessName: businessMeta?.businessName ?? undefined,
@@ -370,7 +376,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthState((prev) => {
       if (!prev.user) return prev
       const nextUser = { ...prev.user, ...data }
-      if (!hasSupabaseEnv) saveLocalUser(nextUser)
+      // Siempre persistir en localStorage para que likedEvents/savedEvents
+      // sobrevivan recargas de página incluso cuando Supabase está activo.
+      saveLocalUser(nextUser)
       return { ...prev, user: nextUser }
     })
   }, [authState.user])

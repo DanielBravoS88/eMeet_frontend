@@ -185,8 +185,21 @@ function HomePageContent() {
       return
     }
 
+    // Actualización optimista: el like se registra localmente de inmediato
+    setLikedIds((prev) => new Set(prev).add(id))
+    setDismissedIds((prev) => new Set(prev).add(id))
+    excludePlace(id)
+    showToast('¡Te interesa! 💚', 'like')
+
+    try {
+      await updateUser({ likedEvents: Array.from(new Set([...(user.likedEvents ?? []), likedEvent.id])) })
+    } catch {
+      // El like ya fue registrado localmente, solo falló la sincronización.
+    }
+
+    // Intentar sincronizar con Supabase en segundo plano (sin bloquear el flujo)
     if (hasSupabaseEnv && supabase) {
-      const { error } = await supabase.from('user_events').upsert(
+      supabase.from('user_events').upsert(
         {
           user_id: user.id,
           event_id: likedEvent.id,
@@ -196,23 +209,9 @@ function HomePageContent() {
           action: 'like',
         },
         { onConflict: 'user_id,event_id,action' },
-      )
-
-      if (error) {
-        showToast('No se pudo registrar tu like.', 'nope')
-        return
-      }
-    }
-
-    setLikedIds((prev) => new Set(prev).add(id))
-    setDismissedIds((prev) => new Set(prev).add(id))
-    excludePlace(id)
-    showToast('¡Te interesa! 💚', 'like')
-
-    try {
-      await updateUser({ likedEvents: Array.from(new Set([...(user.likedEvents ?? []), likedEvent.id])) })
-    } catch {
-      // El like ya fue persistido, solo falló la sincronización local del perfil.
+      ).then(({ error }) => {
+        if (error) console.warn('No se pudo sincronizar el like con el servidor:', error.message)
+      })
     }
 
     showCarretee({
