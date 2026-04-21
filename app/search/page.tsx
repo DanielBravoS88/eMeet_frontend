@@ -1,9 +1,11 @@
+'use client'
+
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import Layout from '../components/Layout'
-import SwipeCard from '../components/SwipeCard'
-import { MOCK_EVENTS, CATEGORY_EMOJI } from '../data/mockEvents'
-import type { Event, EventCategory } from '../types'
+import Layout from '../../src/components/Layout'
+import SwipeCard from '../../src/components/SwipeCard'
+import { MOCK_EVENTS, CATEGORY_EMOJI } from '../../src/data/mockEvents'
+import type { Event, EventCategory } from '../../src/types'
 
 const CATEGORIES: { key: EventCategory; label: string }[] = [
   { key: 'gastronomia', label: 'Gastronomía' },
@@ -16,18 +18,7 @@ const CATEGORIES: { key: EventCategory; label: string }[] = [
   { key: 'arte', label: 'Arte' },
 ]
 
-/**
- * SearchPage — Explorar eventos con filtros por categoría.
- *
- * Funcionalidad:
- *  - Barra de búsqueda por texto (título / tags).
- *  - Filtros por categoría en chips horizontales.
- *  - Grid de tarjetas (vista compacta, 2 columnas en mobile).
- *
- * Al hacer clic en una tarjeta se muestra el stack de swipe
- * del evento seleccionado para mantener consistencia de UX.
- */
-export default function SearchPage() {
+export default function SearchRoutePage() {
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<EventCategory | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
@@ -45,26 +36,24 @@ export default function SearchPage() {
 
   return (
     <Layout headerTitle="Explorar">
-      <div className="px-4 pt-4 pb-4 lg:px-5 lg:pt-5">
-        {/* Barra de búsqueda */}
+      <div className="px-4 pb-4 pt-4 lg:px-5 lg:pt-5">
         <div className="relative mb-4">
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar eventos, categorías o tags..."
-            className="w-full bg-card rounded-2xl px-4 py-3 pl-10 text-white text-sm placeholder-muted border border-white/10 focus:border-primary focus:outline-none transition-colors"
+            className="w-full rounded-2xl border border-white/10 bg-card px-4 py-3 pl-10 text-sm text-white placeholder-muted transition-colors focus:border-primary focus:outline-none"
           />
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-base">🔍</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-muted">🔍</span>
         </div>
 
-        {/* Chips de categoría */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-none">
+        <div className="mb-5 flex gap-2 overflow-x-auto pb-2 scrollbar-none">
           <button
             onClick={() => setActiveCategory(null)}
-            className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+            className={`flex-shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition-colors ${
               activeCategory === null
-                ? 'bg-primary border-primary text-white'
+                ? 'border-primary bg-primary text-white'
                 : 'border-white/20 text-muted hover:border-white/40'
             }`}
           >
@@ -73,12 +62,10 @@ export default function SearchPage() {
           {CATEGORIES.map((cat) => (
             <button
               key={cat.key}
-              onClick={() =>
-                setActiveCategory(activeCategory === cat.key ? null : cat.key)
-              }
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+              onClick={() => setActiveCategory(activeCategory === cat.key ? null : cat.key)}
+              className={`flex-shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition-colors ${
                 activeCategory === cat.key
-                  ? 'bg-primary border-primary text-white'
+                  ? 'border-primary bg-primary text-white'
                   : 'border-white/20 text-muted hover:border-white/40'
               }`}
             >
@@ -87,13 +74,12 @@ export default function SearchPage() {
           ))}
         </div>
 
-        {/* Resultados */}
-        <p className="text-muted text-xs mb-3">{filtered.length} eventos encontrados</p>
+        <p className="mb-3 text-xs text-muted">{filtered.length} eventos encontrados</p>
 
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+          <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
             <span className="text-4xl">🔎</span>
-            <p className="text-muted text-sm">No hay eventos que coincidan con tu búsqueda.</p>
+            <p className="text-sm text-muted">No hay eventos que coincidan con tu búsqueda.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3 lg:gap-4">
@@ -102,21 +88,17 @@ export default function SearchPage() {
                 key={event.id}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setSelectedEvent(event)}
-                className="bg-card rounded-2xl overflow-hidden text-left border border-white/5 hover:border-primary/40 transition-colors"
+                className="overflow-hidden rounded-2xl border border-white/5 bg-card text-left transition-colors hover:border-primary/40"
               >
-                <img
-                  src={event.imageUrl}
-                  alt={event.title}
-                  className="w-full h-28 object-cover"
-                />
+                <img src={event.imageUrl} alt={event.title} className="h-28 w-full object-cover" />
                 <div className="p-3">
-                  <span className="text-xs text-primary-light font-medium">
+                  <span className="text-xs font-medium text-primary-light">
                     {CATEGORY_EMOJI[event.category]} {event.category}
                   </span>
-                  <h3 className="text-white text-sm font-semibold leading-tight mt-0.5 line-clamp-2">
+                  <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-tight text-white">
                     {event.title}
                   </h3>
-                  <p className="text-muted text-xs mt-1">{event.distance} km</p>
+                  <p className="mt-1 text-xs text-muted">{event.distance} km</p>
                 </div>
               </motion.button>
             ))}
@@ -124,7 +106,6 @@ export default function SearchPage() {
         )}
       </div>
 
-      {/* Modal de detalle (carta de swipe superpuesta) */}
       {selectedEvent && (
         <motion.div
           initial={{ opacity: 0 }}
