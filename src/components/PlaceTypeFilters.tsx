@@ -1,7 +1,11 @@
 import type { PlaceType } from '../types'
 import { PLACE_TYPE_CONFIG } from '../services/placesService'
 
-const ORDERED_TYPES: PlaceType[] = ['restaurant', 'bar', 'night_club', 'cafe']
+const ORDERED_TYPES: PlaceType[] = [
+  'restaurant', 'bar', 'night_club', 'cafe',
+  'gym', 'park', 'stadium',
+  'museum', 'art_gallery', 'movie_theater',
+]
 
 interface PlaceTypeFiltersProps {
   selectedTypes: PlaceType[]

@@ -28,23 +28,37 @@ export const PLACE_TYPE_CONFIG: Record<
   PlaceType,
   { category: string; emoji: string; color: string }
 > = {
-  restaurant:   { category: 'Restaurante', emoji: '🍽️', color: '#F97316' },
-  cafe:         { category: 'Café',        emoji: '☕',  color: '#A1662F' },
-  bar:          { category: 'Bar',         emoji: '🍺',  color: '#F59E0B' },
-  night_club:   { category: 'Discoteca',   emoji: '🎉',  color: '#EC4899' },
-  liquor_store: { category: 'Licorería',   emoji: '🍷',  color: '#8B5CF6' },
-  food:         { category: 'Comida',      emoji: '🍴',  color: '#10B981' },
+  restaurant:         { category: 'Restaurante',    emoji: '🍽️', color: '#F97316' },
+  cafe:               { category: 'Café',            emoji: '☕',  color: '#A1662F' },
+  bar:                { category: 'Bar',             emoji: '🍺',  color: '#F59E0B' },
+  night_club:         { category: 'Discoteca',       emoji: '🎵',  color: '#EC4899' },
+  liquor_store:       { category: 'Licorería',       emoji: '🍷',  color: '#8B5CF6' },
+  food:               { category: 'Comida',          emoji: '🍴',  color: '#10B981' },
+  gym:                { category: 'Gimnasio',        emoji: '💪',  color: '#06B6D4' },
+  stadium:            { category: 'Estadio',         emoji: '🏟️', color: '#22C55E' },
+  park:               { category: 'Parque',          emoji: '🌳',  color: '#84CC16' },
+  museum:             { category: 'Museo',           emoji: '🏛️', color: '#6366F1' },
+  art_gallery:        { category: 'Galería de Arte', emoji: '🎨',  color: '#D946EF' },
+  movie_theater:      { category: 'Cine / Teatro',   emoji: '🎬',  color: '#F43F5E' },
+  tourist_attraction: { category: 'Atracción',       emoji: '🗺️', color: '#0EA5E9' },
 }
 
 // ─── Mapeo de PlaceType a Google Places type ────────────────────────────────
 
 const PLACE_TYPE_MAPPING: Record<PlaceType, string> = {
-  restaurant:   'restaurant',
-  bar:          'bar',
-  night_club:   'night_club',
-  cafe:         'cafe',
-  liquor_store: 'liquor_store',
-  food:         'food',
+  restaurant:         'restaurant',
+  bar:                'bar',
+  night_club:         'night_club',
+  cafe:               'cafe',
+  liquor_store:       'liquor_store',
+  food:               'food',
+  gym:                'gym',
+  stadium:            'stadium',
+  park:               'park',
+  museum:             'museum',
+  art_gallery:        'art_gallery',
+  movie_theater:      'movie_theater',
+  tourist_attraction: 'tourist_attraction',
 }
 
 interface GooglePlaceSearchResult {

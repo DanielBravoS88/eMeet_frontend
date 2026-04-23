@@ -85,6 +85,13 @@ export type PlaceType =
   | 'cafe'
   | 'liquor_store'
   | 'food'
+  | 'gym'
+  | 'stadium'
+  | 'park'
+  | 'museum'
+  | 'art_gallery'
+  | 'movie_theater'
+  | 'tourist_attraction'
 
 /**
  * Lugar real extraído desde Google Maps Places API.

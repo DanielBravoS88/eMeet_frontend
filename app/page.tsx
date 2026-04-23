@@ -21,7 +21,7 @@ import { NearbyPlacesProvider, useNearbyPlacesContext } from '../src/context/Nea
 import { useChatContext } from '../src/context/ChatContext'
 import { useAuth } from '../src/context/AuthContext'
 import { useLocatarioEvents } from '../src/context/LocatarioEventsContext'
-import { hasSupabaseEnv } from '../src/lib/supabase'
+import { hasSupabaseEnv, getSupabaseBrowserClient } from '../src/lib/supabase'
 import { fetchApi } from '../src/lib/fetchApi'
 import type { PlaceType } from '../src/types'
 
@@ -219,6 +219,13 @@ function HomePageContent() {
       window.open(likedEvent.websiteUrl, '_blank', 'noopener,noreferrer')
     }
 
+    // Sincronizar estado del perfil inmediatamente — independiente del resultado del backend
+    try {
+      await updateUser({ likedEvents: Array.from(new Set([...(user.likedEvents ?? []), likedEvent.id])) })
+    } catch {
+      // Fallo silencioso de sync de perfil.
+    }
+
     // Persistir en backend — si falla no revertimos (la tarjeta ya salió)
     if (hasSupabaseEnv) {
       try {
@@ -236,14 +243,7 @@ function HomePageContent() {
         if (message.toLowerCase().includes('sesión') || message.toLowerCase().includes('token')) {
           showToast('Tu sesión expiró. Inicia sesión nuevamente.', 'nope')
         }
-        return
       }
-    }
-
-    try {
-      await updateUser({ likedEvents: Array.from(new Set([...(user.likedEvents ?? []), likedEvent.id])) })
-    } catch {
-      // Fallo silencioso de sync de perfil — el like ya fue persistido en Supabase.
     }
 
     try {
@@ -276,39 +276,49 @@ function HomePageContent() {
     else nextSaved.add(id)
     setSavedIds(nextSaved)
 
+    // Persistir en Supabase directamente desde el cliente (RLS permite insert/delete propio)
     if (hasSupabaseEnv) {
+      const supabase = getSupabaseBrowserClient()
       try {
         if (isCurrentlySaved) {
-          await fetchApi(`/api/events/save/${id}`, { method: 'DELETE' })
+          const { error } = await supabase
+            .from('user_events')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('event_id', id)
+            .eq('action', 'save')
+          if (error) throw error
         } else {
-          await fetchApi('/api/events/save', {
-            method: 'POST',
-            body: JSON.stringify({
-              eventId: eventToSave.id,
-              eventTitle: eventToSave.title,
-              eventImageUrl: eventToSave.imageUrl,
-              eventAddress: eventToSave.address,
-            }),
-          })
+          const { error } = await supabase
+            .from('user_events')
+            .upsert(
+              {
+                user_id: user.id,
+                event_id: eventToSave.id,
+                event_title: eventToSave.title,
+                event_image_url: eventToSave.imageUrl ?? null,
+                event_address: eventToSave.address ?? null,
+                action: 'save' as const,
+              },
+              { onConflict: 'user_id,event_id,action' },
+            )
+          if (error) throw error
         }
-      } catch (error) {
-        // Revertir el estado optimista si falla la API
+      } catch {
+        // Revertir estado optimista si falla la escritura en Supabase
         setSavedIds(savedIds)
-        const message = error instanceof Error ? error.message : ''
-        if (message.toLowerCase().includes('sesión') || message.toLowerCase().includes('token')) {
-          showToast('Tu sesión expiró. Inicia sesión nuevamente.', 'nope')
-        } else {
-          showToast(isCurrentlySaved ? 'No se pudo quitar de guardados.' : 'No se pudo guardar el evento.', 'nope')
-        }
+        try {
+          await updateUser({ savedEvents: Array.from(savedIds) })
+        } catch { /* fallo silencioso */ }
+        showToast(isCurrentlySaved ? 'No se pudo quitar de guardados.' : 'No se pudo guardar el evento.', 'nope')
         return
       }
     }
 
+    // Sincronizar perfil (contador Guardados)
     try {
       await updateUser({ savedEvents: Array.from(nextSaved) })
-    } catch {
-      // Fallo silencioso de sync de perfil — el guardado ya fue persistido en Supabase.
-    }
+    } catch { /* fallo silencioso */ }
 
     showToast(!isCurrentlySaved ? 'Evento guardado 🔖' : 'Quitado de guardados', 'save')
   }, [events, savedIds, updateUser, user])

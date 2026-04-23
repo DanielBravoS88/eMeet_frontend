@@ -16,7 +16,10 @@ import type { PlaceType, ScrapedPlace } from '../types'
 import { useNearbyPlaces } from '../hooks/useNearbyPlaces'
 
 const LIBRARIES: Libraries = ['places']
-const DEFAULT_PLACE_TYPES: PlaceType[] = ['restaurant', 'bar', 'night_club', 'cafe']
+const DEFAULT_PLACE_TYPES: PlaceType[] = [
+  'restaurant', 'bar', 'night_club', 'cafe',
+  'gym', 'museum', 'art_gallery', 'movie_theater', 'park', 'tourist_attraction',
+]
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? ''
 const HAS_GOOGLE_MAPS_KEY = GOOGLE_MAPS_API_KEY.length > 0
@@ -61,7 +64,7 @@ interface NearbyPlacesContextValue {
   setActiveEventLocation: (loc: ActiveEventLocation | null) => void
 }
 
-const NearbyPlacesContext = createContext<NearbyPlacesContextValue | undefined>(undefined)
+export const NearbyPlacesContext = createContext<NearbyPlacesContextValue | undefined>(undefined)
 
 function createBoundsAround(
   location: google.maps.LatLngLiteral,

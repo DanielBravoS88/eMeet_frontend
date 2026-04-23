@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useRef, useEffect, useMemo, useState } from 'react'
+import { useCallback, useRef, useEffect, useMemo, useState, useContext } from 'react'
 import { GoogleMap, OverlayView, DirectionsRenderer } from '@react-google-maps/api'
 import { PLACE_TYPE_CONFIG } from '../services/placesService'
-import { useNearbyPlacesContext } from '../context/NearbyPlacesContext'
+import { NearbyPlacesContext } from '../context/NearbyPlacesContext'
 
 const CENTER: google.maps.LatLngLiteral = { lat: -33.4364, lng: -70.6358 }
 
@@ -74,6 +74,8 @@ function getDistanceKm(
 }
 
 export default function BellavistaMap() {
+  const ctx = useContext(NearbyPlacesContext)
+  if (!ctx) return null
   const {
     places,
     excludedPlaceIds,
@@ -91,7 +93,7 @@ export default function BellavistaMap() {
     activeEventLocation,
     setSelectedDestination,
     requestUserLocation,
-  } = useNearbyPlacesContext()
+  } = ctx
   const mapRef = useRef<google.maps.Map | null>(null)
   const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null)
   const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null)
