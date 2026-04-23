@@ -191,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
+    accessToken: null,
   })
   const [isAuthReady, setIsAuthReady] = useState(false)
 
@@ -200,6 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string,
     roleHint?: User['role'],
     businessMeta?: { businessName?: string | null; businessLocation?: string | null },
+    accessToken?: string | null,
   ) => {
     const [profileResult, likedResult, savedResult] = await Promise.allSettled([
       fetchApi<ProfilePayload>('/api/profile', { method: 'GET' }),
@@ -229,14 +231,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       businessLocation: businessMeta?.businessLocation ?? undefined,
     }
 
-    setAuthState({ user: nextUser, isAuthenticated: true })
+    setAuthState({ user: nextUser, isAuthenticated: true, accessToken: accessToken ?? null })
   }, [])
 
   // Usada al montar la app: primero verifica si hay sesión activa, luego carga datos.
   const syncFromApi = useCallback(async () => {
     if (!hasSupabaseEnv) {
       const localUser = loadLocalUser()
-      setAuthState({ user: localUser, isAuthenticated: Boolean(localUser) })
+      setAuthState({ user: localUser, isAuthenticated: Boolean(localUser), accessToken: null })
       return
     }
 
@@ -253,7 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (!sessionPayload.session) {
-      setAuthState({ user: null, isAuthenticated: false })
+      setAuthState({ user: null, isAuthenticated: false, accessToken: null })
       return
     }
 
@@ -264,7 +266,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await syncUserData(sessionPayload.session.user.email ?? '', roleHint, {
       businessName,
       businessLocation,
-    })
+    }, data.session?.access_token ?? null)
   }, [syncUserData])
 
   useEffect(() => {
@@ -276,7 +278,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await syncFromApi()
       } catch {
         if (!mounted) return
-        setAuthState({ user: null, isAuthenticated: false })
+        setAuthState({ user: null, isAuthenticated: false, accessToken: null })
       } finally {
         if (mounted) setIsAuthReady(true)
       }
@@ -294,7 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const previous = loadLocalUser()
       const localUser = createLocalUser(previous?.name ?? email.split('@')[0], email, previous)
       saveLocalUser(localUser)
-      setAuthState({ user: localUser, isAuthenticated: true })
+      setAuthState({ user: localUser, isAuthenticated: true, accessToken: null })
       return localUser.role
     }
 
@@ -314,7 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await syncUserData(email, role, {
       businessName: payload.user?.user_metadata?.business_name,
       businessLocation: payload.user?.user_metadata?.business_location,
-    })
+    }, payload.session?.access_token ?? null)
     return role
   }, [syncUserData])
 
@@ -322,7 +324,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!hasSupabaseEnv) {
       const localUser = createLocalUser(name, email, loadLocalUser(), options)
       saveLocalUser(localUser)
-      setAuthState({ user: localUser, isAuthenticated: true })
+      setAuthState({ user: localUser, isAuthenticated: true, accessToken: null })
       return { needsEmailVerification: false }
     }
 
@@ -346,7 +348,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await syncUserData(email, options?.role ?? extractRoleFromAuthUser(payload.user), {
         businessName: options?.businessName ?? payload.user?.user_metadata?.business_name,
         businessLocation: options?.businessLocation ?? payload.user?.user_metadata?.business_location,
-      })
+      }, payload.session.access_token)
       return { needsEmailVerification: false }
     }
 
@@ -373,7 +375,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     if (!hasSupabaseEnv) {
       saveLocalUser(null)
-      setAuthState({ user: null, isAuthenticated: false })
+      setAuthState({ user: null, isAuthenticated: false, accessToken: null })
       return
     }
 
@@ -384,7 +386,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     await getSupabaseBrowserClient().auth.signOut()
-    setAuthState({ user: null, isAuthenticated: false })
+    setAuthState({ user: null, isAuthenticated: false, accessToken: null })
   }, [])
 
   const updateUser = useCallback(async (data: Partial<User>) => {

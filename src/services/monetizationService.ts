@@ -1,4 +1,5 @@
-import { getSupabaseBrowserClient, hasSupabaseEnv } from '../lib/supabase'
+import { getSupabaseAccessToken, requireSupabaseAccessToken } from '../lib/authSession'
+import { hasSupabaseEnv } from '../lib/supabase'
 
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '')
 
@@ -65,12 +66,19 @@ function requireBackendUrl() {
   return BACKEND_URL
 }
 
+function buildJsonHeaders(initHeaders?: HeadersInit) {
+  const headers = new Headers(initHeaders)
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+  return headers
+}
+
 async function monetizationFetch<T>(input: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers({ 'Content-Type': 'application/json', ...(init?.headers ?? {}) })
+  const headers = buildJsonHeaders(init?.headers)
 
   if (hasSupabaseEnv) {
-    const { data } = await getSupabaseBrowserClient().auth.getSession()
-    const accessToken = data.session?.access_token
+    const accessToken = await getSupabaseAccessToken()
     if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
   }
 
@@ -89,15 +97,10 @@ async function monetizationFetch<T>(input: string, init?: RequestInit): Promise<
 }
 
 async function monetizationFetchWithAuth<T>(input: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers({ 'Content-Type': 'application/json', ...(init?.headers ?? {}) })
-  const { data } = hasSupabaseEnv
-    ? await getSupabaseBrowserClient().auth.getSession()
-    : { data: { session: null } }
-  const accessToken = data.session?.access_token
-
-  if (!accessToken) {
-    throw new Error('Debes volver a iniciar sesion para cargar tu saldo promocional.')
-  }
+  const headers = buildJsonHeaders(init?.headers)
+  const accessToken = await requireSupabaseAccessToken(
+    'Tu sesion expiro o no esta activa. Inicia sesion nuevamente para usar monetizacion.',
+  )
 
   headers.set('Authorization', `Bearer ${accessToken}`)
 
@@ -178,9 +181,9 @@ export function confirmTransbankPayment(orderId: string, tokenWs: string) {
   })
 }
 
-export function confirmMercadoPagoPayment(orderId: string, paymentId: string) {
+export function confirmMercadoPagoPayment(orderId: string, paymentId?: string) {
   return monetizationFetchWithAuth<PaymentOrder>('/monetization/mercadopago/confirm', {
     method: 'POST',
-    body: JSON.stringify({ orderId, paymentId }),
+    body: JSON.stringify({ orderId, ...(paymentId ? { paymentId } : {}) }),
   })
 }

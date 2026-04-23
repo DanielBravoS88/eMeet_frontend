@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Event, EventCategory } from '../types'
+import { getSupabaseAccessToken, getSupabaseAuthSession } from '../lib/authSession'
 import { getSupabaseBrowserClient, hasSupabaseEnv } from '../lib/supabase'
 
 interface CreateLocatarioEventInput {
@@ -112,8 +113,7 @@ async function apiFetch<T>(input: string, init?: RequestInit): Promise<T> {
   const headers = new Headers({ 'Content-Type': 'application/json', ...(init?.headers ?? {}) })
 
   if (hasSupabaseEnv) {
-    const { data } = await getSupabaseBrowserClient().auth.getSession()
-    const accessToken = data.session?.access_token
+    const accessToken = await getSupabaseAccessToken()
     if (accessToken) {
       headers.set('Authorization', `Bearer ${accessToken}`)
     }
@@ -150,10 +150,10 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
 
     requireBackendUrl()
     ;(async () => {
-      const { data } = await getSupabaseBrowserClient().auth.getSession()
+      const session = await getSupabaseAuthSession()
 
       // Evita request 401 en frío cuando aún no hay sesión.
-      if (!data.session) {
+      if (!session) {
         if (!mounted) return
         setLocatarioEvents(loadEventsFromStorage())
         setIsLoading(false)
@@ -180,6 +180,11 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
     })
 
     const { data: authListener } = getSupabaseBrowserClient().auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setLocatarioEvents([])
+        return
+      }
+
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         apiFetch<LocatarioEventRow[]>('/events/locatario')
           .then((rows) => {
@@ -235,8 +240,8 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
       return newEvent
     }
 
-    const { data: sessionData } = await getSupabaseBrowserClient().auth.getSession()
-    if (!sessionData.session) {
+    const session = await getSupabaseAuthSession()
+    if (!session) {
       throw new Error('Debes iniciar sesión para crear eventos de locatario.')
     }
 
@@ -274,8 +279,8 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
 
     if (!hasSupabaseEnv) return
 
-    const { data: sessionData } = await getSupabaseBrowserClient().auth.getSession()
-    if (!sessionData.session) {
+    const session = await getSupabaseAuthSession()
+    if (!session) {
       throw new Error('Debes iniciar sesión para eliminar eventos de locatario.')
     }
 
