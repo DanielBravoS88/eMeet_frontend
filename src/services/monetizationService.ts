@@ -49,6 +49,34 @@ export interface WalletResponse {
   campaigns: PromotionCampaign[]
 }
 
+export interface Coupon {
+  id: string
+  campaign_id: string
+  title: string
+  description: string | null
+  qr_token: string
+  status: string
+  expires_at: string | null
+  created_at: string
+}
+
+export interface CouponEventSummary {
+  id: string
+  title: string
+  event_date: string
+}
+
+export interface CouponWithRelations extends Coupon {
+  campaign: PromotionCampaign | null
+  event: CouponEventSummary | null
+}
+
+export interface CouponValidationResponse {
+  coupon: Coupon
+  campaign: PromotionCampaign
+  event: CouponEventSummary | null
+}
+
 export class MonetizationApiError extends Error {
   status: number
 
@@ -171,6 +199,29 @@ export function activatePromotion(eventId: string, type: PromotionType, duration
   return monetizationFetchWithAuth<{ campaign: PromotionCampaign; wallet: TokenWallet }>('/monetization/promotions', {
     method: 'POST',
     body: JSON.stringify({ eventId, type, durationDays }),
+  })
+}
+
+export function getCoupons() {
+  return monetizationFetchWithAuth<{ coupons: CouponWithRelations[] }>('/monetization/coupons')
+}
+
+export function createCouponCampaign(eventId: string, durationDays = 1) {
+  return monetizationFetchWithAuth<{
+    campaign: PromotionCampaign
+    coupon: Coupon
+    wallet: TokenWallet
+    event: CouponEventSummary
+  }>('/monetization/coupons', {
+    method: 'POST',
+    body: JSON.stringify({ eventId, durationDays }),
+  })
+}
+
+export function validateCouponQr(qrToken: string) {
+  return monetizationFetchWithAuth<CouponValidationResponse>('/monetization/qr/validate', {
+    method: 'POST',
+    body: JSON.stringify({ qrToken }),
   })
 }
 

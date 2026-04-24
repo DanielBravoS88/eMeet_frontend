@@ -15,9 +15,13 @@ import {
   activatePromotion,
   confirmMercadoPagoPayment,
   confirmTransbankPayment,
+  createCouponCampaign,
   createTokenPurchase,
+  getCoupons,
   getTokenPacks,
   getWallet,
+  validateCouponQr,
+  type CouponWithRelations,
   type PromotionCampaign,
   type TokenPack,
   type TokenPaymentProvider,
@@ -44,6 +48,23 @@ function formatCLP(value: number) {
   }).format(value)
 }
 
+function formatDateLabel(value: string) {
+  return new Intl.DateTimeFormat('es-CL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date(value))
+}
+
+function buildQrImageUrl(qrToken: string) {
+  const params = new URLSearchParams({
+    size: '180x180',
+    data: qrToken,
+  })
+
+  return `https://api.qrserver.com/v1/create-qr-code/?${params.toString()}`
+}
+
 export default function LocatarioPage() {
   const { user, logout, isAuthReady, accessToken } = useAuth()
   const { createLocatarioEvent, locatarioEvents, removeLocatarioEvent, isLoading } = useLocatarioEvents()
@@ -56,10 +77,17 @@ export default function LocatarioPage() {
   const [wallet, setWallet] = useState<TokenWallet | null>(null)
   const [tokenPacks, setTokenPacks] = useState<TokenPack[]>([])
   const [campaigns, setCampaigns] = useState<PromotionCampaign[]>([])
+  const [coupons, setCoupons] = useState<CouponWithRelations[]>([])
   const [monetizationLoading, setMonetizationLoading] = useState(false)
   const [monetizationAction, setMonetizationAction] = useState<string | null>(null)
   const [packsError, setPacksError] = useState<string | null>(null)
   const [walletError, setWalletError] = useState<string | null>(null)
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [couponEventId, setCouponEventId] = useState('')
+  const [couponDurationDays, setCouponDurationDays] = useState('7')
+  const [qrValidationToken, setQrValidationToken] = useState('')
+  const [qrValidationResult, setQrValidationResult] = useState<string | null>(null)
+  const [visibleCouponQrId, setVisibleCouponQrId] = useState<string | null>(null)
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [eventForm, setEventForm] = useState({
     ...EMPTY_FORM,
@@ -81,6 +109,7 @@ export default function LocatarioPage() {
     setMonetizationLoading(true)
     setPacksError(null)
     setWalletError(null)
+    setCouponError(null)
     try {
       const packs = await getTokenPacks()
       setTokenPacks(packs)
@@ -99,6 +128,15 @@ export default function LocatarioPage() {
       setWallet(null)
       setCampaigns([])
       setWalletError(message)
+    }
+
+    try {
+      const couponsResponse = await getCoupons()
+      setCoupons(couponsResponse.coupons)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudieron cargar los cupones.'
+      setCoupons([])
+      setCouponError(message)
     } finally {
       setMonetizationLoading(false)
     }
@@ -153,6 +191,11 @@ export default function LocatarioPage() {
       }
     })()
   }, [isAuthReady, user?.id, user?.role, accessToken])
+
+  useEffect(() => {
+    if (couponEventId || locatarioEvents.length === 0) return
+    setCouponEventId(locatarioEvents[0].id)
+  }, [couponEventId, locatarioEvents])
 
   const handleLogout = async () => {
     await logout()
@@ -253,6 +296,54 @@ export default function LocatarioPage() {
       setFeedback({ message: 'Evento destacado por 24 horas.', type: 'success' })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo activar la promocion.'
+      setFeedback({ message, type: 'error' })
+    } finally {
+      setMonetizationAction(null)
+    }
+  }
+
+  const handleCreateCoupon = async () => {
+    if (!couponEventId) {
+      setFeedback({ message: 'Selecciona un evento para crear el cupón.', type: 'error' })
+      return
+    }
+
+    setMonetizationAction('create-coupon')
+    try {
+      const result = await createCouponCampaign(couponEventId, Number(couponDurationDays))
+      setWallet(result.wallet)
+      setCampaigns((prev) => [result.campaign, ...prev])
+      await loadMonetization()
+      setQrValidationResult(`Cupón creado para ${result.event.title}.`)
+      setFeedback({ message: 'Cupón creado y guardado en la base real.', type: 'success' })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo crear el cupón.'
+      setFeedback({ message, type: 'error' })
+    } finally {
+      setMonetizationAction(null)
+    }
+  }
+
+  const handleValidateCouponQr = async () => {
+    if (!qrValidationToken.trim()) {
+      setFeedback({ message: 'Ingresa un token QR para validar.', type: 'error' })
+      return
+    }
+
+    setMonetizationAction('validate-coupon')
+    try {
+      const result = await validateCouponQr(qrValidationToken.trim())
+      setQrValidationResult(
+        result.event?.title
+          ? `Cupón validado para ${result.event.title} con estado ${result.coupon.status}.`
+          : `Cupón validado con estado ${result.coupon.status}.`,
+      )
+      setQrValidationToken('')
+      await loadMonetization()
+      setFeedback({ message: 'QR validado correctamente.', type: 'success' })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo validar el QR.'
+      setQrValidationResult(null)
       setFeedback({ message, type: 'error' })
     } finally {
       setMonetizationAction(null)
@@ -555,6 +646,9 @@ export default function LocatarioPage() {
           const paid = total - free
           const gpsPercent = total > 0 ? Math.round((withGps / total) * 100) : 0
           const freePercent = total > 0 ? Math.round((free / total) * 100) : 0
+          const couponCampaigns = campaigns.filter((campaign) => campaign.type === 'coupon')
+          const activeCouponCampaigns = couponCampaigns.filter((campaign) => campaign.status === 'active').length
+          const latestCouponCampaign = couponCampaigns[0] ?? null
 
           const categoryCount = locatarioEvents.reduce<Record<string, number>>((acc, e) => {
             acc[e.category] = (acc[e.category] ?? 0) + 1
@@ -566,16 +660,173 @@ export default function LocatarioPage() {
 
           return (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Cupones — próximamente */}
-              <div className="bg-card border border-card rounded-lg p-6 flex flex-col items-center justify-center gap-3 text-center min-h-[200px]">
-                <span className="text-4xl">🎟️</span>
-                <h3 className="text-lg font-semibold text-white">Cupones de Descuento</h3>
-                <span className="inline-block rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-light">
-                  Próximamente
-                </span>
-                <p className="max-w-xs text-sm text-muted">
-                  Pronto podrás crear y gestionar cupones de descuento para tus eventos directamente desde aquí.
-                </p>
+              {/* Cupones funcionales */}
+              <div className="bg-card border border-card rounded-lg p-6 min-h-[200px]">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Cupones de Descuento</h3>
+                    <p className="text-sm text-muted">
+                      Crea campañas coupon reales para tus eventos y valida beneficios QR desde el panel.
+                    </p>
+                  </div>
+                  <span className="inline-block rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary-light whitespace-nowrap">
+                    {activeCouponCampaigns} activas
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {walletError && (
+                    <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                      {walletError}
+                    </p>
+                  )}
+                  {couponError && (
+                    <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                      {couponError}
+                    </p>
+                  )}
+                  {!walletError && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <label className="block">
+                        <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted">Evento</span>
+                        <select
+                          value={couponEventId}
+                          onChange={(e) => setCouponEventId(e.target.value)}
+                          className="w-full rounded-lg border border-card bg-surface px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                        >
+                          <option value="">Selecciona un evento</option>
+                          {locatarioEvents.map((event) => (
+                            <option key={event.id} value={event.id}>
+                              {event.title}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="block">
+                        <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted">Duración</span>
+                        <select
+                          value={couponDurationDays}
+                          onChange={(e) => setCouponDurationDays(e.target.value)}
+                          className="w-full rounded-lg border border-card bg-surface px-3 py-2 text-sm text-white focus:border-primary focus:outline-none"
+                        >
+                          <option value="1">1 día</option>
+                          <option value="7">7 días</option>
+                          <option value="15">15 días</option>
+                          <option value="30">30 días</option>
+                        </select>
+                      </label>
+                    </div>
+                  )}
+
+                  {!walletError && (
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-xs text-muted">
+                        Costo real de activación: {Number(couponDurationDays) * 5} tokens.
+                      </p>
+                      <button
+                        onClick={handleCreateCoupon}
+                        disabled={monetizationAction === 'create-coupon' || !couponEventId || locatarioEvents.length === 0}
+                        className="rounded-lg bg-primary hover:bg-primary-dark px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-60"
+                      >
+                        {monetizationAction === 'create-coupon' ? 'Creando...' : 'Crear cupón'}
+                      </button>
+                    </div>
+                  )}
+
+                    <div className="rounded-lg border border-white/10 bg-surface/50 p-4">
+                      <div className="flex flex-col md:flex-row gap-3">
+                        <input
+                          value={qrValidationToken}
+                          onChange={(e) => setQrValidationToken(e.target.value)}
+                          placeholder="Pega un token QR para validar"
+                          className="flex-1 rounded-lg border border-card bg-card px-3 py-2 text-sm text-white placeholder:text-muted focus:border-primary focus:outline-none"
+                        />
+                        <button
+                          onClick={handleValidateCouponQr}
+                          disabled={monetizationAction === 'validate-coupon'}
+                          className="rounded-lg bg-white/10 hover:bg-white/20 px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-60"
+                        >
+                          {monetizationAction === 'validate-coupon' ? 'Validando...' : 'Validar QR'}
+                        </button>
+                      </div>
+                      {qrValidationResult && (
+                        <p className="mt-3 text-xs text-green-400">{qrValidationResult}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-white">Cupones creados</p>
+                        {latestCouponCampaign && (
+                          <p className="text-xs text-muted">
+                            Última campaña: {formatDateLabel(latestCouponCampaign.created_at)}
+                          </p>
+                        )}
+                      </div>
+
+                      {monetizationLoading ? (
+                        <div className="rounded-lg border border-white/10 bg-surface/50 px-4 py-5 text-sm text-muted">
+                          <FiLoader className="animate-spin inline mr-2" size={14} />
+                          Cargando cupones...
+                        </div>
+                      ) : coupons.length === 0 ? (
+                        <div className="rounded-lg border border-white/10 bg-surface/50 px-4 py-5 text-sm text-muted">
+                          Aún no tienes cupones creados. Selecciona un evento y activa tu primer cupón.
+                        </div>
+                      ) : (
+                        <div className="max-h-[280px] space-y-3 overflow-y-auto pr-1">
+                          {coupons.map((coupon) => (
+                            <article key={coupon.id} className="rounded-lg border border-white/10 bg-surface/50 p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <h4 className="text-sm font-semibold text-white">{coupon.title}</h4>
+                                  <p className="text-xs text-muted">
+                                    {coupon.event?.title ?? 'Evento asociado'}{coupon.event?.event_date ? ` · ${formatDateLabel(coupon.event.event_date)}` : ''}
+                                  </p>
+                                </div>
+                                <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary-light">
+                                  {coupon.status}
+                                </span>
+                              </div>
+                              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-muted">
+                                <p>Campaña: {coupon.campaign?.status ?? 'sin estado'}</p>
+                                <p>Vence: {coupon.expires_at ? formatDateLabel(coupon.expires_at) : 'sin fecha'}</p>
+                              </div>
+                              <p className="mt-3 rounded-lg border border-white/10 bg-card px-3 py-2 font-mono text-[11px] text-primary-light break-all">
+                                {coupon.qr_token}
+                              </p>
+                              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                                <p className="text-xs text-muted">
+                                  Muestra este QR o comparte el token para validar el cupón.
+                                </p>
+                                <button
+                                  onClick={() => setVisibleCouponQrId((current) => current === coupon.id ? null : coupon.id)}
+                                  className="rounded-lg bg-white/10 hover:bg-white/20 px-3 py-2 text-xs font-semibold text-white transition-colors"
+                                >
+                                  {visibleCouponQrId === coupon.id ? 'Ocultar QR' : 'Ver QR'}
+                                </button>
+                              </div>
+                              {visibleCouponQrId === coupon.id && (
+                                <div className="mt-3 rounded-lg border border-white/10 bg-card px-4 py-4 flex flex-col items-center gap-3">
+                                  <img
+                                    src={buildQrImageUrl(coupon.qr_token)}
+                                    alt={`QR del cupón ${coupon.title}`}
+                                    width={180}
+                                    height={180}
+                                    className="h-[180px] w-[180px] rounded-lg bg-white p-2"
+                                  />
+                                  <p className="text-center text-xs text-muted">
+                                    El usuario puede abrir este QR desde el panel y mostrarlo directamente al momento de validarlo.
+                                  </p>
+                                </div>
+                              )}
+                            </article>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                </div>
               </div>
 
               {/* Analítica real derivada de los eventos */}
