@@ -1,91 +1,98 @@
 import type { ScrapedPlace, PlaceType } from '../types'
 
+const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '')
+const PLACES_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_PLACES_TIMEOUT_MS ?? 9000)
+
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === 'AbortError'
+}
+
+async function fetchJsonWithTimeout<T>(input: string, init?: RequestInit): Promise<T> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), Math.max(1000, PLACES_TIMEOUT_MS))
+
+  try {
+    const response = await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    })
+    return (await response.json()) as T
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
 // ─── Configuración visual por tipo de lugar ──────────────────────────────────
 
 export const PLACE_TYPE_CONFIG: Record<
   PlaceType,
   { category: string; emoji: string; color: string }
 > = {
-  restaurant:   { category: 'Restaurante', emoji: '🍽️', color: '#F97316' },
-  cafe:         { category: 'Café',        emoji: '☕',  color: '#A1662F' },
-  bar:          { category: 'Bar',         emoji: '🍺',  color: '#F59E0B' },
-  night_club:   { category: 'Discoteca',   emoji: '🎉',  color: '#EC4899' },
-  liquor_store: { category: 'Licorería',   emoji: '🍷',  color: '#8B5CF6' },
-  food:         { category: 'Comida',      emoji: '🍴',  color: '#10B981' },
+  restaurant:         { category: 'Restaurante',    emoji: '🍽️', color: '#F97316' },
+  cafe:               { category: 'Café',            emoji: '☕',  color: '#A1662F' },
+  bar:                { category: 'Bar',             emoji: '🍺',  color: '#F59E0B' },
+  night_club:         { category: 'Discoteca',       emoji: '🎵',  color: '#EC4899' },
+  liquor_store:       { category: 'Licorería',       emoji: '🍷',  color: '#8B5CF6' },
+  food:               { category: 'Comida',          emoji: '🍴',  color: '#10B981' },
+  gym:                { category: 'Gimnasio',        emoji: '💪',  color: '#06B6D4' },
+  stadium:            { category: 'Estadio',         emoji: '🏟️', color: '#22C55E' },
+  park:               { category: 'Parque',          emoji: '🌳',  color: '#84CC16' },
+  museum:             { category: 'Museo',           emoji: '🏛️', color: '#6366F1' },
+  art_gallery:        { category: 'Galería de Arte', emoji: '🎨',  color: '#D946EF' },
+  movie_theater:      { category: 'Cine / Teatro',   emoji: '🎬',  color: '#F43F5E' },
+  tourist_attraction: { category: 'Atracción',       emoji: '🗺️', color: '#0EA5E9' },
 }
 
-// ─── Mapeo de PlaceType a includedTypes de la nueva Place API ───────────────
+// ─── Mapeo de PlaceType a Google Places type ────────────────────────────────
 
-const PLACE_INCLUDED_TYPES: Record<PlaceType, string> = {
-  restaurant:   'restaurant',
-  bar:          'bar',
-  night_club:   'night_club',
-  cafe:         'cafe',
-  liquor_store: 'liquor_store',
-  food:         'food',
+const PLACE_TYPE_MAPPING: Record<PlaceType, string> = {
+  restaurant:         'restaurant',
+  bar:                'bar',
+  night_club:         'night_club',
+  cafe:               'cafe',
+  liquor_store:       'liquor_store',
+  food:               'food',
+  gym:                'gym',
+  stadium:            'stadium',
+  park:               'park',
+  museum:             'museum',
+  art_gallery:        'art_gallery',
+  movie_theater:      'movie_theater',
+  tourist_attraction: 'tourist_attraction',
 }
 
-const PLACE_TYPE_PRIORITY: PlaceType[] = [
-  'night_club',
-  'bar',
-  'restaurant',
-  'cafe',
-  'liquor_store',
-  'food',
-]
-
-const EXCLUDED_GOOGLE_TYPES = new Set([
-  'gas_station',
-  'electric_vehicle_charging_station',
-  'parking',
-  'car_wash',
-  'car_repair',
-  'car_rental',
-  'car_dealer',
-  'supermarket',
-  'grocery_store',
-  'convenience_store',
-  'atm',
-  'bank',
-  'pharmacy',
-  'hospital',
-  'lodging',
-  'school',
-])
-
-const EXCLUDED_NAME_KEYWORDS = [
-  'copec',
-  'shell',
-  'petrobras',
-  'servicentro',
-  'gas station',
-  'bencina',
-]
-
-function resolveRelevantPlaceType(
-  googleTypes: string[] | undefined,
-  requestedType: PlaceType,
-  placeName: string | undefined,
-): PlaceType | null {
-  const safeTypes = googleTypes ?? []
-  const safeName = placeName?.toLowerCase() ?? ''
-
-  if (safeTypes.some((type) => EXCLUDED_GOOGLE_TYPES.has(type))) {
-    return null
+interface GooglePlaceSearchResult {
+  place_id?: string
+  name?: string
+  formatted_address?: string
+  geometry?: {
+    location?: {
+      lat?: number
+      lng?: number
+    }
   }
-
-  if (EXCLUDED_NAME_KEYWORDS.some((keyword) => safeName.includes(keyword))) {
-    return null
-  }
-
-  return PLACE_TYPE_PRIORITY.find((type) => safeTypes.includes(type)) ?? requestedType
+  rating?: number
+  user_ratings_total?: number
+  photos?: Array<{ photo_reference?: string }>
 }
 
-// ─── Helpers de conversión ───────────────────────────────────────────────────
+interface PlacesSearchNearbyResponse {
+  places?: GooglePlaceSearchResult[]
+}
 
-/** Convierte un LatLngBounds a CircleLiteral (centro + radio) para Place.searchNearby.
- *  Calcula el radio como la distancia haversine desde el centro hasta la esquina NE. */
-function boundsToCircle(bounds: google.maps.LatLngBounds): google.maps.CircleLiteral {
+function buildPhotoProxyUrl(photoReference: string, maxWidth: number) {
+  const params = new URLSearchParams({
+    photoReference,
+    maxWidth: String(maxWidth),
+  })
+  return `${BACKEND_URL}/places/photo?${params.toString()}`
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function boundsToCircle(
+  bounds: google.maps.LatLngBounds,
+): { center: { lat: number; lng: number }; radius: number } {
   const center = bounds.getCenter()
   const ne = bounds.getNorthEast()
   const R = 6371000 // Radio de la Tierra en metros
@@ -97,139 +104,142 @@ function boundsToCircle(bounds: google.maps.LatLngBounds): google.maps.CircleLit
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
   const radius = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
   return {
     center: { lat: center.lat(), lng: center.lng() },
     radius: Math.max(500, radius),
   }
 }
 
-/** Convierte el enum PriceLevel de la nueva API a número (0-4). */
-function priceLevelToNumber(
-  level: google.maps.places.PriceLevel | null | undefined,
-): number | null {
-  if (level == null) return null
-  const map: Record<string, number> = {
-    FREE: 0, INEXPENSIVE: 1, MODERATE: 2, EXPENSIVE: 3, VERY_EXPENSIVE: 4,
-  }
-  return map[level as string] ?? null
-}
-
-// ─── API pública ─────────────────────────────────────────────────────────────
+// ─── API pública (ahora llamando al backend) ─────────────────────────────────
 
 /**
- * Busca lugares cercanos usando la nueva Place.searchNearby API.
- * Lanza una búsqueda por cada tipo en paralelo, deduplica resultados por nombre.
- *
- * REEMPLAZA: PlacesService.nearbySearch (legacy, deprecated mar-2025)
+ * Busca lugares cercanos usando el backend como intermediario
+ * El backend llama a Google Places API y retorna los resultados
  */
 export async function searchNearbyPlaces(
   bounds: google.maps.LatLngBounds,
   types: PlaceType[],
   maxPerType = 8,
 ): Promise<ScrapedPlace[]> {
-  const searches = types.map((type) =>
-    google.maps.places.Place.searchNearby({
-      fields: [
-        'id', 'displayName', 'location', 'rating', 'userRatingCount',
-        'regularOpeningHours', 'priceLevel', 'formattedAddress', 'types', 'photos',
-      ],
-      locationRestriction: boundsToCircle(bounds),
-      includedTypes: [PLACE_INCLUDED_TYPES[type]],
-      maxResultCount: maxPerType,
-    })
-      .then(({ places }) => ({ type, places }))
-      .catch(() => ({ type, places: [] as google.maps.places.Place[] }))
-  )
+  if (!BACKEND_URL) {
+    throw new Error('NEXT_PUBLIC_BACKEND_URL no está configurada')
+  }
 
-  const settled = await Promise.all(searches)
+  try {
+    const { center, radius } = boundsToCircle(bounds)
+    const allPlaces: ScrapedPlace[] = []
+    const seenIds = new Set<string>()
+    const seenNames = new Set<string>()
 
-  const all: ScrapedPlace[] = settled.flatMap(({ type, places }) =>
-    places.reduce<ScrapedPlace[]>((acc, p) => {
-      if (!p.location) return acc
-
-      const resolvedType = resolveRelevantPlaceType(
-        p.types,
-        type,
-        p.displayName ?? undefined,
-      )
-
-      if (!resolvedType) return acc
-
-      acc.push({
-        placeId:      p.id,
-        name:         p.displayName ?? 'Sin nombre',
-        address:      p.formattedAddress ?? '',
-        type:         resolvedType,
-        category:     PLACE_TYPE_CONFIG[resolvedType].category,
-        rating:       p.rating ?? 0,
-        totalRatings: p.userRatingCount ?? 0,
-        priceLevel:   priceLevelToNumber(p.priceLevel),
-        isOpen:       null, // Place.isOpen() es async; se enriquece en fetchPlaceDetails
-        position: {
-          lat: p.location.lat(),
-          lng: p.location.lng(),
-        },
-        photoUrl: p.photos?.length
-          ? p.photos[0].getURI({ maxWidth: 800 })
-          : undefined,
-        website:      undefined,
-        phone:        undefined,
-        openingHours: undefined,
+    // Buscar cada tipo en paralelo
+    const searches = types.map((type) =>
+      fetchJsonWithTimeout<PlacesSearchNearbyResponse>(`${BACKEND_URL}/places/search-nearby`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: center,
+          radius,
+          type: PLACE_TYPE_MAPPING[type],
+        }),
       })
+        .then(async (payload): Promise<{ type: PlaceType; places: GooglePlaceSearchResult[] }> => {
+          return { type, places: payload.places ?? [] }
+        })
+        .catch((err) => {
+          if (isAbortError(err)) {
+            console.warn(`Timeout searching ${type}`)
+          } else {
+            console.error(`Error searching ${type}:`, err)
+          }
+          return { type, places: [] }
+        }),
+    )
 
-      return acc
-    }, [])
-  )
+    const results = await Promise.all(searches)
 
-  // Deduplicar por nombre (insensible a mayúsculas)
-  const seen = new Set<string>()
-  return all.filter(({ name }) => {
-    const key = name.toLowerCase()
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
+    // Procesar y deduplicar resultados
+    results.forEach(({ type, places }) => {
+      places.forEach((place) => {
+        const name = place.name || 'Sin nombre'
+        const nameKey = name.toLowerCase()
+        const placeId = place.place_id || ''
+
+        if (placeId && seenIds.has(placeId)) return
+        if (seenNames.has(nameKey)) return
+        if (placeId) seenIds.add(placeId)
+        seenNames.add(nameKey)
+
+        const lat = place.geometry?.location?.lat
+        const lng = place.geometry?.location?.lng
+
+        if (typeof lat !== 'number' || typeof lng !== 'number') return
+
+        allPlaces.push({
+          placeId,
+          name,
+          address: place.formatted_address || '',
+          type,
+          category: PLACE_TYPE_CONFIG[type].category,
+          rating: place.rating || 0,
+          totalRatings: place.user_ratings_total || 0,
+          priceLevel: null,
+          isOpen: null,
+          position: { lat, lng },
+          photoUrl: place.photos?.[0]?.photo_reference
+            ? buildPhotoProxyUrl(place.photos[0].photo_reference, 800)
+            : undefined,
+          website: undefined,
+          phone: undefined,
+          openingHours: undefined,
+        })
+      })
+    })
+
+    return allPlaces.slice(0, types.length * maxPerType)
+  } catch (error) {
+    console.error('Error in searchNearbyPlaces:', error)
+    return []
+  }
 }
 
 /**
- * Obtiene detalles enriquecidos de un lugar: foto, horario, web, teléfono.
- * Retorna un Partial<ScrapedPlace> para hacer merge con el objeto existente.
- *
- * Si la petición falla, retorna { photoUrl: null } como señal de que
- * el lugar ya fue consultado y no tiene datos de foto disponibles.
- *
- * REEMPLAZA: PlacesService.getDetails (legacy, deprecated mar-2025)
+ * Obtiene detalles enriquecidos de un lugar desde el backend
  */
-export async function fetchPlaceDetails(
-  placeId: string,
-): Promise<Partial<ScrapedPlace>> {
+export async function fetchPlaceDetails(placeId: string): Promise<Partial<ScrapedPlace>> {
+  if (!BACKEND_URL) {
+    throw new Error('NEXT_PUBLIC_BACKEND_URL no está configurada')
+  }
+
   try {
-    const place = new google.maps.places.Place({ id: placeId })
-    await place.fetchFields({
-      fields: ['photos', 'regularOpeningHours', 'rating', 'websiteURI', 'nationalPhoneNumber'],
-    })
+    const { details } = await fetchJsonWithTimeout<{ details?: {
+      photos?: Array<{ photo_reference?: string }>
+      website?: string
+      formatted_phone_number?: string
+      international_phone_number?: string
+      opening_hours?: { weekday_text?: string[] }
+      rating?: number
+    } | null }>(`${BACKEND_URL}/places/${placeId}/details`)
 
-    const photoUrl = place.photos?.length
-      ? place.photos[0].getURI({ maxWidth: 400 })
-      : null
-
-    // isOpen() es beta-channel pero puede no fallar en weekly → envolvemos en catch
-    const isOpen = await place.isOpen().catch(() => null) ?? null
+    if (!details) {
+      return { photoUrl: null, website: null, phone: null, openingHours: null }
+    }
 
     return {
-      photoUrl,
-      isOpen,
-      website:      place.websiteURI ?? null,
-      phone:        place.nationalPhoneNumber ?? null,
-      openingHours: place.regularOpeningHours?.weekdayDescriptions ?? null,
-      rating:       place.rating ?? undefined,
+      photoUrl: details.photos?.[0]?.photo_reference
+        ? buildPhotoProxyUrl(details.photos[0].photo_reference, 400)
+        : null,
+      website: details.website || null,
+      phone: details.formatted_phone_number || details.international_phone_number || null,
+      openingHours: details.opening_hours?.weekday_text || null,
+      rating: details.rating || undefined,
     }
-  } catch {
-    return {
-      photoUrl: null,
-      website: null,
-      phone: null,
-      openingHours: null,
+  } catch (error) {
+    if (isAbortError(error)) {
+      console.warn('Timeout in fetchPlaceDetails')
+    } else {
+      console.error('Error in fetchPlaceDetails:', error)
     }
+    return { photoUrl: null, website: null, phone: null, openingHours: null }
   }
 }

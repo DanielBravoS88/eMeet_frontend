@@ -28,6 +28,7 @@ export interface Event {
   distance: number       // distancia en km desde el usuario
   price: number | null   // null = gratis
   imageUrl: string
+  videoUrl?: string | null
   websiteUrl?: string | null
   organizerName: string
   organizerAvatar: string
@@ -36,7 +37,14 @@ export interface Event {
   tags: string[]
   isLiked?: boolean
   isSaved?: boolean
+  rating?: number          // 0-5, de Google Maps (opcional — no aplica a eventos mock)
+  isOpen?: boolean | null  // null = sin info
+  lat?: number             // coordenada real del evento (si fue geolocado)
+  lng?: number
 }
+
+/** Roles disponibles en la plataforma */
+export type UserRole = 'user' | 'admin' | 'locatario'
 
 /**
  * Perfil del usuario autenticado.
@@ -45,12 +53,18 @@ export interface User {
   id: string
   name: string
   email: string
-  avatarUrl: string
-  bio: string
+  role: UserRole
+  avatarUrl?: string
+  bio?: string
   interests: EventCategory[]
   likedEvents: string[]   // IDs de eventos con like
   savedEvents: string[]   // IDs de eventos guardados
-  location: string
+  location?: string
+  createdAt?: string // ISO 8601
+  isVerified?: boolean
+  phone?: string
+  businessName?: string
+  businessLocation?: string
 }
 
 /**
@@ -59,6 +73,7 @@ export interface User {
 export interface AuthState {
   user: User | null
   isAuthenticated: boolean
+  accessToken: string | null
 }
 
 // ─── Google Maps Places ──────────────────────────────────────────────────────
@@ -71,6 +86,13 @@ export type PlaceType =
   | 'cafe'
   | 'liquor_store'
   | 'food'
+  | 'gym'
+  | 'stadium'
+  | 'park'
+  | 'museum'
+  | 'art_gallery'
+  | 'movie_theater'
+  | 'tourist_attraction'
 
 /**
  * Lugar real extraído desde Google Maps Places API.

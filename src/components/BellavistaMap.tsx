@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useRef, useEffect, useMemo } from 'react'
-import { GoogleMap, OverlayView } from '@react-google-maps/api'
+import { useCallback, useRef, useEffect, useMemo, useState, useContext } from 'react'
+import { GoogleMap, OverlayView, DirectionsRenderer } from '@react-google-maps/api'
 import { PLACE_TYPE_CONFIG } from '../services/placesService'
-import { useNearbyPlacesContext } from '../context/NearbyPlacesContext'
+import { NearbyPlacesContext } from '../context/NearbyPlacesContext'
 
 const CENTER: google.maps.LatLngLiteral = { lat: -33.4364, lng: -70.6358 }
 
@@ -74,8 +74,11 @@ function getDistanceKm(
 }
 
 export default function BellavistaMap() {
+  const ctx = useContext(NearbyPlacesContext)
+  if (!ctx) return null
   const {
     places,
+    excludedPlaceIds,
     loading,
     error,
     userLocation,
@@ -86,9 +89,17 @@ export default function BellavistaMap() {
     mapsLoadError,
     selectedPlaceTypes,
     selectedDistanceKm,
+    selectedDestination,
+    activeEventLocation,
+    setSelectedDestination,
     requestUserLocation,
-  } = useNearbyPlacesContext()
+  } = ctx
   const mapRef = useRef<google.maps.Map | null>(null)
+  const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null)
+  const [routeInfo, setRouteInfo] = useState<{ distance: string; duration: string } | null>(null)
+  // Ref para userLocation: onMapLoad es estable y no se recrea en cada cambio de ubicación
+  const userLocationRef = useRef(userLocation)
+  useEffect(() => { userLocationRef.current = userLocation }, [userLocation])
 
   const goToMyLocation = () => {
     requestUserLocation(true)
@@ -103,28 +114,72 @@ export default function BellavistaMap() {
       },
     })
 
-    if (userLocation) {
-      map.panTo(userLocation)
+    if (userLocationRef.current) {
+      map.panTo(userLocationRef.current)
       map.setZoom(15)
     }
-  }, [userLocation])
-
-  useEffect(() => {
-    if (!mapsReady || userLocation || locating) return
-    requestUserLocation(true)
-  }, [locating, mapsReady, requestUserLocation, userLocation])
+  }, []) // Referencia estable — userLocationRef evita incluir userLocation como dep
 
   useEffect(() => {
     if (!userLocation || !mapRef.current) return
+    if (selectedDestination) return // no recentrar si hay ruta activa
     mapRef.current.panTo(userLocation)
     mapRef.current.setZoom(15)
-  }, [userLocation])
+  }, [userLocation, selectedDestination])
 
-  const visiblePlaces = places.filter(
+  // Pan to active event card when it changes (only if no route is active)
+  useEffect(() => {
+    if (!activeEventLocation || selectedDestination || !mapRef.current) return
+    mapRef.current.panTo({ lat: activeEventLocation.lat, lng: activeEventLocation.lng })
+    mapRef.current.setZoom(16)
+  }, [activeEventLocation, selectedDestination])
+
+  // Calcula la ruta cuando hay un destino seleccionado
+  useEffect(() => {
+    if (!userLocation || !selectedDestination) {
+      setDirectionsResult(null)
+      setRouteInfo(null)
+      return
+    }
+
+    const service = new google.maps.DirectionsService()
+    service.route(
+      {
+        origin: userLocation,
+        destination: { placeId: selectedDestination.placeId },
+        travelMode: google.maps.TravelMode.WALKING,
+      },
+      (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK && result) {
+          setDirectionsResult(result)
+          const leg = result.routes[0]?.legs[0]
+          if (leg) {
+            setRouteInfo({
+              distance: leg.distance?.text ?? '',
+              duration: leg.duration?.text ?? '',
+            })
+          }
+        } else {
+          // Fallback: centrar el mapa en el destino
+          setDirectionsResult(null)
+          setRouteInfo(null)
+          if (mapRef.current) {
+            mapRef.current.panTo(selectedDestination.position)
+            mapRef.current.setZoom(15)
+          }
+        }
+      },
+    )
+  }, [userLocation, selectedDestination])
+
+  // Memoizado: sin esto, se crea un nuevo array en cada render
+  // y nearestPlaceIds (que depende de visiblePlaces) recalcula constantemente
+  const visiblePlaces = useMemo(() => places.filter(
     (p) =>
+      !excludedPlaceIds.has(p.placeId) &&
       selectedPlaceTypes.includes(p.type) &&
       (!userLocation || getDistanceKm(userLocation, p.position) <= selectedDistanceKm),
-  )
+  ), [excludedPlaceIds, places, selectedPlaceTypes, userLocation, selectedDistanceKm])
 
   const nearestPlaceIds = useMemo(() => {
     if (!userLocation) return new Set<string>()
@@ -185,6 +240,74 @@ export default function BellavistaMap() {
       options={MAP_OPTIONS}
       onLoad={onMapLoad}
     >
+      {/* ── Ruta hacia el lugar likeado ─────────────────────────────────── */}
+      {directionsResult && (
+        <DirectionsRenderer
+          directions={directionsResult}
+          options={{
+            suppressMarkers: true,
+            polylineOptions: {
+              strokeColor: '#a855f7',
+              strokeWeight: 5,
+              strokeOpacity: 0.85,
+            },
+          }}
+        />
+      )}
+
+      {/* ── Marcador del destino ─────────────────────────────────────────── */}
+      {selectedDestination && (
+        <OverlayView
+          position={selectedDestination.position}
+          mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+          getPixelPositionOffset={(w, h) => ({ x: -w / 2, y: -h })}
+        >
+          <div className="flex flex-col items-center">
+            <div
+              className="flex items-center justify-center rounded-full border-2 border-fuchsia-400 shadow-lg"
+              style={{
+                width: '36px',
+                height: '36px',
+                backgroundColor: 'rgba(168,85,247,0.9)',
+                boxShadow: '0 0 0 6px rgba(168,85,247,0.25)',
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>📍</span>
+            </div>
+            <div
+              style={{ width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '8px solid rgba(168,85,247,0.9)' }}
+            />
+          </div>
+        </OverlayView>
+      )}
+
+      {/* ── Badge de ruta activa ─────────────────────────────────────────── */}
+      {selectedDestination && (
+        <div className="absolute bottom-24 left-4 right-14 z-40 max-w-xs">
+          <div className="flex items-start gap-2 rounded-2xl border border-fuchsia-500/30 bg-slate-950/92 px-3 py-2.5 backdrop-blur-md shadow-lg">
+            <span className="mt-0.5 text-base">🗺️</span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold text-fuchsia-300">{selectedDestination.title}</p>
+              {routeInfo ? (
+                <p className="mt-0.5 text-[11px] text-slate-300">
+                  🚶 {routeInfo.duration} · {routeInfo.distance}
+                </p>
+              ) : (
+                <p className="mt-0.5 text-[11px] text-slate-400">Calculando ruta...</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedDestination(null)}
+              className="ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-slate-400 hover:bg-white/20 hover:text-white transition-colors"
+              aria-label="Cerrar ruta"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Indicador de carga ──────────────────────────────────────────── */}
       {loading && (
         <div className="absolute top-4 right-4 z-40">
@@ -241,7 +364,7 @@ export default function BellavistaMap() {
 
       {/* ── Estado real de ubicación/eventos ───────────────────────────── */}
       {userLocation && (
-        <div className="absolute top-4 left-4 z-30 rounded-xl border border-white/10 bg-slate-950/85 px-3 py-2 backdrop-blur-md">
+        <div className="absolute top-14 left-4 z-30 rounded-xl border border-white/10 bg-slate-950/85 px-3 py-2 backdrop-blur-md">
           <p className="text-[11px] font-semibold text-slate-200">📍 Tu ubicación detectada</p>
           <p className="text-[11px] text-emerald-300">
             {visiblePlaces.length > 0
@@ -280,10 +403,63 @@ export default function BellavistaMap() {
         </button>
       </div>
 
+      {/* ── Marcador del evento activo (tarjeta visible) ─────────────── */}
+      {activeEventLocation && !selectedDestination && (
+        <OverlayView
+          position={{ lat: activeEventLocation.lat, lng: activeEventLocation.lng }}
+          mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+          getPixelPositionOffset={(w, h) => ({ x: -w / 2, y: -h })}
+        >
+          <div className="flex flex-col items-center pointer-events-none">
+            <div
+              style={{
+                position: 'relative',
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: 'rgba(250,204,21,0.92)',
+                border: '2.5px solid white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 0 8px rgba(250,204,21,0.25), 0 6px 20px rgba(0,0,0,0.6)',
+                animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite',
+              }}
+            >
+              <span style={{ fontSize: 22, lineHeight: 1 }}>📍</span>
+            </div>
+            <div
+              style={{
+                width: 0, height: 0,
+                borderLeft: '6px solid transparent',
+                borderRight: '6px solid transparent',
+                borderTop: '8px solid rgba(250,204,21,0.92)',
+              }}
+            />
+            <div
+              style={{
+                marginTop: 4,
+                background: 'rgba(0,0,0,0.75)',
+                border: '1px solid rgba(250,204,21,0.4)',
+                borderRadius: 6,
+                padding: '2px 6px',
+                maxWidth: 120,
+                textAlign: 'center',
+              }}
+            >
+              <span style={{ fontSize: 10, color: '#fde68a', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+                {activeEventLocation.title}
+              </span>
+            </div>
+          </div>
+        </OverlayView>
+      )}
+
       {/* ── Marcadores de lugares reales ────────────────────────────────── */}
       {visiblePlaces.map((place) => {
         const config = PLACE_TYPE_CONFIG[place.type] ?? PLACE_TYPE_CONFIG.restaurant
         const isNearest = nearestPlaceIds.has(place.placeId)
+        const isActivePlace = activeEventLocation?.id === place.placeId
 
         return (
           <OverlayView
@@ -296,14 +472,16 @@ export default function BellavistaMap() {
               type="button"
               onClick={(e) => e.stopPropagation()}
               style={{
-                backgroundColor: 'rgba(20, 22, 48, 0.85)',
-                border: `2px solid ${config.color}`,
-                boxShadow: isNearest
+                backgroundColor: isActivePlace ? 'rgba(250,204,21,0.15)' : 'rgba(20, 22, 48, 0.85)',
+                border: isActivePlace ? '2.5px solid #facc15' : `2px solid ${config.color}`,
+                boxShadow: isActivePlace
+                  ? '0 0 0 6px rgba(250,204,21,0.25), 0 8px 24px rgba(0,0,0,0.65)'
+                  : isNearest
                   ? `0 0 0 5px ${config.color}3d, 0 8px 24px rgba(0,0,0,0.65)`
                   : `0 2px 8px rgba(0,0,0,0.5)`,
-                width: isNearest ? '42px' : '34px',
-                height: isNearest ? '42px' : '34px',
-                transform: isNearest ? 'scale(1.1)' : 'scale(1)',
+                width: isActivePlace ? '46px' : isNearest ? '42px' : '34px',
+                height: isActivePlace ? '46px' : isNearest ? '42px' : '34px',
+                transform: isActivePlace ? 'scale(1.18)' : isNearest ? 'scale(1.1)' : 'scale(1)',
               }}
               className="flex cursor-pointer items-center justify-center rounded-full text-base transition-all duration-200"
             >

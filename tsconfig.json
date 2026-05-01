@@ -22,6 +22,11 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "incremental": true,
+    "ignoreDeprecations": "5.0",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
     "plugins": [
       {
         "name": "next"

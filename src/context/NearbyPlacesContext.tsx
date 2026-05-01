@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import { useJsApiLoader } from '@react-google-maps/api'
@@ -15,14 +16,31 @@ import type { PlaceType, ScrapedPlace } from '../types'
 import { useNearbyPlaces } from '../hooks/useNearbyPlaces'
 
 const LIBRARIES: Libraries = ['places']
-const DEFAULT_PLACE_TYPES: PlaceType[] = ['restaurant', 'bar', 'night_club', 'cafe']
+const DEFAULT_PLACE_TYPES: PlaceType[] = [
+  'restaurant', 'bar', 'night_club', 'cafe',
+  'gym', 'museum', 'art_gallery', 'movie_theater', 'park', 'tourist_attraction',
+]
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() ?? ''
 const HAS_GOOGLE_MAPS_KEY = GOOGLE_MAPS_API_KEY.length > 0
 const LOOKS_LIKE_GOOGLE_MAPS_KEY = GOOGLE_MAPS_API_KEY.startsWith('AIza')
 
+export interface MapDestination {
+  placeId: string
+  title: string
+  position: google.maps.LatLngLiteral
+}
+
+export interface ActiveEventLocation {
+  id: string
+  lat: number
+  lng: number
+  title: string
+}
+
 interface NearbyPlacesContextValue {
   places: ScrapedPlace[]
+  excludedPlaceIds: Set<string>
   selectedPlaceTypes: PlaceType[]
   selectedDistanceKm: number
   userLocation: google.maps.LatLngLiteral | null
@@ -33,14 +51,20 @@ interface NearbyPlacesContextValue {
   mapsReady: boolean
   invalidApiKey: boolean
   mapsLoadError: Error | undefined
+  selectedDestination: MapDestination | null
+  activeEventLocation: ActiveEventLocation | null
   requestUserLocation: (recenter?: boolean) => void
   togglePlaceType: (type: PlaceType) => void
   setDistanceKm: (km: number) => void
   refreshPlaces: () => void
   enrichPlace: (placeId: string) => Promise<Partial<ScrapedPlace>>
+  excludePlace: (placeId: string) => void
+  resetExcludedPlaces: () => void
+  setSelectedDestination: (dest: MapDestination | null) => void
+  setActiveEventLocation: (loc: ActiveEventLocation | null) => void
 }
 
-const NearbyPlacesContext = createContext<NearbyPlacesContextValue | undefined>(undefined)
+export const NearbyPlacesContext = createContext<NearbyPlacesContextValue | undefined>(undefined)
 
 function createBoundsAround(
   location: google.maps.LatLngLiteral,
@@ -58,24 +82,36 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
   const { places, loading, error, fetchNearby, enrichPlace } = useNearbyPlaces()
   const [selectedPlaceTypes, setSelectedPlaceTypes] = useState<PlaceType[]>(DEFAULT_PLACE_TYPES)
   const [selectedDistanceKm, setSelectedDistanceKm] = useState(3)
+  const [excludedPlaceIds, setExcludedPlaceIds] = useState<Set<string>>(new Set())
   const [userLocation, setUserLocation] = useState<google.maps.LatLngLiteral | null>(null)
   const [locating, setLocating] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
+  const [selectedDestination, setSelectedDestination] = useState<MapDestination | null>(null)
+  const [activeEventLocation, setActiveEventLocation] = useState<ActiveEventLocation | null>(null)
+
+  // Refs para evitar re-renders en cascada y loops de efectos
+  const locatingRef = useRef(false)
+  const hasRequestedLocation = useRef(false)
+  const enrichRequestedRef = useRef<Set<string>>(new Set())
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const invalidApiKey = !HAS_GOOGLE_MAPS_KEY || !LOOKS_LIKE_GOOGLE_MAPS_KEY
 
   const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: invalidApiKey ? '' : GOOGLE_MAPS_API_KEY,
     libraries: LIBRARIES,
     version: 'weekly',
   })
 
   const refreshPlaces = useCallback(() => {
     if (!isLoaded || !userLocation || selectedPlaceTypes.length === 0) return
-    fetchNearby(
-      createBoundsAround(userLocation, selectedDistanceKm),
-      selectedPlaceTypes,
-    )
+    if (refreshTimer.current) clearTimeout(refreshTimer.current)
+    refreshTimer.current = setTimeout(() => {
+      fetchNearby(
+        createBoundsAround(userLocation, selectedDistanceKm),
+        selectedPlaceTypes,
+      )
+    }, 300)
   }, [fetchNearby, isLoaded, selectedDistanceKm, selectedPlaceTypes, userLocation])
 
   const togglePlaceType = useCallback((type: PlaceType) => {
@@ -87,8 +123,9 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const requestUserLocation = useCallback((_recenter = true) => {
-    if (!navigator.geolocation || locating) return
+    if (!navigator.geolocation || locatingRef.current) return
 
+    locatingRef.current = true
     setLocating(true)
     setLocationError(null)
 
@@ -99,6 +136,7 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
           lng: pos.coords.longitude,
         }
         setUserLocation(nextLocation)
+        locatingRef.current = false
         setLocating(false)
       },
       (geoError) => {
@@ -113,6 +151,7 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
         }
 
         setLocationError(message)
+        locatingRef.current = false
         setLocating(false)
       },
       {
@@ -121,38 +160,62 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
         maximumAge: 300000,
       },
     )
-  }, [locating])
+  }, []) // Referencia estable — locatingRef evita llamadas duplicadas sin dep en state
 
   const setDistanceKm = useCallback((km: number) => {
     setSelectedDistanceKm(km)
   }, [])
 
+  const excludePlace = useCallback((placeId: string) => {
+    setExcludedPlaceIds((prev) => {
+      if (prev.has(placeId)) return prev
+      const next = new Set(prev)
+      next.add(placeId)
+      return next
+    })
+  }, [])
+
+  const resetExcludedPlaces = useCallback(() => {
+    setExcludedPlaceIds(new Set())
+  }, [])
+
+  // Solicita ubicación una sola vez cuando Maps carga.
+  // locating se lee del ref para evitar que el effect se re-ejecute en cada cambio de estado.
   useEffect(() => {
-    if (!isLoaded || userLocation || locating || invalidApiKey) return
+    if (!isLoaded || invalidApiKey || hasRequestedLocation.current) return
+    hasRequestedLocation.current = true
     requestUserLocation(true)
-  }, [invalidApiKey, isLoaded, locating, requestUserLocation, userLocation])
+  }, [invalidApiKey, isLoaded, requestUserLocation])
 
   useEffect(() => {
     if (!userLocation || !isLoaded) return
     refreshPlaces()
   }, [isLoaded, refreshPlaces, selectedPlaceTypes, userLocation])
 
+  // Enriquece solo los 2 primeros lugares y registra cuáles ya fueron solicitados.
+  // La salida temprana evita iteraciones extra cuando enrichPlace actualiza `places`
+  // y vuelve a disparar el efecto: si no hay nada nuevo que enriquecer, se corta de inmediato.
   useEffect(() => {
-    places.slice(0, 2).forEach((place) => {
-      if (
-        place.photoUrl === undefined ||
-        place.website === undefined ||
-        place.phone === undefined ||
-        place.openingHours === undefined
-      ) {
-        void enrichPlace(place.placeId)
-      }
+    const toEnrich = places.slice(0, 2).filter(
+      (place) =>
+        !enrichRequestedRef.current.has(place.placeId) &&
+        (place.photoUrl === undefined ||
+          place.website === undefined ||
+          place.phone === undefined ||
+          place.openingHours === undefined),
+    )
+    if (toEnrich.length === 0) return
+
+    toEnrich.forEach((place) => {
+      enrichRequestedRef.current.add(place.placeId)
+      void enrichPlace(place.placeId)
     })
   }, [enrichPlace, places])
 
   const value = useMemo(
     () => ({
       places,
+      excludedPlaceIds,
       selectedPlaceTypes,
       selectedDistanceKm,
       userLocation,
@@ -163,15 +226,23 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
       mapsReady: isLoaded,
       invalidApiKey,
       mapsLoadError: loadError,
+      selectedDestination,
+      activeEventLocation,
       requestUserLocation,
       togglePlaceType,
       setDistanceKm,
       refreshPlaces,
       enrichPlace,
+      excludePlace,
+      resetExcludedPlaces,
+      setSelectedDestination,
+      setActiveEventLocation,
     }),
     [
+      excludePlace,
       enrichPlace,
       error,
+      excludedPlaceIds,
       invalidApiKey,
       isLoaded,
       loadError,
@@ -179,10 +250,13 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
       locationError,
       locating,
       places,
+      selectedDestination,
+      activeEventLocation,
       selectedDistanceKm,
       selectedPlaceTypes,
       refreshPlaces,
       requestUserLocation,
+      resetExcludedPlaces,
       setDistanceKm,
       togglePlaceType,
       userLocation,
