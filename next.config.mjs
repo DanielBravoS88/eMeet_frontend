@@ -14,6 +14,7 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'http',  hostname: 'localhost',          port: '4000' },
+      { protocol: 'https', hostname: '*.onrender.com'                   },
       { protocol: 'https', hostname: 'images.unsplash.com'              },
       { protocol: 'https', hostname: 'api.dicebear.com'                 },
     ],
