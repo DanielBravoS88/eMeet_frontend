@@ -2,7 +2,7 @@
 
 > Plataforma de descubrimiento social de eventos y lugares cercanos — mobile-first, con mecánica de swipe y comunidades en tiempo real.
 
-**Integrantes**: Daniel Bravo · Francisco Levipil · Antoni Vivar
+**Integrantes**: Daniel Bravo · Francisco Levipil · Antonio Vivar
 
 ---
 
