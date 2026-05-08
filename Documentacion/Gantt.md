@@ -1,6 +1,6 @@
 # Planificación Gantt — Proyecto eMeet
 
-> Las fechas indicadas son **estimadas** y deben ser validadas y ajustadas por el equipo de desarrollo. Este documento se basa en el análisis del estado actual del repositorio `eMeet_frontend` y la evidencia de trabajo detectada.
+> Las fechas indicadas son **estimadas** y deben ser validadas y ajustadas por el equipo de desarrollo. Este documento se basa en el análisis del estado actual del repositorio `eMeet_frontend` y la estructura del proyecto.
 
 ---
 
@@ -70,7 +70,7 @@ gantt
     section Integración Backend
     Route Handlers BFF (api/)         :done,    bff1, 2026-04-30, 4d
     fetchApi helper + authSession     :done,    bff2, 2026-05-01, 2d
-    Conexión con eMeet_Backend_Supabase:active, bff3, 2026-05-03, 7d
+    Conexión con eMeet_Backend_Supabase : active, bff3, 2026-05-03, 7d
 
     section QA y Pruebas
     Pruebas funcionales manuales      :active,  qa1, 2026-05-05, 5d
@@ -81,8 +81,8 @@ gantt
     Informe académico                 :active,  doc1, 2026-05-05, 4d
     Arquitectura y UML                :active,  doc2, 2026-05-06, 3d
     MER + Wireframes                  :active,  doc3, 2026-05-07, 2d
-    Gantt + Plan QA                   :active,  doc4, 2026-05-07, 2d
-    Gestion y estructura de entrega   :active,  doc5, 2026-05-07, 2d
+    Plan QA y diagrama Gantt          :active,  doc4, 2026-05-07, 2d
+    Gestión y estructura de entrega   :active,  doc5, 2026-05-07, 2d
 
     section Entrega Final
     Revisión final del PR             :         ent1, 2026-05-12, 2d
@@ -130,4 +130,4 @@ gantt
 
 ## 5. Nota de Validación
 
-> ⚠️ Las fechas y responsables específicos de este Gantt son **estimaciones** basadas en el análisis del repositorio y deben ser validadas y ajustadas por el equipo de desarrollo (Daniel Bravo, Francisco Levipil, Antoni Vivar) según las fechas reales de trabajo y los plazos académicos oficiales del curso.
+> ⚠️ Las fechas y responsables específicos de este Gantt son **estimaciones** basadas en el análisis del repositorio y deben ser validadas y ajustadas por el equipo de desarrollo (Daniel Bravo, Francisco Levipil, Antoni Vivar).
