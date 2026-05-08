@@ -16,6 +16,8 @@ type RegisterResult = { needsEmailVerification: true; email: string } | { needsE
 
 interface AuthContextValue extends AuthState {
   isAuthReady: boolean
+  authError: string | null
+  refreshAuth: () => Promise<void>
   login: (email: string, password: string) => Promise<User['role']>
   loginWithGoogle: () => Promise<void>
   loginWithApple: () => Promise<void>
@@ -194,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessToken: null,
   })
   const [isAuthReady, setIsAuthReady] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
 
   // Carga perfil + eventos del usuario dado un email conocido.
   // Usada post-login/register para evitar round-trip extra de sesión.
@@ -231,6 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       businessLocation: businessMeta?.businessLocation ?? undefined,
     }
 
+    setAuthError(null)
     setAuthState({ user: nextUser, isAuthenticated: true, accessToken: accessToken ?? null })
   }, [])
 
@@ -238,6 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const syncFromApi = useCallback(async () => {
     if (!hasSupabaseEnv) {
       const localUser = loadLocalUser()
+      setAuthError(null)
       setAuthState({ user: localUser, isAuthenticated: Boolean(localUser), accessToken: null })
       return
     }
@@ -255,6 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (!sessionPayload.session) {
+      setAuthError(null)
       setAuthState({ user: null, isAuthenticated: false, accessToken: null })
       return
     }
@@ -263,11 +269,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const roleHint = extractRoleFromAuthUser(userData.user)
     const businessName = userData.user?.user_metadata?.business_name as string | undefined
     const businessLocation = userData.user?.user_metadata?.business_location as string | undefined
-    await syncUserData(sessionPayload.session.user.email ?? '', roleHint, {
-      businessName,
-      businessLocation,
-    }, data.session?.access_token ?? null)
+
+    try {
+      await syncUserData(sessionPayload.session.user.email ?? '', roleHint, {
+        businessName,
+        businessLocation,
+      }, data.session?.access_token ?? null)
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'No se pudo cargar el perfil completo.')
+      setAuthState((prev) => ({
+        user: prev.user,
+        isAuthenticated: true,
+        accessToken: data.session?.access_token ?? null,
+      }))
+    }
   }, [syncUserData])
+
+  const refreshAuth = useCallback(async () => {
+    setIsAuthReady(false)
+    try {
+      await syncFromApi()
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'No se pudo validar la sesión activa.')
+      setAuthState({ user: null, isAuthenticated: false, accessToken: null })
+    } finally {
+      setIsAuthReady(true)
+    }
+  }, [syncFromApi])
 
   useEffect(() => {
     let mounted = true
@@ -276,8 +304,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (!mounted) return
         await syncFromApi()
-      } catch {
+      } catch (error) {
         if (!mounted) return
+        setAuthError(error instanceof Error ? error.message : 'No se pudo validar la sesión activa.')
         setAuthState({ user: null, isAuthenticated: false, accessToken: null })
       } finally {
         if (mounted) setIsAuthReady(true)
@@ -296,6 +325,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const previous = loadLocalUser()
       const localUser = createLocalUser(previous?.name ?? email.split('@')[0], email, previous)
       saveLocalUser(localUser)
+      setAuthError(null)
       setAuthState({ user: localUser, isAuthenticated: true, accessToken: null })
       return localUser.role
     }
@@ -324,6 +354,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!hasSupabaseEnv) {
       const localUser = createLocalUser(name, email, loadLocalUser(), options)
       saveLocalUser(localUser)
+      setAuthError(null)
       setAuthState({ user: localUser, isAuthenticated: true, accessToken: null })
       return { needsEmailVerification: false }
     }
@@ -375,6 +406,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     if (!hasSupabaseEnv) {
       saveLocalUser(null)
+      setAuthError(null)
       setAuthState({ user: null, isAuthenticated: false, accessToken: null })
       return
     }
@@ -386,6 +418,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     await getSupabaseBrowserClient().auth.signOut()
+    setAuthError(null)
     setAuthState({ user: null, isAuthenticated: false, accessToken: null })
   }, [])
 
@@ -415,6 +448,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
     }
 
+    setAuthError(null)
     setAuthState((prev) => {
       if (!prev.user) return prev
       const nextUser = { ...prev.user, ...data }
@@ -424,7 +458,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [authState.user])
 
   return (
-    <AuthContext.Provider value={{ ...authState, isAuthReady, login, loginWithGoogle, loginWithApple, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ ...authState, isAuthReady, authError, refreshAuth, login, loginWithGoogle, loginWithApple, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

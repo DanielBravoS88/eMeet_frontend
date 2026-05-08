@@ -69,7 +69,7 @@ function isSortMode(value: string): value is SortMode {
 
 function SearchPageContent() {
   const { places, userLocation, loading, locating } = useNearbyPlacesContext()
-  const { locatarioEvents } = useLocatarioEvents()
+  const { publicLocatarioEvents } = useLocatarioEvents()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -133,7 +133,9 @@ function SearchPageContent() {
       return placeToEvent(place, distance)
     })
 
-    const locEvents = locatarioEvents.map((e) => {
+    const locEvents = publicLocatarioEvents
+      .filter((event) => event.lat != null && event.lng != null)
+      .map((e) => {
       if (e.lat != null && e.lng != null) {
         return { ...e, distance: getDistanceKm(e.lat, e.lng, userLocation.lat, userLocation.lng) }
       }
@@ -141,7 +143,7 @@ function SearchPageContent() {
     })
 
     return [...placeEvents, ...locEvents].sort((a, b) => a.distance - b.distance)
-  }, [places, locatarioEvents, userLocation])
+  }, [places, publicLocatarioEvents, userLocation])
 
   const filtered = useMemo(() => {
     const q = normalizeText(deferredQuery)

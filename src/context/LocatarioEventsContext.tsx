@@ -23,6 +23,7 @@ interface CreateLocatarioEventInput {
 
 interface LocatarioEventsContextValue {
   locatarioEvents: Event[]
+  publicLocatarioEvents: Event[]
   isLoading: boolean
   createLocatarioEvent: (input: CreateLocatarioEventInput) => Promise<Event>
   removeLocatarioEvent: (eventId: string) => Promise<void>
@@ -41,8 +42,6 @@ function requireBackendUrl() {
   return BACKEND_URL
 }
 
-// ── localStorage helpers (modo local sin Supabase) ───────────────────────────
-
 function loadEventsFromStorage(): Event[] {
   if (typeof window === 'undefined') return []
   try {
@@ -59,8 +58,6 @@ function saveEventsToStorage(events: Event[]) {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(events))
 }
-
-// ── Mapper: fila de Supabase → Event ────────────────────────────────────────
 
 type LocatarioEventRow = {
   id: string
@@ -106,8 +103,6 @@ function dbRowToEvent(row: LocatarioEventRow): Event {
   }
 }
 
-// ── Fetch helper ─────────────────────────────────────────────────────────────
-
 async function apiFetch<T>(input: string, init?: RequestInit): Promise<T> {
   const endpoint = `${requireBackendUrl()}${input}`
   const headers = new Headers({ 'Content-Type': 'application/json', ...(init?.headers ?? {}) })
@@ -132,69 +127,102 @@ async function apiFetch<T>(input: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
-// ── Provider ─────────────────────────────────────────────────────────────────
-
 export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
   const [locatarioEvents, setLocatarioEvents] = useState<Event[]>([])
+  const [publicLocatarioEvents, setPublicLocatarioEvents] = useState<Event[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
-  // Carga inicial
+  const loadPublicEvents = useCallback(async () => {
+    if (!hasSupabaseEnv) {
+      const stored = loadEventsFromStorage()
+      setPublicLocatarioEvents(stored)
+      return stored
+    }
+
+    const rows = await apiFetch<LocatarioEventRow[]>('/events/locatario/public')
+    const mapped = rows.map(dbRowToEvent)
+    setPublicLocatarioEvents(mapped)
+    return mapped
+  }, [])
+
+  const loadPrivateEvents = useCallback(async () => {
+    if (!hasSupabaseEnv) {
+      const stored = loadEventsFromStorage()
+      setLocatarioEvents(stored)
+      return stored
+    }
+
+    const session = await getSupabaseAuthSession()
+    if (!session) {
+      setLocatarioEvents([])
+      return []
+    }
+
+    const rows = await apiFetch<LocatarioEventRow[]>('/events/locatario')
+    const mapped = rows.map(dbRowToEvent)
+    setLocatarioEvents(mapped)
+    return mapped
+  }, [])
+
   useEffect(() => {
     if (!hasSupabaseEnv) {
-      setLocatarioEvents(loadEventsFromStorage())
+      const stored = loadEventsFromStorage()
+      setLocatarioEvents(stored)
+      setPublicLocatarioEvents(stored)
       return
     }
 
     let mounted = true
     setIsLoading(true)
-
     requireBackendUrl()
+
     ;(async () => {
-      const session = await getSupabaseAuthSession()
-
-      // Evita request 401 en frío cuando aún no hay sesión.
-      if (!session) {
+      try {
+        const publicEvents = await loadPublicEvents().catch(() => loadEventsFromStorage())
         if (!mounted) return
-        setLocatarioEvents(loadEventsFromStorage())
-        setIsLoading(false)
-        return
-      }
+        setPublicLocatarioEvents(publicEvents)
 
-      apiFetch<LocatarioEventRow[]>('/events/locatario')
-        .then((rows) => {
-          if (!mounted) return
-          setLocatarioEvents(rows.map(dbRowToEvent))
-        })
-        .catch(() => {
-          if (!mounted) return
-          // Si falla la API, intentar con localStorage como fallback
-          setLocatarioEvents(loadEventsFromStorage())
-        })
-        .finally(() => {
-          if (mounted) setIsLoading(false)
-        })
+        const session = await getSupabaseAuthSession()
+        if (!mounted) return
+
+        if (!session) {
+          setLocatarioEvents([])
+          return
+        }
+
+        const ownEvents = await loadPrivateEvents().catch(() => loadEventsFromStorage())
+        if (!mounted) return
+        setLocatarioEvents(ownEvents)
+      } finally {
+        if (mounted) setIsLoading(false)
+      }
     })().catch(() => {
       if (!mounted) return
-      setLocatarioEvents(loadEventsFromStorage())
+      const stored = loadEventsFromStorage()
+      setLocatarioEvents(stored)
+      setPublicLocatarioEvents(stored)
       setIsLoading(false)
     })
 
     const { data: authListener } = getSupabaseBrowserClient().auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         setLocatarioEvents([])
+        loadPublicEvents().catch(() => {
+          if (!mounted) return
+          setPublicLocatarioEvents(loadEventsFromStorage())
+        })
         return
       }
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        apiFetch<LocatarioEventRow[]>('/events/locatario')
-          .then((rows) => {
-            if (!mounted) return
-            setLocatarioEvents(rows.map(dbRowToEvent))
-          })
-          .catch(() => {
-            if (!mounted) return
-            setLocatarioEvents(loadEventsFromStorage())
-          })
+        loadPrivateEvents().catch(() => {
+          if (!mounted) return
+          setLocatarioEvents(loadEventsFromStorage())
+        })
+        loadPublicEvents().catch(() => {
+          if (!mounted) return
+          setPublicLocatarioEvents(loadEventsFromStorage())
+        })
       }
     })
 
@@ -202,11 +230,10 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
       mounted = false
       authListener.subscription.unsubscribe()
     }
-  }, [])
+  }, [loadPrivateEvents, loadPublicEvents])
 
   const createLocatarioEvent = useCallback(async (input: CreateLocatarioEventInput): Promise<Event> => {
     if (!hasSupabaseEnv) {
-      // Modo local: guardar en localStorage
       const newEvent: Event = {
         id: `loc-event-${Date.now()}`,
         title: input.title.trim(),
@@ -232,11 +259,13 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
         rating: undefined,
         isOpen: null,
       }
+
       setLocatarioEvents((prev) => {
         const next = [newEvent, ...prev]
         saveEventsToStorage(next)
         return next
       })
+      setPublicLocatarioEvents((prev) => [newEvent, ...prev])
       return newEvent
     }
 
@@ -245,7 +274,6 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
       throw new Error('Debes iniciar sesión para crear eventos de locatario.')
     }
 
-    // Modo Supabase: persistir en la base de datos
     const row = await apiFetch<LocatarioEventRow>('/events/locatario', {
       method: 'POST',
       body: JSON.stringify({
@@ -266,16 +294,17 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
 
     const newEvent = dbRowToEvent(row)
     setLocatarioEvents((prev) => [newEvent, ...prev])
+    setPublicLocatarioEvents((prev) => [newEvent, ...prev.filter((event) => event.id !== newEvent.id)])
     return newEvent
   }, [])
 
   const removeLocatarioEvent = useCallback(async (eventId: string): Promise<void> => {
-    // Optimistic update
     setLocatarioEvents((prev) => {
       const next = prev.filter((e) => e.id !== eventId)
       if (!hasSupabaseEnv) saveEventsToStorage(next)
       return next
     })
+    setPublicLocatarioEvents((prev) => prev.filter((e) => e.id !== eventId))
 
     if (!hasSupabaseEnv) return
 
@@ -288,8 +317,8 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ locatarioEvents, isLoading, createLocatarioEvent, removeLocatarioEvent }),
-    [locatarioEvents, isLoading, createLocatarioEvent, removeLocatarioEvent],
+    () => ({ locatarioEvents, publicLocatarioEvents, isLoading, createLocatarioEvent, removeLocatarioEvent }),
+    [locatarioEvents, publicLocatarioEvents, isLoading, createLocatarioEvent, removeLocatarioEvent],
   )
 
   return <LocatarioEventsContext.Provider value={value}>{children}</LocatarioEventsContext.Provider>

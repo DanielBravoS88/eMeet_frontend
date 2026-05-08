@@ -27,7 +27,16 @@ export default function ChatRoomRoutePage() {
   const params = useParams<{ roomId: string }>()
   const roomId = typeof params?.roomId === 'string' ? params.roomId : undefined
   const router = useRouter()
-  const { rooms, messages, sendMessage, markRoomRead } = useChatContext()
+  const {
+    rooms,
+    messages,
+    sendMessage,
+    markRoomRead,
+    loadMessagesForRoom,
+    messageErrors,
+    isLoadingRooms,
+    loadingMessages,
+  } = useChatContext()
   const { user, isAuthReady } = useAuth()
   const [input, setInput] = useState('')
   const [typingUser, setTypingUser] = useState<string | null>(null)
@@ -36,15 +45,21 @@ export default function ChatRoomRoutePage() {
 
   const room = rooms.find((r) => r.id === roomId)
   const roomMessages = messages[roomId ?? ''] ?? []
+  const roomError = roomId ? messageErrors[roomId] : null
+  const isLoadingMessages = roomId ? loadingMessages[roomId] ?? false : false
+  const [sendError, setSendError] = useState<string | null>(null)
 
   useEffect(() => {
     if (roomId) {
+      loadMessagesForRoom(roomId).catch(() => {
+        // El error visible se maneja desde el contexto/página.
+      })
       markRoomRead(roomId).catch(() => {
         // Evita romper la vista si falla el marcado de leído.
       })
     }
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [roomId, markRoomRead])
+  }, [roomId, loadMessagesForRoom, markRoomRead])
 
   useEffect(() => {
     if (isAuthReady && !user) {
@@ -85,6 +100,14 @@ export default function ChatRoomRoutePage() {
     return () => clearInterval(interval)
   }, [otherParticipants, roomId])
 
+  if (isLoadingRooms && !room) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center text-muted">
+        <p>Cargando conversación...</p>
+      </div>
+    )
+  }
+
   if (!room) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-muted">
@@ -98,8 +121,9 @@ export default function ChatRoomRoutePage() {
 
   function handleSend() {
     if (!input.trim() || !user || !roomId) return
-    sendMessage(roomId, input.trim()).catch(() => {
-      // El error se informa desde el contexto con mensajes en español.
+    setSendError(null)
+    sendMessage(roomId, input.trim()).catch((error) => {
+      setSendError(error instanceof Error ? error.message : 'No se pudo enviar el mensaje.')
     })
     setInput('')
     inputRef.current?.focus()
@@ -125,7 +149,6 @@ export default function ChatRoomRoutePage() {
 
   return (
     <div className="flex h-full flex-col bg-surface">
-      {/* Header mejorado */}
       <div className="z-10 shrink-0 border-b border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 py-3 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
@@ -135,7 +158,6 @@ export default function ChatRoomRoutePage() {
             <HiArrowLeft className="h-5 w-5 text-white" />
           </button>
 
-          {/* Imagen con punto de actividad */}
           <div className="relative shrink-0">
             <img
               src={room.eventImageUrl}
@@ -161,7 +183,37 @@ export default function ChatRoomRoutePage() {
       </div>
 
       <div className="flex-1 space-y-1 overflow-y-auto px-3 py-3">
-        {roomMessages.length === 0 && (
+        {roomError && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+          >
+            {roomError}
+          </motion.div>
+        )}
+
+        {sendError && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100"
+          >
+            {sendError}
+          </motion.div>
+        )}
+
+        {isLoadingMessages && roomMessages.length === 0 && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="py-8 text-center text-sm text-muted"
+          >
+            Cargando mensajes...
+          </motion.p>
+        )}
+
+        {!isLoadingMessages && roomMessages.length === 0 && (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -246,7 +298,6 @@ export default function ChatRoomRoutePage() {
 
       <div className="shrink-0 border-t border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 py-3 backdrop-blur-md">
         <div className="flex items-center gap-2">
-          {/* Botón emoji */}
           <button
             type="button"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg text-muted transition-colors hover:bg-white/10 hover:text-white"

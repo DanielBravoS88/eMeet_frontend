@@ -123,7 +123,7 @@ function HomePageContent() {
   } = useNearbyPlacesContext()
   const { joinRoom } = useChatContext()
   const { user, updateUser } = useAuth()
-  const { locatarioEvents } = useLocatarioEvents()
+  const { publicLocatarioEvents } = useLocatarioEvents()
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
@@ -159,12 +159,14 @@ function HomePageContent() {
 
     return placeEvents
       .concat(
-        locatarioEvents.map((e) => {
-          if (e.lat != null && e.lng != null && userLocation) {
+        publicLocatarioEvents
+          .filter((event) => event.lat != null && event.lng != null)
+          .map((e) => {
+            if (e.lat != null && e.lng != null && userLocation) {
             return { ...e, distance: getDistanceKm(e.lat, e.lng, userLocation.lat, userLocation.lng) }
           }
           return e
-        }),
+          }),
       )
       .filter((event) => event.distance <= selectedDistanceKm)
       .sort((a, b) => a.distance - b.distance)
@@ -174,7 +176,7 @@ function HomePageContent() {
         isLiked: likedIds.has(event.id),
         isSaved: savedIds.has(event.id),
       }))
-  }, [dismissedIds, likedIds, locatarioEvents, places, savedIds, selectedDistanceKm, selectedPlaceTypes, userLocation])
+  }, [dismissedIds, likedIds, publicLocatarioEvents, places, savedIds, selectedDistanceKm, selectedPlaceTypes, userLocation])
 
   function showToast(message: string, type: 'like' | 'nope' | 'save') {
     setToast({ message, type })

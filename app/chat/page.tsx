@@ -37,6 +37,9 @@ function formatTime(iso: string) {
 
 function RoomCard({ room, onClick }: { room: ChatRoom; onClick: () => void }) {
   const hasUnread = room.unreadCount > 0
+  const lastMessagePreview = room.lastMessage?.senderName
+    ? `${room.lastMessage.senderName.split(' ')[0]}: ${room.lastMessage.text}`
+    : room.lastMessage?.text ?? room.eventAddress
   return (
     <motion.button
       initial={{ opacity: 0, x: -12 }}
@@ -70,9 +73,7 @@ function RoomCard({ room, onClick }: { room: ChatRoom; onClick: () => void }) {
           )}
         </div>
         <p className={`mt-0.5 truncate text-xs ${hasUnread ? 'font-medium text-slate-300' : 'text-muted'}`}>
-          {room.lastMessage
-            ? `${room.lastMessage.senderName.split(' ')[0]}: ${room.lastMessage.text}`
-            : room.eventAddress}
+          {lastMessagePreview}
         </p>
         {/* Contador de miembros inline */}
         <p className="mt-0.5 text-[10px] text-muted">👥 {room.memberCount} miembros</p>
@@ -93,7 +94,7 @@ function RoomCard({ room, onClick }: { room: ChatRoom; onClick: () => void }) {
 }
 
 export default function ChatRoutePage() {
-  const { rooms } = useChatContext()
+  const { rooms, isLoadingRooms, roomsError, reloadRooms } = useChatContext()
   const { user, isAuthReady } = useAuth()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
@@ -116,10 +117,30 @@ export default function ChatRoutePage() {
   return (
     <Layout headerTitle="Comunidad">
       <div className="flex h-full flex-col">
-        {!mounted ? (
+        {!mounted || isLoadingRooms ? (
           <div className="divide-y divide-white/5">
             {[1, 2, 3].map((i) => <RoomSkeleton key={i} />)}
           </div>
+        ) : roomsError ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center"
+          >
+            <div className="flex h-20 w-20 items-center justify-center rounded-full border border-amber-500/20 bg-amber-500/10">
+              <HiChatBubbleLeftRight className="h-9 w-9 text-amber-200" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-white">No pudimos cargar tus chats</p>
+              <p className="mt-1 text-sm text-muted">{roomsError}</p>
+            </div>
+            <button
+              onClick={() => void reloadRooms()}
+              className="rounded-full bg-primary/20 px-4 py-2 text-sm font-semibold text-primary-light"
+            >
+              Reintentar
+            </button>
+          </motion.div>
         ) : rooms.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

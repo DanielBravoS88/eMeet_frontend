@@ -60,7 +60,7 @@ function SectionTitle({ children, action }: { children: React.ReactNode; action?
 }
 
 function ProfilePageContent() {
-  const { user, logout, updateUser, isAuthReady } = useAuth()
+  const { user, logout, updateUser, isAuthReady, authError, refreshAuth } = useAuth()
   const { rooms, totalUnread } = useChatContext()
   const router = useRouter()
 
@@ -97,10 +97,10 @@ function ProfilePageContent() {
   }, [user?.name, user?.bio])
 
   useEffect(() => {
-    if (isAuthReady && !user) {
+    if (isAuthReady && !user && !authError) {
       router.replace('/auth')
     }
-  }, [isAuthReady, router, user])
+  }, [authError, isAuthReady, router, user])
 
   useEffect(() => {
     if (!user) return
@@ -148,6 +148,33 @@ function ProfilePageContent() {
             <div className="shimmer h-24 rounded-2xl" />
             <div className="shimmer h-24 rounded-2xl" />
             <div className="shimmer h-24 rounded-2xl" />
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  if (!user && authError) {
+    return (
+      <Layout headerTitle="Perfil">
+        <div className="px-4 py-8">
+          <div className="rounded-3xl border border-amber-500/25 bg-amber-500/10 p-5 text-center">
+            <p className="text-lg font-semibold text-white">No pudimos cargar tu perfil</p>
+            <p className="mt-2 text-sm text-amber-100">{authError}</p>
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button
+                onClick={() => void refreshAuth()}
+                className="rounded-full bg-primary/20 px-4 py-2 text-sm font-semibold text-primary-light"
+              >
+                Reintentar
+              </button>
+              <button
+                onClick={() => router.push('/auth')}
+                className="rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Ir a login
+              </button>
+            </div>
           </div>
         </div>
       </Layout>
@@ -247,6 +274,15 @@ function ProfilePageContent() {
         </motion.div>
 
         <div className="px-4">
+          {authError && (
+            <motion.div
+              variants={itemVariants}
+              className="mb-4 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+            >
+              Hubo un problema al sincronizar una parte de tu perfil. Puedes seguir usando la cuenta y reintentar más tarde.
+            </motion.div>
+          )}
+
           {/* ── Avatar + info editable ── */}
           <motion.div variants={itemVariants} className="mb-6 -mt-12 flex flex-col items-center text-center">
             <div className="relative mb-3">

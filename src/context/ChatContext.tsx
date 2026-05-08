@@ -18,6 +18,11 @@ interface ChatContextValue {
   rooms: ChatRoom[]
   messages: Record<string, ChatMessage[]>
   totalUnread: number
+  isLoadingRooms: boolean
+  loadingMessages: Record<string, boolean>
+  roomsError: string | null
+  messageErrors: Record<string, string>
+  reloadRooms: () => Promise<void>
   loadMessagesForRoom: (roomId: string) => Promise<void>
   joinRoom: (eventId: string, eventTitle: string, eventImageUrl: string, eventAddress: string) => Promise<void>
   sendMessage: (roomId: string, text: string) => Promise<void>
@@ -120,6 +125,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const [rooms, setRooms] = useState<ChatRoom[]>([])
   const [messages, setMessages] = useState<Record<string, ChatMessage[]>>({})
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false)
+  const [loadingMessages, setLoadingMessages] = useState<Record<string, boolean>>({})
+  const [roomsError, setRoomsError] = useState<string | null>(null)
+  const [messageErrors, setMessageErrors] = useState<Record<string, string>>({})
 
   // Cache de perfiles para enriquecer mensajes realtime sin fetches extra
   const profileCache = useRef<Map<string, { name: string; avatar: string }>>(new Map())
@@ -142,48 +151,82 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const loadMessagesForRoom = useCallback(async (roomId: string) => {
     if (!hasSupabaseEnv) {
       const local = loadLocalMessages()
+      setLoadingMessages((prev) => ({ ...prev, [roomId]: false }))
+      setMessageErrors((prev) => {
+        const next = { ...prev }
+        delete next[roomId]
+        return next
+      })
       setMessages((prev) => ({ ...prev, [roomId]: local[roomId] ?? [] }))
       return
     }
 
-    const roomMessages = await fetchApi<MessagePayload[]>(`/api/chat/rooms/${roomId}/messages`)
-    cacheProfilesFromMessages(roomMessages)
-    setMessages((prev) => ({ ...prev, [roomId]: roomMessages }))
+    setLoadingMessages((prev) => ({ ...prev, [roomId]: true }))
+    try {
+      const roomMessages = await fetchApi<MessagePayload[]>(`/api/chat/rooms/${roomId}/messages`)
+      cacheProfilesFromMessages(roomMessages)
+      setMessageErrors((prev) => {
+        const next = { ...prev }
+        delete next[roomId]
+        return next
+      })
+      setMessages((prev) => ({ ...prev, [roomId]: roomMessages }))
+    } catch (error) {
+      setMessageErrors((prev) => ({
+        ...prev,
+        [roomId]: error instanceof Error ? error.message : 'No se pudieron cargar los mensajes.',
+      }))
+      throw error
+    } finally {
+      setLoadingMessages((prev) => ({ ...prev, [roomId]: false }))
+    }
   }, [cacheProfilesFromMessages])
 
   // Carga la lista de rooms (sin mensajes). Solo para la carga inicial.
   const loadRoomsOnly = useCallback(async () => {
     if (!user) {
+      setRoomsError(null)
       setRooms([])
       setMessages({})
       return
     }
 
     if (!hasSupabaseEnv) {
+      setRoomsError(null)
       setRooms(loadLocalRooms())
       setMessages(loadLocalMessages())
       return
     }
 
-    const payload = await fetchApi<RoomPayload[]>('/api/chat/rooms')
-    setRooms(
-      payload.map((r) => ({
-        id: r.id,
-        eventTitle: r.eventTitle,
-        eventImageUrl: r.eventImageUrl,
-        eventAddress: r.eventAddress,
-        memberCount: r.memberCount,
-        lastMessage: r.lastMessage,
-        unreadCount: r.unreadCount,
-      })),
-    )
+    setIsLoadingRooms(true)
+    try {
+      const payload = await fetchApi<RoomPayload[]>('/api/chat/rooms')
+      setRoomsError(null)
+      setRooms(
+        payload.map((r) => ({
+          id: r.id,
+          eventTitle: r.eventTitle,
+          eventImageUrl: r.eventImageUrl,
+          eventAddress: r.eventAddress,
+          memberCount: r.memberCount,
+          lastMessage: r.lastMessage,
+          unreadCount: r.unreadCount,
+        })),
+      )
+    } catch (error) {
+      setRooms([])
+      setMessages({})
+      setRoomsError(error instanceof Error ? error.message : 'No se pudieron cargar los chats.')
+      throw error
+    } finally {
+      setIsLoadingRooms(false)
+    }
   }, [user])
 
   // Carga inicial de rooms
   useEffect(() => {
     loadRoomsOnly().catch(() => {
-      setRooms([])
-      setMessages({})
+      // roomsError ya queda seteado en loadRoomsOnly
     })
   }, [loadRoomsOnly])
 
@@ -409,7 +452,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   return (
     <ChatContext.Provider
-      value={{ rooms, messages, totalUnread, loadMessagesForRoom, joinRoom, sendMessage, markRoomRead }}
+      value={{
+        rooms,
+        messages,
+        totalUnread,
+        isLoadingRooms,
+        loadingMessages,
+        roomsError,
+        messageErrors,
+        reloadRooms: loadRoomsOnly,
+        loadMessagesForRoom,
+        joinRoom,
+        sendMessage,
+        markRoomRead,
+      }}
     >
       {children}
     </ChatContext.Provider>

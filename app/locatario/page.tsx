@@ -40,6 +40,8 @@ const EMPTY_FORM = {
   category: 'fiesta' as EventCategory,
 }
 
+const COUPON_COST_PER_DAY = 25
+
 function formatCLP(value: number) {
   return new Intl.NumberFormat('es-CL', {
     style: 'currency',
@@ -228,7 +230,10 @@ export default function LocatarioPage() {
       setEventForm({ ...EMPTY_FORM, address: user?.businessLocation ?? user?.location ?? '' })
       setGpsCoords(null)
       setShowCreateEvent(false)
-      setFeedback({ message: '¡Evento publicado! Ya aparece en el feed principal.', type: 'success' })
+      setFeedback({
+        message: 'Evento publicado correctamente. Si tiene ubicación GPS, quedará visible en el feed público.',
+        type: 'success',
+      })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo crear el evento.'
       setFeedback({ message, type: 'error' })
@@ -722,7 +727,7 @@ export default function LocatarioPage() {
                   {!walletError && (
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="text-xs text-muted">
-                        Costo real de activación: {Number(couponDurationDays) * 5} tokens.
+                        Costo real de activación: {Number(couponDurationDays) * COUPON_COST_PER_DAY} tokens.
                       </p>
                       <button
                         onClick={handleCreateCoupon}
