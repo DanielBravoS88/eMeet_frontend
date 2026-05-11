@@ -7,7 +7,7 @@ import {
   FiLock, FiEye, FiEyeOff, FiCheck, FiX,
   FiArrowLeft, FiAlertCircle, FiCheckCircle, FiShield,
 } from 'react-icons/fi'
-import { getSupabaseBrowserClient } from '../../src/lib/supabase'
+import { getSupabaseBrowserClient } from '../../../src/lib/supabase'
 
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '')
 
