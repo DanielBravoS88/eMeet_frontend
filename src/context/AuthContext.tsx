@@ -5,6 +5,16 @@ import type { ReactNode } from 'react'
 import type { AuthState, User } from '../types'
 import { getSupabaseBrowserClient, hasSupabaseEnv } from '../lib/supabase'
 
+export async function loginWithGoogle() {
+  const { error } = await getSupabaseBrowserClient().auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
+  })
+  if (error) throw error
+}
+
 // ─── Interfaz del contexto ───────────────────────────────────────────────────
 type RegisterOptions = {
   role?: User['role']
