@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { FiArrowRight } from 'react-icons/fi'
 import LoginForm from '../../src/components/LoginForm'
 import SignUpForm from '../../src/components/SignUpForm'
-import { useAuth } from '../../src/context/AuthContext'
+import { useAuth, loginWithGoogle } from '../../src/context/AuthContext'
 
 function GoogleIcon() {
   return (
@@ -30,7 +30,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null)
   const [oauthError, setOauthError] = useState('')
-  const { loginWithGoogle, loginWithApple } = useAuth()
+  const { loginWithApple } = useAuth()
 
   const handleGoogle = async () => {
     setOauthError('')
@@ -150,7 +150,7 @@ export default function AuthPage() {
 
               <div className="space-y-3">
                 <button
-                  onClick={handleGoogle}
+                  onClick={loginWithGoogle}
                   disabled={oauthLoading !== null}
                   className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 py-3 font-medium text-white transition-all hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -163,14 +163,10 @@ export default function AuthPage() {
                 </button>
                 <button
                   onClick={handleApple}
-                  disabled={oauthLoading !== null}
+                  disabled
                   className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 py-3 font-medium text-white transition-all hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {oauthLoading === 'apple' ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  ) : (
-                    <AppleIcon />
-                  )}
+                  <AppleIcon />
                   Continuar con Apple
                 </button>
               </div>
