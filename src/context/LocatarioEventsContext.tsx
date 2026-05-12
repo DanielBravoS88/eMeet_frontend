@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import type { Event, EventCategory } from '../types'
 import { getSupabaseAccessToken, getSupabaseAuthSession } from '../lib/authSession'
 import { getSupabaseBrowserClient, hasSupabaseEnv } from '../lib/supabase'
+import { requireBackendUrl } from '../lib/backend'
 
 interface CreateLocatarioEventInput {
   title: string
@@ -33,14 +34,6 @@ const LocatarioEventsContext = createContext<LocatarioEventsContextValue | undef
 
 const STORAGE_KEY = 'emeet-locatario-events'
 const FALLBACK_EVENT_IMAGE = 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&q=80'
-const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '')
-
-function requireBackendUrl() {
-  if (!BACKEND_URL) {
-    throw new Error('Falta NEXT_PUBLIC_BACKEND_URL para usar eventos de locatario con backend separado.')
-  }
-  return BACKEND_URL
-}
 
 function loadEventsFromStorage(): Event[] {
   if (typeof window === 'undefined') return []
@@ -104,7 +97,7 @@ function dbRowToEvent(row: LocatarioEventRow): Event {
 }
 
 async function apiFetch<T>(input: string, init?: RequestInit): Promise<T> {
-  const endpoint = `${requireBackendUrl()}${input}`
+  const endpoint = `${requireBackendUrl('eventos de locatario con backend separado')}${input}`
   const headers = new Headers({ 'Content-Type': 'application/json', ...(init?.headers ?? {}) })
 
   if (hasSupabaseEnv) {

@@ -8,7 +8,7 @@ import SwipeCard from '../../src/components/SwipeCard'
 import { NearbyPlacesProvider, useNearbyPlacesContext } from '../../src/context/NearbyPlacesContext'
 import { useLocatarioEvents } from '../../src/context/LocatarioEventsContext'
 import { placeToEvent } from '../../src/data/placeFeedAdapter'
-import { CATEGORY_EMOJI } from '../../src/data/mockEvents'
+import { CATEGORY_EMOJI } from '../../src/lib/eventUtils'
 import type { Event, EventCategory } from '../../src/types'
 import { HiXMark, HiMagnifyingGlass } from 'react-icons/hi2'
 

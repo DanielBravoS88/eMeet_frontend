@@ -1,6 +1,6 @@
 import { getSupabaseBrowserClient, hasSupabaseEnv } from './supabase'
+import { requireBackendUrl } from './backend'
 
-const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '')
 const DEFAULT_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_FETCH_TIMEOUT_MS ?? 10000)
 const DEFAULT_GET_RETRIES = Number(process.env.NEXT_PUBLIC_FETCH_GET_RETRIES ?? 1)
 
@@ -39,15 +39,8 @@ async function fetchWithTimeout(endpoint: string, init: RequestInit, timeoutMs: 
   }
 }
 
-export function requireBackendUrl() {
-  if (!BACKEND_URL) {
-    throw new Error('Falta NEXT_PUBLIC_BACKEND_URL en las variables de entorno.')
-  }
-  return BACKEND_URL
-}
-
 export async function fetchApi<T>(input: string, init?: FetchApiOptions): Promise<T> {
-  const endpoint = `${requireBackendUrl()}${input}`
+  const endpoint = `${requireBackendUrl('comunicacion con backend')}${input}`
   const timeoutMs = init?.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const method = (init?.method ?? 'GET').toUpperCase()
   const retries = normalizeRetryCount(method, init?.retries)

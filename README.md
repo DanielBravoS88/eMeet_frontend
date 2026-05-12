@@ -106,23 +106,6 @@ eMeet_frontend/
 ├── Gestion/                ← 📋 Gestión del proyecto
 └── README.md               ← Este archivo
 ```
-│
-├── context/
-│   └── AuthContext.tsx      # Estado global de autenticación (Context API)
-│
-├── components/
-│   ├── Layout.tsx           # Wrapper con header, BottomNavBar y sidebar de mapa
-│   ├── BottomNavBar.tsx     # Navegación inferior fija con NavLink activos
-│   ├── SwipeCard.tsx        # Tarjeta de evento con arrastre Framer Motion
-│   └── BellavistaMap.tsx    # Mapa Google Maps con Places API (locales cercanos)
-│
-└── pages/
-    ├── FeedPage.tsx         # Pantalla principal: stack de swipe
-    ├── AuthPage.tsx         # Login / Registro
-    ├── SearchPage.tsx       # Búsqueda y filtros por categoría
-    ├── SavedPage.tsx        # Eventos guardados
-    └── ProfilePage.tsx      # Perfil del usuario
-```
 
 ---
 

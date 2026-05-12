@@ -1,7 +1,6 @@
 import { getSupabaseAccessToken, requireSupabaseAccessToken } from '../lib/authSession'
 import { hasSupabaseEnv } from '../lib/supabase'
-
-const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '')
+import { requireBackendUrl } from '../lib/backend'
 
 export type TokenPackCode = 'starter' | 'growth' | 'pro'
 export type TokenPaymentProvider = 'mercadopago' | 'transbank_webpay'
@@ -85,13 +84,6 @@ export class MonetizationApiError extends Error {
     this.name = 'MonetizationApiError'
     this.status = status
   }
-}
-
-function requireBackendUrl() {
-  if (!BACKEND_URL) {
-    throw new Error('Falta NEXT_PUBLIC_BACKEND_URL para usar monetizacion.')
-  }
-  return BACKEND_URL
 }
 
 function buildJsonHeaders(initHeaders?: HeadersInit) {

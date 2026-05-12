@@ -104,7 +104,7 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
   })
 
   const refreshPlaces = useCallback(() => {
-    if (!isLoaded || !userLocation || selectedPlaceTypes.length === 0) return
+    if (!isLoaded || loadError || invalidApiKey || !userLocation || selectedPlaceTypes.length === 0) return
     if (refreshTimer.current) clearTimeout(refreshTimer.current)
     refreshTimer.current = setTimeout(() => {
       fetchNearby(
@@ -112,7 +112,7 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
         selectedPlaceTypes,
       )
     }, 300)
-  }, [fetchNearby, isLoaded, selectedDistanceKm, selectedPlaceTypes, userLocation])
+  }, [fetchNearby, invalidApiKey, isLoaded, loadError, selectedDistanceKm, selectedPlaceTypes, userLocation])
 
   const togglePlaceType = useCallback((type: PlaceType) => {
     setSelectedPlaceTypes((prev) => {
@@ -188,9 +188,9 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
   }, [invalidApiKey, isLoaded, requestUserLocation])
 
   useEffect(() => {
-    if (!userLocation || !isLoaded) return
+    if (!userLocation || !isLoaded || loadError || invalidApiKey) return
     refreshPlaces()
-  }, [isLoaded, refreshPlaces, selectedPlaceTypes, userLocation])
+  }, [invalidApiKey, isLoaded, loadError, refreshPlaces, selectedPlaceTypes, userLocation])
 
   // Enriquece solo los 2 primeros lugares y registra cuáles ya fueron solicitados.
   // La salida temprana evita iteraciones extra cuando enrichPlace actualiza `places`

@@ -9,6 +9,8 @@ import { fetchApi } from '@/src/lib/fetchApi'
 import KpiCard, { KpiCardSkeleton } from '@/src/components/admin/KpiCard'
 import EventsTable from '@/src/components/admin/EventsTable'
 import type { AdminEvent, EventStatus } from '@/src/components/admin/EventsTable'
+import type { CategoryStat } from '@/src/components/admin/CategoryDonut'
+import type { TicketPoint } from '@/src/components/admin/TicketAreaChart'
 
 // Charts are client-only (recharts uses browser APIs)
 const TicketAreaChart = dynamic(() => import('@/src/components/admin/TicketAreaChart'), {
@@ -48,6 +50,8 @@ type AdminStats = {
   recentProfiles: { id: string; name: string; created_at: string }[]
   recentEvents: RawRecentEvent[]
   recentCommunities: { id: string; event_title: string; created_at: string }[]
+  categoryStats?: CategoryStat[]
+  monthlyTickets?: TicketPoint[]
 }
 
 const ADMIN_STATS_CACHE_KEY = 'emeet-admin-stats-cache'
@@ -229,7 +233,7 @@ export default function AdminPage() {
         <div className="col-span-1 md:col-span-8">
           <Section title="Venta de Tickets vs Tiempo">
             <div className="rounded-lg border border-em-border bg-em-surface p-5">
-              <TicketAreaChart />
+              <TicketAreaChart data={stats?.monthlyTickets} loading={loading} />
             </div>
           </Section>
         </div>
@@ -238,7 +242,7 @@ export default function AdminPage() {
         <div className="col-span-1 md:col-span-4">
           <Section title="Distribución de Categorías">
             <div className="rounded-lg border border-em-border bg-em-surface p-5">
-              <CategoryDonut />
+              <CategoryDonut data={stats?.categoryStats} loading={loading} />
             </div>
           </Section>
         </div>

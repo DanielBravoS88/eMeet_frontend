@@ -10,15 +10,10 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
-// Mock data — replace with API call when ticket-sales endpoint is available
-const MOCK_DATA = [
-  { month: 'Nov', tickets: 820 },
-  { month: 'Dic', tickets: 1340 },
-  { month: 'Ene', tickets: 980 },
-  { month: 'Feb', tickets: 1560 },
-  { month: 'Mar', tickets: 1280 },
-  { month: 'Abr', tickets: 1890 },
-]
+export interface TicketPoint {
+  month: string
+  tickets: number
+}
 
 interface CustomTooltipProps {
   active?: boolean
@@ -36,10 +31,28 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   )
 }
 
-export default function TicketAreaChart() {
+interface Props {
+  data?: TicketPoint[]
+  loading?: boolean
+}
+
+export default function TicketAreaChart({ data, loading }: Props) {
+  if (loading) {
+    return <div className="h-[220px] animate-pulse rounded-lg bg-white/5" />
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex h-[220px] flex-col items-center justify-center gap-2 text-center">
+        <span className="text-3xl">🎟️</span>
+        <p className="text-sm text-em-muted">Sin datos de ventas aún</p>
+      </div>
+    )
+  }
+
   return (
     <ResponsiveContainer width="100%" height={220}>
-      <AreaChart data={MOCK_DATA} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+      <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
         <defs>
           <linearGradient id="ticketGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#FF6B00" stopOpacity={0.3} />
