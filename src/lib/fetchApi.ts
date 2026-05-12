@@ -47,7 +47,7 @@ export function requireBackendUrl() {
 }
 
 export async function fetchApi<T>(input: string, init?: FetchApiOptions): Promise<T> {
-  const endpoint = `${requireBackendUrl()}${input.replace(/^\/api/, '')}`
+  const endpoint = `${requireBackendUrl()}${input}`
   const timeoutMs = init?.timeoutMs ?? DEFAULT_TIMEOUT_MS
   const method = (init?.method ?? 'GET').toUpperCase()
   const retries = normalizeRetryCount(method, init?.retries)

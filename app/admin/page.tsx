@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { Users, CalendarDays, ShieldAlert, Activity, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/src/context/AuthContext'
-import { getSupabaseBrowserClient, hasSupabaseEnv } from '@/src/lib/supabase'
+import { fetchApi } from '@/src/lib/fetchApi'
 import KpiCard, { KpiCardSkeleton } from '@/src/components/admin/KpiCard'
 import EventsTable from '@/src/components/admin/EventsTable'
 import type { AdminEvent, EventStatus } from '@/src/components/admin/EventsTable'
@@ -102,22 +102,7 @@ export default function AdminPage() {
     setError(null)
 
     try {
-      let token: string | null = null
-      if (hasSupabaseEnv) {
-        const { data } = await getSupabaseBrowserClient().auth.getSession()
-        token = data.session?.access_token ?? null
-      }
-
-      const res = await fetch('/api/admin/stats', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null
-        throw new Error(body?.error ?? 'Error al cargar estadísticas')
-      }
-
-      const payload = (await res.json()) as AdminStats
+      const payload = await fetchApi<AdminStats>('/admin/stats', { method: 'GET' })
       setStats(payload)
 
       if (typeof window !== 'undefined') {

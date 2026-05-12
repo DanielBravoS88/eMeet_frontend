@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { CalendarDays, MessageSquare, Heart, Users, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/src/context/AuthContext'
-import { getSupabaseBrowserClient, hasSupabaseEnv } from '@/src/lib/supabase'
+import { fetchApi } from '@/src/lib/fetchApi'
 import KpiCard, { KpiCardSkeleton } from '@/src/components/admin/KpiCard'
 import EventsTable, { EventsTableSkeleton } from '@/src/components/admin/EventsTable'
 import type { AdminEvent } from '@/src/components/admin/EventsTable'
@@ -80,19 +80,7 @@ export default function AdminEventsPage() {
     setLoading(true)
     setError(null)
     try {
-      let token: string | null = null
-      if (hasSupabaseEnv) {
-        const { data } = await getSupabaseBrowserClient().auth.getSession()
-        token = data.session?.access_token ?? null
-      }
-      const res = await fetch('/api/admin/stats', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null
-        throw new Error(body?.error ?? 'Error al cargar estadísticas')
-      }
-      setStats((await res.json()) as AdminStats)
+      setStats(await fetchApi<AdminStats>('/admin/stats', { method: 'GET' }))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error desconocido')
     } finally {
@@ -114,7 +102,7 @@ export default function AdminEventsPage() {
   const kpis = stats?.kpis
   const events: AdminEvent[] = (stats?.recentEvents ?? []).map(toAdminEvent)
 
-  // Todos los KPIs son reales desde /api/admin/stats
+  // Todos los KPIs son reales desde /admin/stats
   const kpiCards = [
     { label: 'Total eventos', value: kpis ? kpis.totalEvents.toLocaleString('es-CL') : '—', change: undefined, icon: CalendarDays, accentColor: '#3B82F6' },
     { label: 'Comunidades activas', value: kpis ? kpis.totalCommunities.toLocaleString('es-CL') : '—', change: undefined, icon: Users, accentColor: '#0ECB81' },

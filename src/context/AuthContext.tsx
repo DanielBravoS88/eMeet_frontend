@@ -217,9 +217,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessToken?: string | null,
   ) => {
     const [profileResult, likedResult, savedResult] = await Promise.allSettled([
-      fetchApi<ProfilePayload>('/api/profile', { method: 'GET' }),
-      fetchApi<UserEventPayload[]>('/api/events/liked', { method: 'GET' }),
-      fetchApi<UserEventPayload[]>('/api/events/saved', { method: 'GET' }),
+      fetchApi<ProfilePayload>('/profile', { method: 'GET' }),
+      fetchApi<UserEventPayload[]>('/events/liked', { method: 'GET' }),
+      fetchApi<UserEventPayload[]>('/events/saved', { method: 'GET' }),
     ])
 
     if (profileResult.status === 'rejected') throw profileResult.reason
@@ -340,7 +340,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return localUser.role
     }
 
-    const payload = await fetchApi<AuthResponsePayload>('/api/auth/login', {
+    const payload = await fetchApi<AuthResponsePayload>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
@@ -369,7 +369,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { needsEmailVerification: false }
     }
 
-    const payload = await fetchApi<AuthResponsePayload>('/api/auth/register', {
+    const payload = await fetchApi<AuthResponsePayload>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({
         name,
@@ -422,7 +422,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      await fetchApi('/api/auth/logout', { method: 'POST' })
+      await fetchApi('/auth/logout', { method: 'POST' })
     } catch {
       // El backend puede fallar si el token ya expiró — continuar igual
     }
@@ -452,7 +452,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (Array.isArray(data.interests)) profilePayload.interests = data.interests
 
     if (hasSupabaseEnv && Object.keys(profilePayload).length > 0) {
-      await fetchApi('/api/profile', {
+      await fetchApi('/profile', {
         method: 'PATCH',
         body: JSON.stringify(profilePayload),
       })
