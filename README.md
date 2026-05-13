@@ -1,6 +1,8 @@
-# eMeet Frontend
+# eMeet
 
-> Plataforma de descubrimiento de eventos locales con mecánica de swipe tipo Tinder.
+> Plataforma de descubrimiento social de eventos y lugares cercanos — mobile-first, con mecánica de swipe y comunidades en tiempo real.
+
+**Integrantes**: Daniel Bravo · Francisco Levipil · Antoni Vivar
 
 ---
 
@@ -8,61 +10,102 @@
 
 - [Descripción del proyecto](#descripción-del-proyecto)
 - [Stack tecnológico](#stack-tecnológico)
-- [Estructura del proyecto](#estructura-del-proyecto)
-- [Arquitectura y decisiones técnicas](#arquitectura-y-decisiones-técnicas)
-- [Pantallas](#pantallas)
+- [Repositorios del sistema](#repositorios-del-sistema)
+- [Estructura del repositorio](#estructura-del-repositorio)
 - [Instalación y uso](#instalación-y-uso)
 - [Variables de entorno](#variables-de-entorno)
+- [Documentación académica](#documentación-académica)
+- [Estado actual del proyecto](#estado-actual-del-proyecto)
 - [Roadmap y próximos pasos](#roadmap-y-próximos-pasos)
 
 ---
 
 ## Descripción del proyecto
 
-**eMeet** conecta a personas con eventos cercanos (gastronomía, música, cultura, networking, etc.) a través de una experiencia móvil-first con mecánica de swipe. El usuario evalúa eventos deslizando tarjetas:
+**eMeet** conecta a personas con eventos, bares, restaurantes y lugares de interés cercanos a través de una experiencia móvil-first con mecánica de swipe y comunidades en tiempo real. El usuario evalúa lugares deslizando tarjetas:
 
-- → **Swipe right** (o botón verde): le interesa el evento.
-- ← **Swipe left** (o botón ×): lo descarta.
+- → **Swipe right** (o botón ❤️): le interesa el lugar.
+- ← **Swipe left** (o botón ✕): lo descarta.
 - 🔖 **Bookmark**: lo guarda para ver después.
+- 💬 **Chat**: se une a la comunidad del lugar en tiempo real.
+
+El sistema soporta tres roles: **usuario regular**, **locatario** (publica eventos) y **administrador** (modera y gestiona el sistema).
 
 ---
 
-## Stack tecnológico
+## Repositorios del Sistema
+
+| Repositorio | Descripción |
+|---|---|
+| **`eMeet_frontend`** (este repositorio) | Frontend de la aplicación — Next.js 14, React 18, TypeScript, Tailwind CSS |
+| **`eMeet_Backend_Supabase`** | Backend del sistema — API REST con Supabase como plataforma de datos y autenticación |
+
+**Plataforma Supabase del proyecto**: https://supabase.com/dashboard/project/ksghpwonmnxmbhmfpaog
+
+---
+
+## Stack Tecnológico
+
+### Frontend (`eMeet_frontend`)
 
 | Tecnología | Versión | Rol |
 |---|---|---|
-| **React** | 18.3 | UI declarativa basada en componentes |
-| **TypeScript** | 5.6 | Tipado estático — reduce errores en tiempo de desarrollo |
-| **Vite** | 6.4 | Bundler + servidor de desarrollo ultrarrápido (HMR) |
-| **Tailwind CSS** | 3.4 | Utilidades CSS inline — evita escribir CSS custom para estilos repetitivos |
-| **Framer Motion** | 11 | Animaciones declarativas y gestos de arrastre (swipe) |
-| **React Router v6** | 6.27 | Navegación SPA entre pantallas |
-| **react-icons** | 5.3 | Set de iconos SVG (HeroIcons v2) |
-| **@react-google-maps/api** | 2.20.8 | Integración de Google Maps con Places API (búsqueda de locales cercanos) |
+| **Next.js** | 14.2.15 | Framework React con App Router, SSR, Route Handlers |
+| **React** | 18.3.1 | UI declarativa basada en componentes |
+| **TypeScript** | 5.6.2 | Tipado estático estricto |
+| **Tailwind CSS** | 3.4.14 | Utilidades CSS mobile-first |
+| **Framer Motion** | 11.11.0 | Animaciones declarativas y gestos de arrastre (swipe) |
+| **@supabase/supabase-js** | 2.103.0 | Cliente Supabase (Auth, DB, Realtime, Storage) |
+| **@supabase/ssr** | 0.10.2 | Integración Supabase con Next.js SSR |
+| **@react-google-maps/api** | 2.20.8 | Google Maps + Places API |
+| **Recharts** | 3.8.1 | Gráficos para panel de administración |
+| **react-icons** | 5.3.0 | Set de iconos SVG |
+| **lucide-react** | 1.8.0 | Iconos SVG modernos |
 
-### ¿Por qué Vite y no Create React App?
+### Backend y Servicios
 
-Vite usa ES Modules nativos del navegador durante el desarrollo, lo que da tiempos de arranque y recarga casi instantáneos. Create React App (CRA) está descontinuado desde 2023.
-
-### ¿Por qué Framer Motion para el swipe?
-
-La librería expone `motion.div` con `drag`, `useMotionValue` y `useTransform`, que permiten crear el efecto de arrastre con rotación proporcional y umbral de salida en ~30 líneas de código, sin necesidad de listeners manuales de touch/mouse.
+| Tecnología | Rol |
+|---|---|
+| **Supabase Auth** | Autenticación (email, Google, Apple) |
+| **Supabase PostgreSQL** | Base de datos relacional |
+| **Supabase Realtime** | Chat en tiempo real |
+| **Supabase Storage** | Archivos e imágenes |
+| **Google Maps Platform** | Places API para lugares cercanos |
+| **eMeet_Backend_Supabase** | API REST del sistema |
 
 ---
 
-## Estructura del proyecto
+## Estructura del Repositorio
 
 ```
-src/
-├── App.tsx                  # Raíz: BrowserRouter + AuthProvider + Routes
-├── main.tsx                 # Entry point de React DOM
-├── index.css                # Tailwind base + estilos globales
-│
-├── types/
-│   └── index.ts             # Tipos TypeScript centrales (Event, User, etc.)
-│
-├── data/
-│   └── mockEvents.ts        # Datos mock + helpers (formatPrice, formatDate)
+eMeet_frontend/
+├── app/                    ← Rutas Next.js App Router (páginas y layouts)
+│   ├── page.tsx            ← Feed principal (/)
+│   ├── auth/               ← Login, registro, OAuth callback
+│   ├── chat/               ← Lista de chats y sala individual
+│   ├── search/             ← Búsqueda y exploración
+│   ├── saved/              ← Guardados
+│   ├── profile/            ← Perfil del usuario
+│   ├── admin/              ← Panel de administración
+│   ├── locatario/          ← Panel de locatario
+│   └── api/                ← Route Handlers (BFF)
+├── src/
+│   ├── components/         ← Componentes reutilizables
+│   ├── context/            ← Contextos globales (Auth, Chat, NearbyPlaces, Locatario)
+│   ├── hooks/              ← Custom hooks
+│   ├── lib/                ← Clientes Supabase, helpers
+│   ├── providers/          ← AppProviders, GoogleMapsProvider
+│   ├── services/           ← placesService, monetizationService
+│   ├── types/              ← Tipos TypeScript centrales
+│   └── data/               ← Datos mock y adaptadores
+├── public/                 ← Archivos estáticos
+├── docs/                   ← Documentos técnicos internos del equipo
+├── middleware.ts            ← Protección de rutas y validación de roles
+├── Documentacion/          ← 📚 Documentación académica
+├── Producto/               ← 📦 Antecedentes técnicos del producto
+├── Gestion/                ← 📋 Gestión del proyecto
+└── README.md               ← Este archivo
+```
 │
 ├── context/
 │   └── AuthContext.tsx      # Estado global de autenticación (Context API)
@@ -83,152 +126,99 @@ src/
 
 ---
 
-## Arquitectura y decisiones técnicas
-
-### Gestión de estado
-
-Se usa **React Context API** (sin Redux ni Zustand) porque el estado global actual es simple: solo el usuario autenticado. Cuando la app crezca y haya más estado compartido (filtros, eventos favoritos sincronizados), se puede migrar a Zustand con una refactorización mínima.
-
-```
-AuthContext
-  └── user: User | null
-  └── isAuthenticated: boolean
-  └── login() / register() / logout() / updateUser()
-```
-
-### Mecánica de swipe
-
-```
-FeedPage
-  └── events: Event[]           ← array completo pendiente de evaluar
-        └── visibleEvents[0..2] ← los primeros 3 son el "stack" visible
-              └── SwipeCard (stackIndex=0) ← carta activa e interactuable
-              └── SwipeCard (stackIndex=1) ← carta de fondo, escala 0.96
-              └── SwipeCard (stackIndex=2) ← carta de fondo, escala 0.92
-```
-
-El `stackIndex` controla:
-- `z-index` (quién queda arriba)
-- `scale` (efecto de profundidad)
-- `pointerEvents` (solo la carta top recibe eventos)
-
-Al hacer swipe, Framer Motion anima la carta hacia fuera del viewport y el callback (`onSwipeRight` / `onSwipeLeft`) filtra esa carta del array, haciendo que la siguiente suba automáticamente al tope.
-
-### Rutas protegidas
-
-```tsx
-<Route path="/" element={
-  <ProtectedRoute>
-    <FeedPage />
-  </ProtectedRoute>
-} />
-```
-
-`ProtectedRoute` lee `isAuthenticated` del `AuthContext`. Si es `false`, redirige a `/auth` con `<Navigate replace />`.
-
-### Paleta de colores (Tailwind extendida)
-
-| Token | Hex | Uso |
-|---|---|---|
-| `primary` | `#7C3AED` | Violeta — color de marca principal |
-| `primary-light` | `#A78BFA` | Iconos, texto destacado |
-| `primary-dark` | `#5B21B6` | Estados hover |
-| `accent` | `#F59E0B` | Amarillo dorado — badges especiales |
-| `surface` | `#1A1A2E` | Fondo oscuro de la app |
-| `card` | `#16213E` | Fondo de tarjetas y componentes |
-| `muted` | `#94A3B8` | Texto secundario |
-
----
-
-## Pantallas
-
-### `/auth` — Login / Registro
-
-Toggle entre los dos modos. Validación en el cliente antes de llamar al auth. En producción: `POST /api/auth/login` y `POST /api/auth/register`.
-
-### `/` — Feed (pantalla principal)
-
-Stack de tarjetas con swipe. Muestra máximo 3 tarjetas apiladas. Incluye:
-- Toast de feedback verde/rojo tras cada swipe.
-- Estado vacío con opción de reiniciar.
-- Contador de eventos restantes e interesados.
-
-### `/search` — Explorar
-
-- Barra de búsqueda por texto (título + tags).
-- Chips de filtro por categoría.
-- Grid de 2 columnas con tarjetas compactas.
-- Al tocar una tarjeta → modal con la SwipeCard completa.
-
-### `/saved` — Guardados
-
-Lista de eventos marcados con bookmark. Cada ítem muestra imagen lateral + metadata. Permite quitar de guardados.
-
-### `/profile` — Perfil
-
-- Avatar, nombre, bio, ubicación.
-- Intereses editables (chips toggle).
-- Estadísticas (likes, guardados).
-- Botón de cerrar sesión.
-
----
-
-## Instalación y uso
+## Instalación y Uso
 
 ```bash
-# Clonar e instalar dependencias
+# Clonar el repositorio
+git clone https://github.com/DanielBravoS88/eMeet_frontend.git
+cd eMeet_frontend
+
+# Instalar dependencias
 npm install
 
-# Servidor de desarrollo (http://localhost:5173)
+# Servidor de desarrollo (http://localhost:3000)
 npm run dev
 
 # Build de producción
 npm run build
 
-# Previsualizar el build
-npm run preview
+# Iniciar servidor de producción
+npm start
 ```
 
 ---
 
-## Variables de entorno
+## Variables de Entorno
 
-Copiar `.env.example` como `.env.local` y completar los valores reales:
-
-```bash
-cp .env.example .env.local
-```
-
-Editar `.env.local`:
+Crear el archivo `.env.local` en la raíz del proyecto con las siguientes variables:
 
 ```env
-# Clave de Google Maps JavaScript API + Places API
-VITE_GOOGLE_MAPS_API_KEY=tu_clave_aqui
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
-# URL base de la API REST (cuando se integre el backend)
-# VITE_API_URL=https://api.emeet.cl
+# Backend eMeet_Backend_Supabase
+NEXT_PUBLIC_BACKEND_URL=
+
+# Google Maps Platform
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 ```
 
-### Cómo obtener la API key de Google Maps
-
-1. Ir a [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-2. Crear un proyecto (o usar uno existente)
-3. Habilitar las APIs: **Maps JavaScript API** y **Places API**
-4. Generar una API key y (recomendado) restringirla a tu dominio
-
-> **Nota:** Todas las variables expuestas al cliente deben tener el prefijo `VITE_`. El archivo `.env.local` nunca debe subirse a git (ya está en `.gitignore`).
+> El archivo `.env.local` **nunca debe subirse al repositorio** (está en `.gitignore`).
+> Ver [`Producto/Ambiente-local.md`](./Producto/Ambiente-local.md) para más detalles.
 
 ---
 
-## Roadmap y próximos pasos
+## Documentación Académica
+
+La documentación completa del proyecto se encuentra en las siguientes carpetas:
+
+| Carpeta | Contenido |
+|---|---|
+| 📚 [`/Documentacion`](./Documentacion/README.md) | Informe, Arquitectura, UML, MER, Wireframes, Gantt, Plan QA |
+| 📦 [`/Producto`](./Producto/README.md) | Código fuente, dependencias, funcionalidades, datos, ambiente local |
+| 📋 [`/Gestion`](./Gestion/README.md) | Definición del proyecto, integrantes, ramas, infraestructura, backup, commits |
+
+### Accesos directos a documentos clave:
+
+- [Informe académico completo](./Documentacion/Informe.md)
+- [Arquitectura del sistema](./Documentacion/Arquitectura.md)
+- [Diagramas UML](./Documentacion/UML.md)
+- [Modelo Entidad-Relación](./Documentacion/MER.md)
+- [Wireframes de pantallas](./Documentacion/Wireframes.md)
+- [Plan Gantt](./Documentacion/Gantt.md)
+- [Plan de QA](./Documentacion/Plan_QA.md)
+- [Integrantes del equipo](./Gestion/Integrantes.txt)
+- [Estrategia de ramas Git](./Gestion/Estrategia-de-ramas.md)
+- [Infraestructura cloud](./Gestion/Infraestructura-Cloud.md)
+
+---
+
+## Estado Actual del Proyecto
+
+| Componente | Estado |
+|---|---|
+| Frontend (`eMeet_frontend`) | ✅ MVP funcional |
+| Autenticación (Supabase Auth) | ✅ Implementado |
+| Feed de swipe (Google Places) | ✅ Implementado |
+| Chat en tiempo real (Supabase Realtime) | ✅ Implementado |
+| Panel de administrador | ✅ Implementado |
+| Panel de locatario | ✅ Implementado |
+| Integración con `eMeet_Backend_Supabase` | 🔄 En progreso |
+| Pruebas automatizadas | ⏳ Pendiente |
+| Documentación académica | ✅ Entregada en PR `documentation-and-delivery-structure` |
+
+---
+
+## Roadmap y Próximos Pasos
 
 | Prioridad | Feature |
 |---|---|
-| 🔴 Alta | Integración con API REST (reemplazar mock data) |
-| ✅ Hecho | Mapa interactivo de eventos cercanos (Google Maps + Places API) |
-| 🟡 Media | Sistema de notificaciones (recordatorios de eventos guardados) |
-| 🟡 Media | Detalle expandido de evento (pantalla completa con info extra) |
-| 🟡 Media | Filtro por radio de distancia y precio |
-| 🟢 Baja | Chat / grupo de asistentes de un evento |
-| 🟢 Baja | Modo oscuro / claro |
-| 🟢 Baja | PWA (Progressive Web App) para instalar en móvil |
+| 🔴 Alta | Completar integración con `eMeet_Backend_Supabase` |
+| 🔴 Alta | Mover consultas a Google Places al BFF (Route Handlers) |
+| 🔴 Alta | Implementar pruebas automatizadas (Vitest / Playwright) |
+| 🟡 Media | Recuperación de contraseña |
+| 🟡 Media | Detalle expandido de evento (página individual) |
+| 🟡 Media | Sistema de notificaciones push |
+| 🟢 Baja | PWA instalable en dispositivos móviles |
+| 🟢 Baja | Sistema de pagos / tickets |
