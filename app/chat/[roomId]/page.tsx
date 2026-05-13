@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChatContext } from '../../../src/context/ChatContext'
@@ -47,6 +47,21 @@ export default function ChatRoomRoutePage() {
   const roomError = roomId ? messageErrors[roomId] : null
   const isLoadingMessages = roomId ? loadingMessages[roomId] ?? false : false
   const [sendError, setSendError] = useState<string | null>(null)
+
+  const displayedMemberCount = useMemo(() => {
+    const participants = new Set<string>()
+    if (user?.id) {
+      participants.add(user.id)
+    }
+
+    for (const msg of roomMessages) {
+      if (msg.senderId) {
+        participants.add(msg.senderId)
+      }
+    }
+
+    return Math.max(1, participants.size)
+  }, [roomMessages, user?.id])
 
   useEffect(() => {
     if (roomId) {
@@ -151,7 +166,7 @@ export default function ChatRoomRoutePage() {
           </div>
 
           <div className="flex shrink-0 flex-col items-end gap-0.5">
-            <span className="text-xs font-semibold text-white">👥 {room.memberCount}</span>
+            <span className="text-xs font-semibold text-white">👥 {displayedMemberCount}</span>
             <span className="text-[10px] text-green-400">en línea</span>
           </div>
         </div>
