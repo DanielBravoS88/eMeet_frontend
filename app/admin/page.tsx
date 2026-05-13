@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { Users, CalendarDays, ShieldAlert, Activity, RefreshCw } from 'lucide-react'
+import { Users, MessageSquare, ShieldAlert, Activity, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/src/context/AuthContext'
 import { fetchApi } from '@/src/lib/fetchApi'
 import KpiCard, { KpiCardSkeleton } from '@/src/components/admin/KpiCard'
@@ -33,6 +33,7 @@ type Kpis = {
   totalSaves: number
   totalMessages: number
   reportsPending?: number
+  gmv?: number
 }
 
 type RawRecentEvent = {
@@ -153,34 +154,41 @@ export default function AdminPage() {
   const kpis = stats?.kpis
   const events: AdminEvent[] = (stats?.recentEvents ?? []).map(toAdminEvent)
 
-  // KPI config — real data where available, mock placeholders where API is pending
+  function formatCLP(amount: number) {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+
   const kpiCards = [
     {
       label: 'GMV Total',
-      value: '$124.500', // TODO: wire to revenue/ticket-sales endpoint
-      change: 8.4,
+      value: kpis ? formatCLP(kpis.gmv ?? 0) : '—',
+      change: undefined,
       icon: Activity,
       accentColor: '#FF6B00',
     },
     {
       label: 'Usuarios activos',
       value: kpis ? kpis.totalProfiles.toLocaleString('es-CL') : '—',
-      change: 2.4,
+      change: undefined,
       icon: Users,
       accentColor: '#3B82F6',
     },
     {
       label: 'Reportes pendientes',
       value: kpis ? String(kpis.reportsPending ?? 0) : '—',
-      change: -3.1,
+      change: undefined,
       icon: ShieldAlert,
       accentColor: '#F6465D',
     },
     {
-      label: 'Server uptime',
-      value: '99.97%', // TODO: wire to infra health endpoint
-      change: 0,
-      icon: CalendarDays,
+      label: 'Mensajes totales',
+      value: kpis ? kpis.totalMessages.toLocaleString('es-CL') : '—',
+      change: undefined,
+      icon: MessageSquare,
       accentColor: '#0ECB81',
     },
   ]
