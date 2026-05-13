@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { ShieldAlert, ShieldCheck, Clock, AlertTriangle, RefreshCw, Check, X, Eye } from 'lucide-react'
 import { useAuth } from '@/src/context/AuthContext'
-import { getSupabaseBrowserClient, hasSupabaseEnv } from '@/src/lib/supabase'
+import { fetchApi } from '@/src/lib/fetchApi'
 import KpiCard, { KpiCardSkeleton } from '@/src/components/admin/KpiCard'
 import { cn } from '@/src/lib/cn'
 
@@ -92,19 +92,7 @@ export default function AdminModerationPage() {
     setLoading(true)
     setError(null)
     try {
-      let token: string | null = null
-      if (hasSupabaseEnv) {
-        const { data } = await getSupabaseBrowserClient().auth.getSession()
-        token = data.session?.access_token ?? null
-      }
-      const res = await fetch('/api/admin/reports', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null
-        throw new Error(body?.error ?? 'Error al cargar reportes')
-      }
-      const data = await res.json()
+      const data = await fetchApi<{ reports?: Report[] }>('/admin/reports', { method: 'GET' })
       setReports(data.reports ?? [])
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error desconocido')
@@ -119,16 +107,10 @@ export default function AdminModerationPage() {
     // Optimistic update
     setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: action } : r)))
     try {
-      let token: string | null = null
-      if (hasSupabaseEnv) {
-        const { data } = await getSupabaseBrowserClient().auth.getSession()
-        token = data.session?.access_token ?? null
-      }
-      await fetch(`/api/admin/reports/${id}`, {
+      await fetchApi(`/admin/reports/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ status: action }),
       })

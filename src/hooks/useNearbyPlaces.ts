@@ -7,7 +7,7 @@ export interface UseNearbyPlacesReturn {
   loading: boolean
   error: string | null
   fetchNearby: (
-    bounds: google.maps.LatLngBounds,
+    bounds: google.maps.LatLngBounds | null | undefined,
     types: PlaceType[],
   ) => void
   enrichPlace: (
@@ -33,9 +33,15 @@ export function useNearbyPlaces(): UseNearbyPlacesReturn {
 
   const fetchNearby = useCallback(
     (
-      bounds: google.maps.LatLngBounds,
+      bounds: google.maps.LatLngBounds | null | undefined,
       types: PlaceType[],
     ) => {
+      if (!bounds) {
+        setError('No se pudo calcular el area de busqueda del mapa')
+        setPlaces([])
+        return
+      }
+
       const id = ++fetchIdRef.current
       setLoading(true)
       setError(null)
@@ -44,9 +50,9 @@ export function useNearbyPlaces(): UseNearbyPlacesReturn {
           if (id !== fetchIdRef.current) return // respuesta obsoleta — ignorar
           setPlaces(results.sort((a, b) => b.rating - a.rating))
         })
-        .catch(() => {
+        .catch((err: unknown) => {
           if (id !== fetchIdRef.current) return
-          setError('Error al buscar lugares cercanos')
+          setError(err instanceof Error ? err.message : 'Error al buscar lugares cercanos')
         })
         .finally(() => {
           if (id !== fetchIdRef.current) return

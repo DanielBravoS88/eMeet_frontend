@@ -2,17 +2,24 @@
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
-// Mock data — replace with API call for real category distribution
-const MOCK_DATA = [
-  { name: 'Gastronomía', value: 34 },
-  { name: 'Música', value: 22 },
-  { name: 'Fiesta', value: 18 },
-  { name: 'Cultura', value: 12 },
-  { name: 'Deporte', value: 8 },
-  { name: 'Otros', value: 6 },
-]
+const CATEGORY_LABELS: Record<string, string> = {
+  gastronomia: 'Gastronomía',
+  musica: 'Música',
+  fiesta: 'Fiesta',
+  cultura: 'Cultura',
+  deporte: 'Deporte',
+  networking: 'Networking',
+  teatro: 'Teatro',
+  arte: 'Arte',
+}
 
-const COLORS = ['#FF6B00', '#FF8C3B', '#F0B90B', '#0ECB81', '#3B82F6', '#848E9C']
+const COLORS = ['#FF6B00', '#FF8C3B', '#F0B90B', '#0ECB81', '#3B82F6', '#848E9C', '#A855F7', '#EC4899']
+
+export interface CategoryStat {
+  name: string
+  count: number
+  percentage: number
+}
 
 interface TooltipProps {
   active?: boolean
@@ -29,13 +36,36 @@ function CustomTooltip({ active, payload }: TooltipProps) {
   )
 }
 
-export default function CategoryDonut() {
+interface Props {
+  data?: CategoryStat[]
+  loading?: boolean
+}
+
+export default function CategoryDonut({ data, loading }: Props) {
+  if (loading) {
+    return <div className="h-[300px] animate-pulse rounded-lg bg-white/5" />
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center">
+        <span className="text-3xl">📊</span>
+        <p className="text-sm text-em-muted">Sin datos de categorías aún</p>
+      </div>
+    )
+  }
+
+  const chartData = data.map((item) => ({
+    name: CATEGORY_LABELS[item.name] ?? item.name,
+    value: item.percentage,
+  }))
+
   return (
     <div className="flex flex-col gap-4">
       <ResponsiveContainer width="100%" height={180}>
         <PieChart>
           <Pie
-            data={MOCK_DATA}
+            data={chartData}
             cx="50%"
             cy="50%"
             innerRadius={52}
@@ -44,7 +74,7 @@ export default function CategoryDonut() {
             dataKey="value"
             strokeWidth={0}
           >
-            {MOCK_DATA.map((_, i) => (
+            {chartData.map((_, i) => (
               <Cell key={i} fill={COLORS[i % COLORS.length]} />
             ))}
           </Pie>
@@ -52,9 +82,8 @@ export default function CategoryDonut() {
         </PieChart>
       </ResponsiveContainer>
 
-      {/* Legend */}
       <ul className="space-y-1.5">
-        {MOCK_DATA.map((item, i) => (
+        {chartData.map((item, i) => (
           <li key={item.name} className="flex items-center justify-between text-xs">
             <span className="flex items-center gap-2 text-em-muted">
               <span

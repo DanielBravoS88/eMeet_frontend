@@ -231,7 +231,7 @@ function HomePageContent() {
     // Persistir en backend — si falla no revertimos (la tarjeta ya salió)
     if (hasSupabaseEnv) {
       try {
-        await fetchApi('/api/events/like', {
+        await fetchApi('/events/like', {
           method: 'POST',
           body: JSON.stringify({
             eventId: likedEvent.id,

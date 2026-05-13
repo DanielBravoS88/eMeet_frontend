@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Strict Mode activa doble-render en dev para detectar bugs.
-  // Desactivarlo acelera notablemente el desarrollo; reactivar antes de producción.
-  reactStrictMode: false,
+  reactStrictMode: true,
 
   env: {
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:

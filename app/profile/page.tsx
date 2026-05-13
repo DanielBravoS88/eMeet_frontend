@@ -8,7 +8,7 @@ import Layout from '../../src/components/Layout'
 import { useAuth } from '../../src/context/AuthContext'
 import { useChatContext } from '../../src/context/ChatContext'
 import { getSupabaseBrowserClient, hasSupabaseEnv } from '../../src/lib/supabase'
-import { CATEGORY_EMOJI } from '../../src/data/mockEvents'
+import { CATEGORY_EMOJI } from '../../src/lib/eventUtils'
 import type { EventCategory } from '../../src/types'
 import { useImageUpload } from '../../src/hooks/useImageUpload'
 import {

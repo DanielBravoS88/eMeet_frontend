@@ -1,6 +1,6 @@
 import type { ScrapedPlace, PlaceType } from '../types'
+import { requireBackendUrl } from '../lib/backend'
 
-const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '')
 const PLACES_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_PLACES_TIMEOUT_MS ?? 9000)
 
 function isAbortError(error: unknown) {
@@ -16,7 +16,18 @@ async function fetchJsonWithTimeout<T>(input: string, init?: RequestInit): Promi
       ...init,
       signal: controller.signal,
     })
-    return (await response.json()) as T
+    const payload = await response.json()
+
+    if (!response.ok) {
+      const message =
+        typeof payload === 'object' && payload !== null && 'message' in payload
+          ? String((payload as { message?: unknown }).message ?? `HTTP ${response.status}`)
+          : `HTTP ${response.status}`
+
+      throw new Error(message)
+    }
+
+    return payload as T
   } finally {
     clearTimeout(timeoutId)
   }
@@ -85,7 +96,7 @@ function buildPhotoProxyUrl(photoReference: string, maxWidth: number) {
     photoReference,
     maxWidth: String(maxWidth),
   })
-  return `${BACKEND_URL}/places/photo?${params.toString()}`
+  return `${requireBackendUrl('lugares cercanos')}/places/photo?${params.toString()}`
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -93,8 +104,17 @@ function buildPhotoProxyUrl(photoReference: string, maxWidth: number) {
 function boundsToCircle(
   bounds: google.maps.LatLngBounds,
 ): { center: { lat: number; lng: number }; radius: number } {
+  if (!bounds || typeof bounds.getCenter !== 'function' || typeof bounds.getNorthEast !== 'function') {
+    throw new Error('Google Maps bounds no disponibles')
+  }
+
   const center = bounds.getCenter()
   const ne = bounds.getNorthEast()
+
+  if (!center || !ne || typeof center.lat !== 'function' || typeof ne.lat !== 'function') {
+    throw new Error('Google Maps bounds incompletos')
+  }
+
   const R = 6371000 // Radio de la Tierra en metros
   const lat1 = center.lat() * (Math.PI / 180)
   const lat2 = ne.lat() * (Math.PI / 180)
@@ -118,12 +138,13 @@ function boundsToCircle(
  * El backend llama a Google Places API y retorna los resultados
  */
 export async function searchNearbyPlaces(
-  bounds: google.maps.LatLngBounds,
+  bounds: google.maps.LatLngBounds | null | undefined,
   types: PlaceType[],
   maxPerType = 8,
 ): Promise<ScrapedPlace[]> {
-  if (!BACKEND_URL) {
-    throw new Error('NEXT_PUBLIC_BACKEND_URL no está configurada')
+  const backendUrl = requireBackendUrl('lugares cercanos')
+  if (!bounds) {
+    throw new Error('No se pudo calcular el area de busqueda del mapa')
   }
 
   try {
@@ -134,7 +155,7 @@ export async function searchNearbyPlaces(
 
     // Buscar cada tipo en paralelo
     const searches = types.map((type) =>
-      fetchJsonWithTimeout<PlacesSearchNearbyResponse>(`${BACKEND_URL}/places/search-nearby`, {
+      fetchJsonWithTimeout<PlacesSearchNearbyResponse>(`${backendUrl}/places/search-nearby`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -207,9 +228,7 @@ export async function searchNearbyPlaces(
  * Obtiene detalles enriquecidos de un lugar desde el backend
  */
 export async function fetchPlaceDetails(placeId: string): Promise<Partial<ScrapedPlace>> {
-  if (!BACKEND_URL) {
-    throw new Error('NEXT_PUBLIC_BACKEND_URL no está configurada')
-  }
+  const backendUrl = requireBackendUrl('detalle de lugares')
 
   try {
     const { details } = await fetchJsonWithTimeout<{ details?: {
@@ -219,7 +238,7 @@ export async function fetchPlaceDetails(placeId: string): Promise<Partial<Scrape
       international_phone_number?: string
       opening_hours?: { weekday_text?: string[] }
       rating?: number
-    } | null }>(`${BACKEND_URL}/places/${placeId}/details`)
+    } | null }>(`${backendUrl}/places/${placeId}/details`)
 
     if (!details) {
       return { photoUrl: null, website: null, phone: null, openingHours: null }

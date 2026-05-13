@@ -3,12 +3,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { Users, CalendarDays, ShieldAlert, Activity, RefreshCw } from 'lucide-react'
+import { Users, MessageSquare, ShieldAlert, Activity, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/src/context/AuthContext'
-import { getSupabaseBrowserClient, hasSupabaseEnv } from '@/src/lib/supabase'
+import { fetchApi } from '@/src/lib/fetchApi'
 import KpiCard, { KpiCardSkeleton } from '@/src/components/admin/KpiCard'
 import EventsTable from '@/src/components/admin/EventsTable'
 import type { AdminEvent, EventStatus } from '@/src/components/admin/EventsTable'
+import type { CategoryStat } from '@/src/components/admin/CategoryDonut'
+import type { TicketPoint } from '@/src/components/admin/TicketAreaChart'
 
 // Charts are client-only (recharts uses browser APIs)
 const TicketAreaChart = dynamic(() => import('@/src/components/admin/TicketAreaChart'), {
@@ -31,6 +33,7 @@ type Kpis = {
   totalSaves: number
   totalMessages: number
   reportsPending?: number
+  gmv?: number
 }
 
 type RawRecentEvent = {
@@ -48,6 +51,8 @@ type AdminStats = {
   recentProfiles: { id: string; name: string; created_at: string }[]
   recentEvents: RawRecentEvent[]
   recentCommunities: { id: string; event_title: string; created_at: string }[]
+  categoryStats?: CategoryStat[]
+  monthlyTickets?: TicketPoint[]
 }
 
 const ADMIN_STATS_CACHE_KEY = 'emeet-admin-stats-cache'
@@ -102,22 +107,7 @@ export default function AdminPage() {
     setError(null)
 
     try {
-      let token: string | null = null
-      if (hasSupabaseEnv) {
-        const { data } = await getSupabaseBrowserClient().auth.getSession()
-        token = data.session?.access_token ?? null
-      }
-
-      const res = await fetch('/api/admin/stats', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null
-        throw new Error(body?.error ?? 'Error al cargar estadísticas')
-      }
-
-      const payload = (await res.json()) as AdminStats
+      const payload = await fetchApi<AdminStats>('/admin/stats', { method: 'GET' })
       setStats(payload)
 
       if (typeof window !== 'undefined') {
@@ -164,34 +154,41 @@ export default function AdminPage() {
   const kpis = stats?.kpis
   const events: AdminEvent[] = (stats?.recentEvents ?? []).map(toAdminEvent)
 
-  // KPI config — real data where available, mock placeholders where API is pending
+  function formatCLP(amount: number) {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+
   const kpiCards = [
     {
       label: 'GMV Total',
-      value: '$124.500', // TODO: wire to revenue/ticket-sales endpoint
-      change: 8.4,
+      value: kpis ? formatCLP(kpis.gmv ?? 0) : '—',
+      change: undefined,
       icon: Activity,
       accentColor: '#FF6B00',
     },
     {
       label: 'Usuarios activos',
       value: kpis ? kpis.totalProfiles.toLocaleString('es-CL') : '—',
-      change: 2.4,
+      change: undefined,
       icon: Users,
       accentColor: '#3B82F6',
     },
     {
       label: 'Reportes pendientes',
       value: kpis ? String(kpis.reportsPending ?? 0) : '—',
-      change: -3.1,
+      change: undefined,
       icon: ShieldAlert,
       accentColor: '#F6465D',
     },
     {
-      label: 'Server uptime',
-      value: '99.97%', // TODO: wire to infra health endpoint
-      change: 0,
-      icon: CalendarDays,
+      label: 'Mensajes totales',
+      value: kpis ? kpis.totalMessages.toLocaleString('es-CL') : '—',
+      change: undefined,
+      icon: MessageSquare,
       accentColor: '#0ECB81',
     },
   ]
@@ -244,7 +241,7 @@ export default function AdminPage() {
         <div className="col-span-1 md:col-span-8">
           <Section title="Venta de Tickets vs Tiempo">
             <div className="rounded-lg border border-em-border bg-em-surface p-5">
-              <TicketAreaChart />
+              <TicketAreaChart data={stats?.monthlyTickets} loading={loading} />
             </div>
           </Section>
         </div>
@@ -253,7 +250,7 @@ export default function AdminPage() {
         <div className="col-span-1 md:col-span-4">
           <Section title="Distribución de Categorías">
             <div className="rounded-lg border border-em-border bg-em-surface p-5">
-              <CategoryDonut />
+              <CategoryDonut data={stats?.categoryStats} loading={loading} />
             </div>
           </Section>
         </div>

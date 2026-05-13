@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import type { ReactNode } from 'react'
 import type { AuthState, User } from '../types'
 import { getSupabaseBrowserClient, hasSupabaseEnv } from '../lib/supabase'
+import { requireBackendUrl } from '../lib/backend'
 
 export async function loginWithGoogle() {
   const { error } = await getSupabaseBrowserClient().auth.signInWithOAuth({
@@ -104,14 +105,6 @@ function extractRoleFromAuthUser(user: unknown): User['role'] | undefined {
 }
 
 const LOCAL_AUTH_STORAGE_KEY = 'emeet-local-auth-user'
-const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim().replace(/\/$/, '')
-
-function requireBackendUrl() {
-  if (!BACKEND_URL) {
-    throw new Error('Falta NEXT_PUBLIC_BACKEND_URL para usar autenticación con backend separado.')
-  }
-  return BACKEND_URL
-}
 
 function inferLocalRoleByEmail(email: string): User['role'] {
   const normalized = email.toLowerCase()
@@ -172,7 +165,7 @@ function saveLocalUser(user: User | null) {
 }
 
 async function fetchApi<T>(input: string, init?: RequestInit): Promise<T> {
-  const endpoint = `${requireBackendUrl()}${input.replace(/^\/api/, '')}`
+  const endpoint = `${requireBackendUrl('autenticacion con backend separado')}${input.replace(/^\/api/, '')}`
   const headers = new Headers({
     'Content-Type': 'application/json',
     ...(init?.headers ?? {}),
@@ -217,9 +210,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     accessToken?: string | null,
   ) => {
     const [profileResult, likedResult, savedResult] = await Promise.allSettled([
-      fetchApi<ProfilePayload>('/api/profile', { method: 'GET' }),
-      fetchApi<UserEventPayload[]>('/api/events/liked', { method: 'GET' }),
-      fetchApi<UserEventPayload[]>('/api/events/saved', { method: 'GET' }),
+      fetchApi<ProfilePayload>('/profile', { method: 'GET' }),
+      fetchApi<UserEventPayload[]>('/events/liked', { method: 'GET' }),
+      fetchApi<UserEventPayload[]>('/events/saved', { method: 'GET' }),
     ])
 
     if (profileResult.status === 'rejected') throw profileResult.reason
@@ -340,7 +333,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return localUser.role
     }
 
-    const payload = await fetchApi<AuthResponsePayload>('/api/auth/login', {
+    const payload = await fetchApi<AuthResponsePayload>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
@@ -369,7 +362,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { needsEmailVerification: false }
     }
 
-    const payload = await fetchApi<AuthResponsePayload>('/api/auth/register', {
+    const payload = await fetchApi<AuthResponsePayload>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({
         name,
@@ -422,7 +415,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      await fetchApi('/api/auth/logout', { method: 'POST' })
+      await fetchApi('/auth/logout', { method: 'POST' })
     } catch {
       // El backend puede fallar si el token ya expiró — continuar igual
     }
@@ -452,7 +445,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (Array.isArray(data.interests)) profilePayload.interests = data.interests
 
     if (hasSupabaseEnv && Object.keys(profilePayload).length > 0) {
-      await fetchApi('/api/profile', {
+      await fetchApi('/profile', {
         method: 'PATCH',
         body: JSON.stringify(profilePayload),
       })

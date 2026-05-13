@@ -6,7 +6,7 @@ import type { PanInfo } from 'framer-motion'
 import { HiMapPin, HiClock, HiUsers, HiGlobeAlt } from 'react-icons/hi2'
 import { HiHeart, HiX, HiBookmark } from 'react-icons/hi'
 import type { Event } from '../types'
-import { formatEventDate, formatPrice, CATEGORY_COLORS, CATEGORY_EMOJI } from '../data/mockEvents'
+import { formatEventDate, formatPrice, CATEGORY_COLORS, CATEGORY_EMOJI } from '../lib/eventUtils'
 
 interface SwipeCardProps {
   event: Event
