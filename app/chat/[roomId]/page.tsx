@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChatContext } from '../../../src/context/ChatContext'
@@ -39,7 +39,6 @@ export default function ChatRoomRoutePage() {
   } = useChatContext()
   const { user, isAuthReady } = useAuth()
   const [input, setInput] = useState('')
-  const [typingUser, setTypingUser] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -75,30 +74,6 @@ export default function ChatRoomRoutePage() {
   if (isAuthReady && !user) {
     return null
   }
-
-  const otherParticipants = useMemo(() => {
-    const bySender = new Map<string, { name: string; avatar: string }>()
-    for (const msg of roomMessages) {
-      if (msg.senderId !== user?.id && !bySender.has(msg.senderId)) {
-        bySender.set(msg.senderId, { name: msg.senderName, avatar: msg.senderAvatar })
-      }
-    }
-    return Array.from(bySender.values())
-  }, [roomMessages, user?.id])
-
-  useEffect(() => {
-    if (!roomId || otherParticipants.length === 0) return
-
-    const interval = setInterval(() => {
-      const chance = Math.random()
-      if (chance > 0.45) return
-      const randomUser = otherParticipants[Math.floor(Math.random() * otherParticipants.length)]
-      setTypingUser(randomUser.name)
-      setTimeout(() => setTypingUser((curr) => (curr === randomUser.name ? null : curr)), 2000)
-    }, 6500)
-
-    return () => clearInterval(interval)
-  }, [otherParticipants, roomId])
 
   if (isLoadingRooms && !room) {
     return (
@@ -278,22 +253,6 @@ export default function ChatRoomRoutePage() {
         ))}
 
         <div ref={bottomRef} />
-
-        <AnimatePresence>
-          {typingUser && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 6 }}
-              className="mt-1 flex items-center gap-2 px-1"
-            >
-              <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
-              <span className="text-xs text-muted">
-                {typingUser} está escribiendo...
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
       <div className="shrink-0 border-t border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 py-3 backdrop-blur-md">
