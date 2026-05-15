@@ -395,7 +395,7 @@ export default function LocatarioPage() {
             </button>
             <button
               onClick={() => setShowCreateEvent(true)}
-              className="flex items-center gap-2 bg-accent hover:bg-accent/80 text-black font-semibold px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 bg-accent hover:bg-accent/80 text-white font-semibold px-4 py-2 rounded-lg transition-colors"
             >
               <FiPlus size={18} />
               Crear Evento
