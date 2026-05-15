@@ -10,7 +10,11 @@ import type { EventCategory } from '@/src/types'
 import { ImageUpload } from '@/src/components/ImageUpload'
 import { VideoUpload } from '@/src/components/VideoUpload'
 import { DateTimePicker } from '@/src/components/DateTimePicker'
-import { LocationPickerMap } from '@/src/components/LocationPickerMap'
+import dynamic from 'next/dynamic'
+const LocationPickerMap = dynamic(
+  () => import('@/src/components/LocationPickerMap').then(m => m.LocationPickerMap),
+  { ssr: false }
+)
 import {
   activatePromotion,
   confirmMercadoPagoPayment,
