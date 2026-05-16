@@ -14,6 +14,7 @@ type SavedEvent = {
   event_title: string
   event_image_url: string | null
   event_address: string | null
+  created_at?: string
 }
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=800&q=80'
@@ -43,13 +44,14 @@ export default function SavedRoutePage() {
 
     ;(async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('user_events')
-          .select('event_id, event_title, event_image_url, event_address')
+          .select('event_id, event_title, event_image_url, event_address, created_at')
           .eq('user_id', user.id)
           .eq('action', 'save')
           .order('created_at', { ascending: false })
 
+        if (error) throw error
         setSavedEvents((data as SavedEvent[]) ?? [])
       } catch {
         setSavedEvents([])
