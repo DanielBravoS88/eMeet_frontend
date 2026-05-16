@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import type { PanInfo } from 'framer-motion'
-import { HiMapPin, HiClock, HiUsers, HiGlobeAlt } from 'react-icons/hi2'
+import { HiMapPin, HiClock, HiUsers, HiGlobeAlt, HiMusicalNote } from 'react-icons/hi2'
 import { HiHeart, HiX, HiBookmark } from 'react-icons/hi'
 import type { Event } from '../types'
 import { formatEventDate, formatPrice, CATEGORY_COLORS, CATEGORY_EMOJI } from '../lib/eventUtils'
@@ -70,6 +70,9 @@ export default function SwipeCard({
 
   const cardRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false)
+  const [audioBlocked, setAudioBlocked] = useState(false)
 
   const isActive = stackIndex === 0
 
@@ -82,6 +85,37 @@ export default function SwipeCard({
       video.pause()
     }
   }, [isActive])
+
+  // Reproducir/pausar audio preview de Deezer según carta activa
+  useEffect(() => {
+    if (!event.audioPreviewUrl) return
+
+    if (isActive) {
+      if (!audioRef.current) {
+        const audio = new Audio(event.audioPreviewUrl)
+        audio.loop = true
+        audio.volume = 0.55
+        audioRef.current = audio
+      }
+      audioRef.current.play()
+        .then(() => { setIsAudioPlaying(true); setAudioBlocked(false) })
+        .catch(() => { setAudioBlocked(true); setIsAudioPlaying(false) })
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current.currentTime = 0
+        setIsAudioPlaying(false)
+      }
+    }
+  }, [isActive, event.audioPreviewUrl])
+
+  // Limpiar audio al desmontar la carta
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause()
+      audioRef.current = null
+    }
+  }, [])
 
   function handleDragEnd(_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
     setIsDragging(false)
@@ -207,6 +241,41 @@ export default function SwipeCard({
 
         {/* ── Info del evento (parte inferior) ────────────────────────────── */}
         <div className={`absolute bottom-0 left-0 right-0 p-4 pb-20 transition-all duration-200 lg:p-5 lg:pb-24 ${isDragging ? 'opacity-80' : 'opacity-100'}`}>
+
+          {/* Badge de música — visible solo si tiene preview de Deezer */}
+          {event.audioPreviewUrl && (
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 backdrop-blur-sm">
+              {isAudioPlaying ? (
+                <div className="flex h-3.5 items-end gap-[2px]">
+                  <span className="eq-bar-1 w-[3px] rounded-full bg-primary-light" />
+                  <span className="eq-bar-2 w-[3px] rounded-full bg-primary-light" />
+                  <span className="eq-bar-3 w-[3px] rounded-full bg-primary-light" />
+                  <span className="eq-bar-4 w-[3px] rounded-full bg-primary-light" />
+                </div>
+              ) : (
+                <HiMusicalNote className="h-3.5 w-3.5 text-primary-light" />
+              )}
+              <span className="text-[11px] font-medium text-white/80">
+                {audioBlocked ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      audioRef.current?.play()
+                        .then(() => { setIsAudioPlaying(true); setAudioBlocked(false) })
+                        .catch(() => {})
+                    }}
+                    className="underline underline-offset-2"
+                  >
+                    Toca para escuchar
+                  </button>
+                ) : isAudioPlaying ? (
+                  'Música del evento'
+                ) : (
+                  'Preview musical'
+                )}
+              </span>
+            </div>
+          )}
 
           {event.rating && event.rating > 0 && (
             <div className="mb-1.5">
