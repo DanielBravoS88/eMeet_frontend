@@ -121,7 +121,7 @@ function HomePageContent() {
     setSelectedDestination,
     setActiveEventLocation,
   } = useNearbyPlacesContext()
-  const { joinRoom } = useChatContext()
+  const { reloadRooms } = useChatContext()
   const { user, updateUser } = useAuth()
   const { publicLocatarioEvents } = useLocatarioEvents()
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set())
@@ -228,7 +228,7 @@ function HomePageContent() {
       // Fallo silencioso de sync de perfil.
     }
 
-    // Persistir en backend — si falla no revertimos (la tarjeta ya salió)
+    // Persist like + create/join chat room (backend handles both atomically)
     if (hasSupabaseEnv) {
       try {
         await fetchApi('/events/like', {
@@ -238,8 +238,11 @@ function HomePageContent() {
             eventTitle: likedEvent.title,
             eventImageUrl: likedEvent.imageUrl,
             eventAddress: likedEvent.address,
+            eventDate: likedEvent.date ?? null,
           }),
         })
+        // Refresh rooms list to show the newly joined chat
+        await reloadRooms()
       } catch (error) {
         const message = error instanceof Error ? error.message : ''
         if (message.toLowerCase().includes('sesión') || message.toLowerCase().includes('token')) {
@@ -247,13 +250,7 @@ function HomePageContent() {
         }
       }
     }
-
-    try {
-      await joinRoom(likedEvent.id, likedEvent.title, likedEvent.imageUrl, likedEvent.address)
-    } catch {
-      // No bloquear el flujo si falla la sincronización del chat.
-    }
-  }, [events, excludePlace, joinRoom, places, setSelectedDestination, updateUser, user])
+  }, [events, excludePlace, places, reloadRooms, setSelectedDestination, updateUser, user])
 
   const handleSwipeLeft = useCallback((id: string) => {
     setDismissedIds((prev) => new Set(prev).add(id))
