@@ -177,7 +177,7 @@ export default function ChatRoomRoutePage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-surface">
+    <div className="flex h-[100dvh] flex-col bg-surface">
       {/* Header */}
       <div className="z-10 shrink-0 border-b border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 py-3 backdrop-blur-md">
         <div className="flex items-center gap-3">
@@ -392,7 +392,10 @@ export default function ChatRoomRoutePage() {
 
       {/* Input bar — hidden when membership error */}
       {!isMembershipError && (
-        <div className="shrink-0 border-t border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 py-3 backdrop-blur-md">
+        <div
+          className="shrink-0 border-t border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 pt-3 backdrop-blur-md"
+          style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+        >
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -435,7 +438,8 @@ export default function ChatRoomRoutePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 px-6 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 px-4 backdrop-blur-sm sm:items-center"
+            style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
             onClick={() => setLeaveConfirm(false)}
           >
             <motion.div
