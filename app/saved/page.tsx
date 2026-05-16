@@ -53,7 +53,8 @@ export default function SavedRoutePage() {
 
         if (error) throw error
         setSavedEvents((data as SavedEvent[]) ?? [])
-      } catch {
+      } catch (err) {
+        console.error('[saved/page] Supabase error:', err)
         setSavedEvents([])
       } finally {
         setLoading(false)
