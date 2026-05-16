@@ -63,6 +63,7 @@ type UserEventPayload = {
 
 type AuthResponsePayload = {
   user: {
+    id?: string | null
     email?: string | null
     app_metadata?: {
       role?: User['role']
@@ -208,6 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     roleHint?: User['role'],
     businessMeta?: { businessName?: string | null; businessLocation?: string | null },
     accessToken?: string | null,
+    userId?: string | null,
   ) => {
     const [profileResult, likedResult, savedResult] = await Promise.allSettled([
       fetchApi<ProfilePayload>('/profile', { method: 'GET' }),
@@ -215,7 +217,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fetchApi<UserEventPayload[]>('/events/saved', { method: 'GET' }),
     ])
 
-    if (profileResult.status === 'rejected') throw profileResult.reason
+    if (profileResult.status === 'rejected') {
+      console.error('[syncUserData] profile fetch failed:', profileResult.reason)
+      // Si tenemos userId del JWT podemos seguir con datos mínimos — el usuario
+      // está autenticado aunque el backend tenga problemas transitorios.
+      if (!userId) throw profileResult.reason
+      const errMsg = profileResult.reason instanceof Error
+        ? profileResult.reason.message
+        : 'No se pudo cargar el perfil completo.'
+      setAuthError(errMsg)
+      setAuthState({
+        user: {
+          id: userId,
+          name: email.split('@')[0],
+          email,
+          role: roleHint ?? 'user',
+          avatarUrl: '',
+          bio: '',
+          interests: [],
+          likedEvents: [],
+          savedEvents: [],
+          location: '',
+          isVerified: true,
+          businessName: businessMeta?.businessName ?? undefined,
+          businessLocation: businessMeta?.businessLocation ?? undefined,
+        },
+        isAuthenticated: true,
+        accessToken: accessToken ?? null,
+      })
+      return
+    }
 
     const profile = profileResult.value
     const likedEvents = likedResult.status === 'fulfilled' ? likedResult.value : []
@@ -277,7 +308,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await syncUserData(sessionPayload.session.user.email ?? '', roleHint, {
         businessName,
         businessLocation,
-      }, data.session?.access_token ?? null)
+      }, data.session?.access_token ?? null, userData.user?.id)
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : 'No se pudo cargar el perfil completo.')
       setAuthState((prev) => ({
@@ -349,7 +380,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await syncUserData(email, role, {
       businessName: payload.user?.user_metadata?.business_name,
       businessLocation: payload.user?.user_metadata?.business_location,
-    }, payload.session?.access_token ?? null)
+    }, payload.session?.access_token ?? null, payload.user?.id)
     return role
   }, [syncUserData])
 
@@ -382,7 +413,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await syncUserData(email, options?.role ?? extractRoleFromAuthUser(payload.user), {
         businessName: options?.businessName ?? payload.user?.user_metadata?.business_name,
         businessLocation: options?.businessLocation ?? payload.user?.user_metadata?.business_location,
-      }, payload.session.access_token)
+      }, payload.session.access_token, payload.user?.id)
       return { needsEmailVerification: false }
     }
 
