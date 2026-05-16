@@ -291,18 +291,16 @@ function HomePageContent() {
         } else {
           const { error } = await supabase
             .from('user_events')
-            .upsert(
-              {
+            .insert({
                 user_id: user.id,
                 event_id: eventToSave.id,
                 event_title: eventToSave.title,
                 event_image_url: eventToSave.imageUrl ?? null,
                 event_address: eventToSave.address ?? null,
-                action: 'save' as const,
-              },
-              { onConflict: 'user_id,event_id,action' },
-            )
-          if (error) throw error
+                action: 'save',
+              })
+          // 23505 = unique_violation: el evento ya estaba guardado, no es error real
+          if (error && error.code !== '23505') throw error
         }
       } catch {
         // Revertir estado optimista si falla la escritura en Supabase
