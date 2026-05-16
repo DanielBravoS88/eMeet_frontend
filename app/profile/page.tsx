@@ -24,6 +24,7 @@ type SavedEventPreview = {
   event_title: string
   event_image_url: string | null
   event_address: string | null
+  created_at?: string
 }
 
 const ALL_INTERESTS: { key: EventCategory; label: string }[] = [
@@ -112,13 +113,14 @@ function ProfilePageContent() {
     const supabase = getSupabaseBrowserClient()
     ;(async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('user_events')
-          .select('event_id, event_title, event_image_url, event_address')
+          .select('event_id, event_title, event_image_url, event_address, created_at')
           .eq('user_id', user.id)
           .eq('action', 'save')
           .order('created_at', { ascending: false })
           .limit(3)
+        if (error) throw error
         setSavedPreviews((data as SavedEventPreview[]) ?? [])
       } catch {
         setSavedPreviews([])
