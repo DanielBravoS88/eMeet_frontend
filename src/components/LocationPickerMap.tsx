@@ -2,7 +2,10 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { GoogleMap, OverlayView, useJsApiLoader } from '@react-google-maps/api'
+import type { Libraries } from '@react-google-maps/api'
 import { FiNavigation, FiLoader } from 'react-icons/fi'
+
+const LIBRARIES: Libraries = ['places']
 
 const DARK_STYLE: google.maps.MapTypeStyle[] = [
   { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
@@ -46,8 +49,10 @@ interface LocationPickerMapProps {
 
 export function LocationPickerMap({ value, onLocationChange }: LocationPickerMapProps) {
   const { isLoaded, loadError } = useJsApiLoader({
-    id: 'emeet-loc-picker',
+    id: 'script-loader',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: LIBRARIES,
+    version: 'weekly',
   })
 
   const [gpsLoading, setGpsLoading] = useState(false)
