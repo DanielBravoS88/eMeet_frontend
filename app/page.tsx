@@ -302,13 +302,15 @@ function HomePageContent() {
           // 23505 = unique_violation: el evento ya estaba guardado, no es error real
           if (error && error.code !== '23505') throw error
         }
-      } catch {
+      } catch (err) {
         // Revertir estado optimista si falla la escritura en Supabase
+        console.error('[handleSave] Supabase error:', err)
         setSavedIds(savedIds)
         try {
           await updateUser({ savedEvents: Array.from(savedIds) })
         } catch { /* fallo silencioso */ }
-        showToast(isCurrentlySaved ? 'No se pudo quitar de guardados.' : 'No se pudo guardar el evento.', 'nope')
+        const code = (err as { code?: string })?.code ?? 'unknown'
+        showToast(`No se pudo guardar (${code})`, 'nope')
         return
       }
     }
