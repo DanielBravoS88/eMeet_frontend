@@ -238,7 +238,7 @@ function HomePageContent() {
             eventTitle: likedEvent.title,
             eventImageUrl: likedEvent.imageUrl,
             eventAddress: likedEvent.address,
-            eventDate: likedEvent.date ?? null,
+            eventDate: likedPlace ? null : likedEvent.date ?? null,
           }),
         })
         // Refresh rooms list to show the newly joined chat
