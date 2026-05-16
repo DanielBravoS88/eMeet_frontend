@@ -94,10 +94,23 @@ function RoomCard({ room, onClick }: { room: ChatRoom; onClick: () => void }) {
 }
 
 export default function ChatRoutePage() {
-  const { rooms, isLoadingRooms, roomsError, reloadRooms } = useChatContext()
+  const { rooms, isLoadingRooms, roomsError, reloadRooms, leaveRoom } = useChatContext()
   const { user, isAuthReady } = useAuth()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const [isCleaning, setIsCleaning] = useState(false)
+
+  const unusedRooms = rooms.filter((r) => r.lastMessage === null)
+
+  async function clearUnusedRooms() {
+    if (unusedRooms.length === 0 || isCleaning) return
+    setIsCleaning(true)
+    try {
+      await Promise.all(unusedRooms.map((r) => leaveRoom(r.id)))
+    } finally {
+      setIsCleaning(false)
+    }
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 400)
@@ -159,9 +172,20 @@ export default function ChatRoutePage() {
           </motion.div>
         ) : (
           <div className="flex-1 overflow-y-auto">
-            <p className="px-4 pb-2 pt-4 text-xs font-semibold uppercase tracking-wide text-muted">
-              Tus comunidades
-            </p>
+            <div className="flex items-center justify-between px-4 pb-2 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Tus comunidades
+              </p>
+              {unusedRooms.length > 0 && (
+                <button
+                  onClick={() => void clearUnusedRooms()}
+                  disabled={isCleaning}
+                  className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-semibold text-muted transition-colors hover:border-red-500/40 hover:text-red-400 disabled:opacity-50"
+                >
+                  {isCleaning ? 'Limpiando...' : `Limpiar sin uso (${unusedRooms.length})`}
+                </button>
+              )}
+            </div>
 
             <div className="divide-y divide-white/5">
               {rooms.map((room, i) => (

@@ -244,9 +244,12 @@ function HomePageContent() {
         // Refresh rooms list to show the newly joined chat
         await reloadRooms()
       } catch (error) {
-        const message = error instanceof Error ? error.message : ''
+        const message = error instanceof Error ? error.message : 'Error desconocido'
+        console.error('[handleSwipeRight] like/chat error:', message)
         if (message.toLowerCase().includes('sesión') || message.toLowerCase().includes('token')) {
           showToast('Tu sesión expiró. Inicia sesión nuevamente.', 'nope')
+        } else {
+          showToast(`No se pudo crear el chat: ${message}`, 'nope')
         }
       }
     }
