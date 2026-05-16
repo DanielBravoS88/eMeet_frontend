@@ -298,6 +298,7 @@ function HomePageContent() {
                 event_image_url: eventToSave.imageUrl ?? null,
                 event_address: eventToSave.address ?? null,
                 action: 'save',
+                created_at: new Date().toISOString(),
               })
           // 23505 = unique_violation: el evento ya estaba guardado, no es error real
           if (error && error.code !== '23505') throw error
