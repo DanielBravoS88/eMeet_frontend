@@ -1019,7 +1019,7 @@ export default function LocatarioPage() {
               <button
                 onClick={handleSubmitEvent}
                 disabled={isSubmitting}
-                className="flex-1 flex items-center justify-center gap-2 bg-accent hover:bg-accent/80 text-black font-semibold py-2 rounded-lg transition-colors disabled:opacity-60"
+                className="flex-1 flex items-center justify-center gap-2 bg-accent hover:bg-accent/80 text-white font-semibold py-2 rounded-lg transition-colors disabled:opacity-60"
               >
                 {isSubmitting && <FiLoader className="animate-spin" size={16} />}
                 {isSubmitting ? 'Creando...' : 'Crear Evento'}
