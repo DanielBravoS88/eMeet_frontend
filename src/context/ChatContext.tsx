@@ -25,9 +25,9 @@ interface ChatContextValue {
   messageErrors: Record<string, string>
   reloadRooms: () => Promise<void>
   loadMessagesForRoom: (roomId: string) => Promise<void>
-  joinRoom: (eventId: string, eventTitle: string, eventImageUrl: string, eventAddress: string) => Promise<void>
   sendMessage: (roomId: string, text: string) => Promise<void>
   markRoomRead: (roomId: string) => Promise<void>
+  leaveRoom: (roomId: string) => Promise<void>
 }
 
 const ChatContext = createContext<ChatContextValue | undefined>(undefined)
@@ -128,7 +128,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const totalUnread = useMemo(() => rooms.reduce((sum, r) => sum + r.unreadCount, 0), [rooms])
 
-  // Llena el cache al cargar mensajes desde la API
   const cacheProfilesFromMessages = useCallback((msgs: ChatMessage[]) => {
     for (const msg of msgs) {
       if (!profileCache.current.has(msg.senderId)) {
@@ -140,7 +139,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Carga mensajes de una sala (al entrar). También llena el cache de perfiles.
   const loadMessagesForRoom = useCallback(async (roomId: string) => {
     if (!hasSupabaseEnv) {
       const local = loadLocalMessages()
@@ -165,17 +163,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       })
       setMessages((prev) => ({ ...prev, [roomId]: roomMessages }))
     } catch (error) {
-      setMessageErrors((prev) => ({
-        ...prev,
-        [roomId]: error instanceof Error ? error.message : 'No se pudieron cargar los mensajes.',
-      }))
+      const message = error instanceof Error ? error.message : 'No se pudieron cargar los mensajes.'
+      setMessageErrors((prev) => ({ ...prev, [roomId]: message }))
       throw error
     } finally {
       setLoadingMessages((prev) => ({ ...prev, [roomId]: false }))
     }
   }, [cacheProfilesFromMessages])
 
-  // Carga la lista de rooms (sin mensajes). Solo para la carga inicial.
   const loadRoomsOnly = useCallback(async () => {
     if (!user) {
       setRoomsError(null)
@@ -216,7 +211,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   }, [user])
 
-  // Carga inicial de rooms
   useEffect(() => {
     loadRoomsOnly().catch(() => {
       // roomsError ya queda seteado en loadRoomsOnly
@@ -224,8 +218,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, [loadRoomsOnly])
 
   // ── Supabase Realtime ──────────────────────────────────────────────────────
-  // Sustituye completamente el polling de 8s.
-  // Recibe INSERT en chat_messages y actualiza estado en tiempo real.
+  // Listens for new chat_messages and chat_rooms DELETE (expiry) events.
+  // RLS ensures the user only receives events for rooms they belong to.
   useEffect(() => {
     if (!user || !hasSupabaseEnv) return
 
@@ -233,25 +227,24 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     const channel = supabase
       .channel('emeet-chat-realtime')
+      // New messages: update messages list + room preview
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'chat_messages' },
         async (payload) => {
           const row = payload.new as RealtimeMessageRow
 
-          // Los mensajes propios se manejan de forma optimista en sendMessage
+          // Own messages are handled optimistically in sendMessage
           if (row.user_id === user.id) return
 
-          // Resolver nombre y avatar del remitente
           let senderName = 'Usuario'
-          let senderAvatar = 'https://i.pravatar.cc/150?img=1'
+          let senderAvatar = ''
 
           const cached = profileCache.current.get(row.user_id)
           if (cached) {
             senderName = cached.name
             senderAvatar = cached.avatar
           } else {
-            // Fetch del perfil solo si no está en cache
             const { data } = await supabase
               .from('profiles')
               .select('id, name, avatar_url')
@@ -278,23 +271,32 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             timestamp: row.created_at,
           }
 
-          // Solo añadir a messages si esa sala ya fue cargada (abierta por el usuario)
           setMessages((prev) => {
             if (!(row.room_id in prev)) return prev
             return { ...prev, [row.room_id]: [...prev[row.room_id], newMessage] }
           })
 
-          // Actualizar preview de la sala (lastMessage + unreadCount)
           setRooms((prev) =>
             prev.map((room) => {
               if (room.id !== row.room_id) return room
-              return {
-                ...room,
-                lastMessage: newMessage,
-                unreadCount: room.unreadCount + 1,
-              }
+              return { ...room, lastMessage: newMessage, unreadCount: room.unreadCount + 1 }
             }),
           )
+        },
+      )
+      // Expired rooms removed server-side: reflect immediately in UI
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'chat_rooms' },
+        (payload) => {
+          const deletedId = (payload.old as { id?: string }).id
+          if (!deletedId) return
+          setRooms((prev) => prev.filter((r) => r.id !== deletedId))
+          setMessages((prev) => {
+            const next = { ...prev }
+            delete next[deletedId]
+            return next
+          })
         },
       )
       .subscribe()
@@ -306,46 +308,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   // ── Acciones ──────────────────────────────────────────────────────────────
 
-  const joinRoom = useCallback(
-    async (eventId: string, eventTitle: string, eventImageUrl: string, eventAddress: string) => {
-      if (!user) throw new Error('Debes iniciar sesión para unirte al chat.')
-
-      if (!hasSupabaseEnv) {
-        const localRooms = loadLocalRooms()
-        if (!localRooms.some((r) => r.id === eventId)) {
-          const next: ChatRoom[] = [
-            {
-              id: eventId,
-              eventTitle,
-              eventImageUrl,
-              eventAddress,
-              memberCount: 1,
-              lastMessage: null,
-              unreadCount: 0,
-            },
-            ...localRooms,
-          ]
-          saveLocalRooms(next)
-          setRooms(next)
-        } else {
-          setRooms(localRooms)
-        }
-        return
-      }
-
-      await fetchApi(`/api/chat/rooms/${eventId}/join`, {
-        method: 'POST',
-        body: JSON.stringify({ eventTitle, eventImageUrl, eventAddress }),
-      })
-
-      await loadRoomsOnly()
-    },
-    [loadRoomsOnly, user],
-  )
-
-  // Optimistic update: mensaje propio aparece al instante.
-  // Se reemplaza con el ID real una vez que la API responde.
-  // Realtime ignora mensajes propios (row.user_id === user.id).
   const sendMessage = useCallback(
     async (roomId: string, text: string) => {
       if (!user) throw new Error('Debes iniciar sesión para enviar mensajes.')
@@ -359,7 +321,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           roomId,
           senderId: user.id,
           senderName: user.name,
-          senderAvatar: user.avatarUrl ?? 'https://i.pravatar.cc/150?img=32',
+          senderAvatar: user.avatarUrl ?? '',
           text: cleanText,
           timestamp: new Date().toISOString(),
         }
@@ -378,14 +340,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      // Mensaje optimista con ID temporal
       const tempId = `temp-${Date.now()}`
       const optimistic: ChatMessage = {
         id: tempId,
         roomId,
         senderId: user.id,
         senderName: user.name,
-        senderAvatar: user.avatarUrl ?? 'https://i.pravatar.cc/150?img=32',
+        senderAvatar: user.avatarUrl ?? '',
         text: cleanText,
         timestamp: new Date().toISOString(),
       }
@@ -399,13 +360,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       )
 
       try {
-        // La API devuelve la fila insertada con el ID real
         const saved = await fetchApi<{ id: string; created_at: string }>(
           `/api/chat/rooms/${roomId}/messages`,
           { method: 'POST', body: JSON.stringify({ text: cleanText }) },
         )
 
-        // Reemplazar mensaje temporal con el ID y timestamp reales
         setMessages((prev) => ({
           ...prev,
           [roomId]: (prev[roomId] ?? []).map((m) =>
@@ -413,7 +372,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           ),
         }))
       } catch (err) {
-        // Rollback si la API falla
         setMessages((prev) => ({
           ...prev,
           [roomId]: (prev[roomId] ?? []).filter((m) => m.id !== tempId),
@@ -443,6 +401,35 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     [user],
   )
 
+  const leaveRoom = useCallback(
+    async (roomId: string) => {
+      if (!user) throw new Error('Debes iniciar sesión para salir del chat.')
+
+      if (!hasSupabaseEnv) {
+        const nextRooms = loadLocalRooms().filter((r) => r.id !== roomId)
+        saveLocalRooms(nextRooms)
+        setRooms(nextRooms)
+        const local = loadLocalMessages()
+        const nextMessages = { ...local }
+        delete nextMessages[roomId]
+        saveLocalMessages(nextMessages)
+        setMessages(nextMessages)
+        return
+      }
+
+      await fetchApi(`/api/chat/rooms/${roomId}/leave`, { method: 'DELETE' })
+
+      // Remove room and its messages from local state immediately
+      setRooms((prev) => prev.filter((r) => r.id !== roomId))
+      setMessages((prev) => {
+        const next = { ...prev }
+        delete next[roomId]
+        return next
+      })
+    },
+    [user],
+  )
+
   return (
     <ChatContext.Provider
       value={{
@@ -455,9 +442,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         messageErrors,
         reloadRooms: loadRoomsOnly,
         loadMessagesForRoom,
-        joinRoom,
         sendMessage,
         markRoomRead,
+        leaveRoom,
       }}
     >
       {children}

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useChatContext } from '../../../src/context/ChatContext'
 import { useAuth } from '../../../src/context/AuthContext'
 import { HiArrowLeft, HiPaperAirplane, HiMapPin } from 'react-icons/hi2'
+import { HiDotsVertical } from 'react-icons/hi'
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString('es-CL', {
@@ -33,6 +34,7 @@ export default function ChatRoomRoutePage() {
     sendMessage,
     markRoomRead,
     loadMessagesForRoom,
+    leaveRoom,
     messageErrors,
     isLoadingRooms,
     loadingMessages,
@@ -40,6 +42,10 @@ export default function ChatRoomRoutePage() {
   const { user, isAuthReady } = useAuth()
   const [input, setInput] = useState('')
   const [typingUser, setTypingUser] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [leaveConfirm, setLeaveConfirm] = useState(false)
+  const [isLeaving, setIsLeaving] = useState(false)
+  const [leaveError, setLeaveError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -49,13 +55,18 @@ export default function ChatRoomRoutePage() {
   const isLoadingMessages = roomId ? loadingMessages[roomId] ?? false : false
   const [sendError, setSendError] = useState<string | null>(null)
 
+  const isMembershipError =
+    roomError?.toLowerCase().includes('miembro') ||
+    roomError?.toLowerCase().includes('403') ||
+    roomError?.toLowerCase().includes('no tienes')
+
   useEffect(() => {
     if (roomId) {
       loadMessagesForRoom(roomId).catch(() => {
-        // El error visible se maneja desde el contexto/página.
+        // Error visible via messageErrors
       })
       markRoomRead(roomId).catch(() => {
-        // Evita romper la vista si falla el marcado de leído.
+        // Non-critical read marker
       })
     }
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -100,6 +111,20 @@ export default function ChatRoomRoutePage() {
     return () => clearInterval(interval)
   }, [otherParticipants, roomId])
 
+  async function handleLeave() {
+    if (!roomId) return
+    setIsLeaving(true)
+    setLeaveError(null)
+    try {
+      await leaveRoom(roomId)
+      router.replace('/chat')
+    } catch (err) {
+      setLeaveError(err instanceof Error ? err.message : 'No se pudo salir del grupo.')
+      setIsLeaving(false)
+      setLeaveConfirm(false)
+    }
+  }
+
   if (isLoadingRooms && !room) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-muted">
@@ -110,10 +135,13 @@ export default function ChatRoomRoutePage() {
 
   if (!room) {
     return (
-      <div className="flex h-full flex-col items-center justify-center text-muted">
-        <p>Sala no encontrada</p>
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-muted px-6 text-center">
+        <p className="text-white font-semibold">Sala no encontrada</p>
+        <p className="text-sm text-muted">
+          Es posible que el evento haya expirado o que no seas miembro de esta sala.
+        </p>
         <button onClick={() => router.push('/chat')} className="mt-3 text-sm text-primary">
-          Volver
+          Volver a chats
         </button>
       </div>
     )
@@ -123,7 +151,8 @@ export default function ChatRoomRoutePage() {
     if (!input.trim() || !user || !roomId) return
     setSendError(null)
     sendMessage(roomId, input.trim()).catch((error) => {
-      setSendError(error instanceof Error ? error.message : 'No se pudo enviar el mensaje.')
+      const msg = error instanceof Error ? error.message : 'No se pudo enviar el mensaje.'
+      setSendError(msg)
     })
     setInput('')
     inputRef.current?.focus()
@@ -149,6 +178,7 @@ export default function ChatRoomRoutePage() {
 
   return (
     <div className="flex h-full flex-col bg-surface">
+      {/* Header */}
       <div className="z-10 shrink-0 border-b border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 py-3 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
@@ -175,161 +205,280 @@ export default function ChatRoomRoutePage() {
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col items-end gap-0.5">
-            <span className="text-xs font-semibold text-white">👥 {room.memberCount}</span>
-            <span className="text-[10px] text-green-400">en línea</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 space-y-1 overflow-y-auto px-3 py-3">
-        {roomError && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
-          >
-            {roomError}
-          </motion.div>
-        )}
-
-        {sendError && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100"
-          >
-            {sendError}
-          </motion.div>
-        )}
-
-        {isLoadingMessages && roomMessages.length === 0 && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="py-8 text-center text-sm text-muted"
-          >
-            Cargando mensajes...
-          </motion.p>
-        )}
-
-        {!isLoadingMessages && roomMessages.length === 0 && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="py-8 text-center text-sm text-muted"
-          >
-            Sé el primero en escribir 👋
-          </motion.p>
-        )}
-
-        {groupedMessages.map(({ label, msgs }) => (
-          <div key={label}>
-            <div className="my-3 flex items-center gap-2">
-              <div className="h-px flex-1 bg-white/10" />
-              <span className="px-2 text-[11px] text-muted">{label}</span>
-              <div className="h-px flex-1 bg-white/10" />
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="flex flex-col items-end gap-0.5">
+              <span className="text-xs font-semibold text-white">👥 {room.memberCount}</span>
+              <span className="text-[10px] text-green-400">en línea</span>
             </div>
 
-            <AnimatePresence initial={false}>
-              {msgs.map((msg) => {
-                const isOwn = msg.senderId === user?.id
-                return (
+            {/* Menu de opciones */}
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10"
+                aria-label="Opciones"
+              >
+                <HiDotsVertical className="h-5 w-5 text-muted" />
+              </button>
+
+              <AnimatePresence>
+                {menuOpen && (
                   <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                    className={`mb-2 flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
+                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                    transition={{ duration: 0.12 }}
+                    className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-white/10 bg-card/95 py-1 shadow-xl backdrop-blur-lg"
                   >
-                    <img
-                      src={msg.senderAvatar}
-                      alt={msg.senderName}
-                      className="h-8 w-8 shrink-0 self-end rounded-full border border-white/10 object-cover"
-                    />
-
-                    <div className={`flex max-w-[75%] flex-col gap-0.5 ${isOwn ? 'items-end' : 'items-start'}`}>
-                      {!isOwn && (
-                        <span className="px-1 text-[11px] font-medium text-primary-light">
-                          {msg.senderName}
-                        </span>
-                      )}
-
-                      <div
-                        className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-                          isOwn
-                            ? 'rounded-tr-sm bg-gradient-to-br from-primary to-violet-700 text-white shadow-lg shadow-primary/20'
-                            : 'rounded-tl-sm border border-white/10 bg-white/5 text-white backdrop-blur-sm'
-                        }`}
-                      >
-                        {msg.text}
-                      </div>
-
-                      <div className={`flex items-center gap-1 px-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
-                        <span className="text-[10px] text-muted">{formatTime(msg.timestamp)}</span>
-                        {isOwn && <span className="text-[10px] text-primary-light">✓✓</span>}
-                      </div>
-                    </div>
+                    <button
+                      onClick={() => { setMenuOpen(false); setLeaveConfirm(true) }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-400 transition-colors hover:bg-red-500/10"
+                    >
+                      Salir del grupo
+                    </button>
                   </motion.div>
-                )
-              })}
-            </AnimatePresence>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
-        ))}
-
-        <div ref={bottomRef} />
-
-        <AnimatePresence>
-          {typingUser && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 6 }}
-              className="mt-1 flex items-center gap-2 px-1"
-            >
-              <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
-              <span className="text-xs text-muted">
-                {typingUser} está escribiendo...
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="shrink-0 border-t border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 py-3 backdrop-blur-md">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg text-muted transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Emojis"
-          >
-            😊
-          </button>
-
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Escribe un mensaje..."
-            className="flex-1 rounded-full border border-white/15 bg-surface px-4 py-2.5 text-sm text-white placeholder:text-muted transition-colors focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
-          />
-
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={handleSend}
-            disabled={!input.trim()}
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all ${
-              input.trim()
-                ? 'bg-gradient-to-br from-primary to-violet-700 text-white shadow-lg shadow-primary/30'
-                : 'cursor-not-allowed bg-white/10 text-muted'
-            }`}
-          >
-            <HiPaperAirplane className="h-5 w-5" />
-          </motion.button>
         </div>
       </div>
+
+      {/* Mensajes */}
+      <div className="flex-1 space-y-1 overflow-y-auto px-3 py-3">
+        {isMembershipError ? (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center gap-3 py-12 text-center"
+          >
+            <p className="text-sm font-semibold text-white">No tienes acceso a esta sala</p>
+            <p className="text-xs text-muted">
+              Debes dar like al evento para unirte a su comunidad.
+            </p>
+            <button
+              onClick={() => router.push('/')}
+              className="mt-2 rounded-full bg-primary/20 px-4 py-2 text-sm font-semibold text-primary-light"
+            >
+              Ir al feed
+            </button>
+          </motion.div>
+        ) : (
+          <>
+            {roomError && !isMembershipError && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+              >
+                {roomError}
+              </motion.div>
+            )}
+
+            {sendError && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100"
+              >
+                {sendError}
+              </motion.div>
+            )}
+
+            {leaveError && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100"
+              >
+                {leaveError}
+              </motion.div>
+            )}
+
+            {isLoadingMessages && roomMessages.length === 0 && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="py-8 text-center text-sm text-muted"
+              >
+                Cargando mensajes...
+              </motion.p>
+            )}
+
+            {!isLoadingMessages && roomMessages.length === 0 && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="py-8 text-center text-sm text-muted"
+              >
+                Sé el primero en escribir 👋
+              </motion.p>
+            )}
+
+            {groupedMessages.map(({ label, msgs }) => (
+              <div key={label}>
+                <div className="my-3 flex items-center gap-2">
+                  <div className="h-px flex-1 bg-white/10" />
+                  <span className="px-2 text-[11px] text-muted">{label}</span>
+                  <div className="h-px flex-1 bg-white/10" />
+                </div>
+
+                <AnimatePresence initial={false}>
+                  {msgs.map((msg) => {
+                    const isOwn = msg.senderId === user?.id
+                    return (
+                      <motion.div
+                        key={msg.id}
+                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.2 }}
+                        className={`mb-2 flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
+                      >
+                        <img
+                          src={msg.senderAvatar}
+                          alt={msg.senderName}
+                          className="h-8 w-8 shrink-0 self-end rounded-full border border-white/10 object-cover"
+                        />
+
+                        <div className={`flex max-w-[75%] flex-col gap-0.5 ${isOwn ? 'items-end' : 'items-start'}`}>
+                          {!isOwn && (
+                            <span className="px-1 text-[11px] font-medium text-primary-light">
+                              {msg.senderName}
+                            </span>
+                          )}
+
+                          <div
+                            className={`rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                              isOwn
+                                ? 'rounded-tr-sm bg-gradient-to-br from-primary to-violet-700 text-white shadow-lg shadow-primary/20'
+                                : 'rounded-tl-sm border border-white/10 bg-white/5 text-white backdrop-blur-sm'
+                            }`}
+                          >
+                            {msg.text}
+                          </div>
+
+                          <div className={`flex items-center gap-1 px-1 ${isOwn ? 'flex-row-reverse' : ''}`}>
+                            <span className="text-[10px] text-muted">{formatTime(msg.timestamp)}</span>
+                            {isOwn && <span className="text-[10px] text-primary-light">✓✓</span>}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
+              </div>
+            ))}
+
+            <div ref={bottomRef} />
+
+            <AnimatePresence>
+              {typingUser && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  className="mt-1 flex items-center gap-2 px-1"
+                >
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+                  <span className="text-xs text-muted">
+                    {typingUser} está escribiendo...
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
+      </div>
+
+      {/* Input bar — hidden when membership error */}
+      {!isMembershipError && (
+        <div className="shrink-0 border-t border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 py-3 backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg text-muted transition-colors hover:bg-white/10 hover:text-white"
+              aria-label="Emojis"
+            >
+              😊
+            </button>
+
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Escribe un mensaje..."
+              className="flex-1 rounded-full border border-white/15 bg-surface px-4 py-2.5 text-sm text-white placeholder:text-muted transition-colors focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
+            />
+
+            <motion.button
+              whileTap={{ scale: 0.88 }}
+              onClick={handleSend}
+              disabled={!input.trim()}
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all ${
+                input.trim()
+                  ? 'bg-gradient-to-br from-primary to-violet-700 text-white shadow-lg shadow-primary/30'
+                  : 'cursor-not-allowed bg-white/10 text-muted'
+              }`}
+            >
+              <HiPaperAirplane className="h-5 w-5" />
+            </motion.button>
+          </div>
+        </div>
+      )}
+
+      {/* Leave room confirmation modal */}
+      <AnimatePresence>
+        {leaveConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 px-6 backdrop-blur-sm"
+            onClick={() => setLeaveConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 12, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 12, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-3xl border border-white/10 bg-card p-6 shadow-2xl"
+            >
+              <h2 className="text-base font-bold text-white">¿Salir del grupo?</h2>
+              <p className="mt-2 text-sm text-muted">
+                Dejarás de recibir mensajes de esta comunidad. Si el grupo queda sin miembros,
+                el historial se eliminará.
+              </p>
+
+              <div className="mt-5 flex gap-3">
+                <button
+                  onClick={() => setLeaveConfirm(false)}
+                  className="flex-1 rounded-full border border-white/15 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/10"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleLeave}
+                  disabled={isLeaving}
+                  className="flex-1 rounded-full bg-red-500/20 py-2.5 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/30 disabled:opacity-50"
+                >
+                  {isLeaving ? 'Saliendo...' : 'Salir'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Close menu on outside click */}
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
     </div>
   )
 }
