@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
+    "predev": "powershell -NoProfile -Command \"$p = (Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue).OwningProcess; if ($p) { Stop-Process -Id $p -Force; Write-Host 'Puerto 3000 liberado.' }\"",
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start"

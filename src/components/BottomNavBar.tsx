@@ -26,7 +26,7 @@ export default function BottomNavBar() {
   }
 
   return (
-    <nav className="absolute inset-x-0 bottom-0 z-50 lg:hidden
+    <nav className="fixed inset-x-0 bottom-0 z-50 lg:hidden
       border-t border-violet-500/20
       bg-[linear-gradient(0deg,_#0A0518_0%,_#160D30/95_100%)]
       backdrop-blur-sm px-2">

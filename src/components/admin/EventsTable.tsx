@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { cn } from '@/src/lib/cn'
 
 export type EventStatus = 'live' | 'draft' | 'flagged'
@@ -23,18 +25,9 @@ const CATEGORY_LABEL: Record<string, string> = {
 }
 
 const STATUS_CONFIG: Record<EventStatus, { label: string; className: string }> = {
-  live: {
-    label: 'Live',
-    className: 'bg-em-positive/15 text-em-positive border border-em-positive/30',
-  },
-  draft: {
-    label: 'Draft',
-    className: 'bg-em-warning/15 text-em-warning border border-em-warning/30',
-  },
-  flagged: {
-    label: 'Flagged',
-    className: 'bg-em-negative/15 text-em-negative border border-em-negative/30',
-  },
+  live: { label: 'Live', className: 'bg-em-positive/15 text-em-positive border border-em-positive/30' },
+  draft: { label: 'Draft', className: 'bg-em-warning/15 text-em-warning border border-em-warning/30' },
+  flagged: { label: 'Flagged', className: 'bg-em-negative/15 text-em-negative border border-em-negative/30' },
 }
 
 function formatRelative(iso: string) {
@@ -50,12 +43,7 @@ function formatRelative(iso: string) {
 function StatusBadge({ status }: { status: EventStatus }) {
   const config = STATUS_CONFIG[status]
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold',
-        config.className,
-      )}
-    >
+    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold', config.className)}>
       {status === 'live' && (
         <span className="relative flex h-1.5 w-1.5">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-em-positive opacity-75" />
@@ -64,6 +52,74 @@ function StatusBadge({ status }: { status: EventStatus }) {
       )}
       {config.label}
     </span>
+  )
+}
+
+function EventRow({ event, onDelete }: { event: AdminEvent; onDelete?: (id: string) => Promise<void> }) {
+  const [confirming, setConfirming] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    if (!onDelete) return
+    setDeleting(true)
+    try {
+      await onDelete(event.id)
+    } catch {
+      setDeleting(false)
+      setConfirming(false)
+    }
+  }
+
+  return (
+    <tr className="transition-colors hover:bg-white/[0.025]">
+      <td className="max-w-[200px] px-5 py-3.5">
+        <span className="block truncate font-medium text-em-text">{event.title}</span>
+      </td>
+      <td className="px-5 py-3.5">
+        <span className="rounded-full bg-em-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-em-accent">
+          {CATEGORY_LABEL[event.category] ?? event.category}
+        </span>
+      </td>
+      <td className="px-5 py-3.5 text-xs text-em-muted">{event.organizerName}</td>
+      <td className="px-5 py-3.5">
+        <StatusBadge status={event.status} />
+      </td>
+      <td className="px-5 py-3.5 text-xs text-em-muted">{formatRelative(event.createdAt)}</td>
+      {onDelete && (
+        <td className="px-5 py-3.5">
+          {confirming ? (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-em-negative">¿Eliminar?</span>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="rounded-md bg-em-negative/20 px-2.5 py-1 text-[11px] font-semibold text-em-negative transition-colors hover:bg-em-negative/30 disabled:opacity-50"
+              >
+                {deleting ? '…' : 'Sí'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={deleting}
+                className="rounded-md border border-em-border px-2.5 py-1 text-[11px] font-semibold text-em-muted transition-colors hover:text-em-text"
+              >
+                No
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirming(true)}
+              className="flex items-center gap-1.5 rounded-md border border-em-negative/25 px-2.5 py-1 text-[11px] font-semibold text-em-negative transition-colors hover:border-em-negative/50 hover:bg-em-negative/10"
+            >
+              <Trash2 className="h-3 w-3" />
+              Eliminar
+            </button>
+          )}
+        </td>
+      )}
+    </tr>
   )
 }
 
@@ -84,25 +140,30 @@ export function EventsTableSkeleton() {
   )
 }
 
-export default function EventsTable({ events, loading }: { events: AdminEvent[]; loading?: boolean }) {
+export default function EventsTable({
+  events,
+  loading,
+  onDelete,
+}: {
+  events: AdminEvent[]
+  loading?: boolean
+  onDelete?: (id: string) => Promise<void>
+}) {
   if (loading) return <EventsTableSkeleton />
 
   if (events.length === 0) {
-    return (
-      <p className="py-10 text-center text-sm text-em-muted">Sin eventos publicados aún.</p>
-    )
+    return <p className="py-10 text-center text-sm text-em-muted">Sin eventos publicados aún.</p>
   }
+
+  const headers = ['Evento', 'Categoría', 'Organizador', 'Estado', 'Publicado', ...(onDelete ? ['Acciones'] : [])]
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-em-border">
-            {['Evento', 'Categoría', 'Organizador', 'Estado', 'Publicado'].map((h) => (
-              <th
-                key={h}
-                className="whitespace-nowrap px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-em-muted"
-              >
+            {headers.map((h) => (
+              <th key={h} className="whitespace-nowrap px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-em-muted">
                 {h}
               </th>
             ))}
@@ -110,21 +171,7 @@ export default function EventsTable({ events, loading }: { events: AdminEvent[];
         </thead>
         <tbody className="divide-y divide-em-border">
           {events.map((e) => (
-            <tr key={e.id} className="transition-colors hover:bg-white/[0.02]">
-              <td className="max-w-[200px] px-5 py-3.5">
-                <span className="block truncate font-medium text-em-text">{e.title}</span>
-              </td>
-              <td className="px-5 py-3.5">
-                <span className="rounded-full bg-em-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-em-accent">
-                  {CATEGORY_LABEL[e.category] ?? e.category}
-                </span>
-              </td>
-              <td className="px-5 py-3.5 text-xs text-em-muted">{e.organizerName}</td>
-              <td className="px-5 py-3.5">
-                <StatusBadge status={e.status} />
-              </td>
-              <td className="px-5 py-3.5 text-xs text-em-muted">{formatRelative(e.createdAt)}</td>
-            </tr>
+            <EventRow key={e.id} event={e} onDelete={onDelete} />
           ))}
         </tbody>
       </table>
