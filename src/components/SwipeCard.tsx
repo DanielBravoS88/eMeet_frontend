@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion'
 import type { PanInfo } from 'framer-motion'
-import { HiMapPin, HiClock, HiUsers, HiGlobeAlt, HiMusicalNote } from 'react-icons/hi2'
+import { HiMapPin, HiClock, HiUsers, HiGlobeAlt } from 'react-icons/hi2'
 import { HiHeart, HiX, HiBookmark } from 'react-icons/hi'
 import type { Event } from '../types'
 import { formatEventDate, formatPrice, CATEGORY_COLORS, CATEGORY_EMOJI } from '../lib/eventUtils'
@@ -154,7 +154,14 @@ export default function SwipeCard({
       }}
       drag={isActive ? 'x' : false}
       dragConstraints={{ left: 0, right: 0 }}
-      onDragStart={() => setIsDragging(true)}
+      onDragStart={() => {
+        setIsDragging(true)
+        if (audioBlocked && audioRef.current) {
+          audioRef.current.play()
+            .then(() => { setIsAudioPlaying(true); setAudioBlocked(false) })
+            .catch(() => {})
+        }
+      }}
       onDragEnd={handleDragEnd}
       whileTap={{ scale: isActive ? 1.02 : scale }}
       transition={{ duration: 0 }}
@@ -218,6 +225,34 @@ export default function SwipeCard({
           </button>
         )}
 
+        {/* Disco giratorio — se muestra cuando el evento tiene música */}
+        {event.audioPreviewUrl && isActive && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              if (audioBlocked && audioRef.current) {
+                audioRef.current.play()
+                  .then(() => { setIsAudioPlaying(true); setAudioBlocked(false) })
+                  .catch(() => {})
+              }
+            }}
+            className="absolute right-4 top-[66px] z-10 h-11 w-11 lg:right-5 lg:top-[72px]"
+            aria-label={audioBlocked ? 'Toca para escuchar música' : 'Música del evento'}
+          >
+            <div
+              className={`relative h-full w-full rounded-full shadow-xl ${isAudioPlaying ? 'animate-spin' : ''}`}
+              style={isAudioPlaying ? { animationDuration: '3s' } : undefined}
+            >
+              <div className="absolute inset-0 rounded-full bg-gray-950 border border-white/20" />
+              <div className="absolute inset-[5px] rounded-full border border-white/[0.08]" />
+              <div className="absolute inset-[9px] rounded-full border border-white/[0.08]" />
+              <div className="absolute inset-[13px] rounded-full border border-white/[0.08]" />
+              <div className="absolute inset-[17px] rounded-full bg-primary/90" />
+              <div className="absolute inset-[22px] rounded-full bg-white/40" />
+            </div>
+          </button>
+        )}
+
         {/* ── Indicadores de swipe ────────────────────────────────────────── */}
         {isActive && (
           <>
@@ -241,41 +276,6 @@ export default function SwipeCard({
 
         {/* ── Info del evento (parte inferior) ────────────────────────────── */}
         <div className={`absolute bottom-0 left-0 right-0 p-4 pb-20 transition-all duration-200 lg:p-5 lg:pb-24 ${isDragging ? 'opacity-80' : 'opacity-100'}`}>
-
-          {/* Badge de música — visible solo si tiene preview de Deezer */}
-          {event.audioPreviewUrl && (
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 backdrop-blur-sm">
-              {isAudioPlaying ? (
-                <div className="flex h-3.5 items-end gap-[2px]">
-                  <span className="eq-bar-1 w-[3px] rounded-full bg-primary-light" />
-                  <span className="eq-bar-2 w-[3px] rounded-full bg-primary-light" />
-                  <span className="eq-bar-3 w-[3px] rounded-full bg-primary-light" />
-                  <span className="eq-bar-4 w-[3px] rounded-full bg-primary-light" />
-                </div>
-              ) : (
-                <HiMusicalNote className="h-3.5 w-3.5 text-primary-light" />
-              )}
-              <span className="text-[11px] font-medium text-white/80">
-                {audioBlocked ? (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      audioRef.current?.play()
-                        .then(() => { setIsAudioPlaying(true); setAudioBlocked(false) })
-                        .catch(() => {})
-                    }}
-                    className="underline underline-offset-2"
-                  >
-                    Toca para escuchar
-                  </button>
-                ) : isAudioPlaying ? (
-                  'Música del evento'
-                ) : (
-                  'Preview musical'
-                )}
-              </span>
-            </div>
-          )}
 
           {event.rating && event.rating > 0 && (
             <div className="mb-1.5">
