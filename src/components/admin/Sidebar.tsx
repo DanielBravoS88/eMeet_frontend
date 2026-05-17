@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
@@ -11,8 +11,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  LogOut,
 } from 'lucide-react'
 import { cn } from '@/src/lib/cn'
+import { useAuth } from '@/src/context/AuthContext'
 
 const NAV = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard, exact: true },
@@ -29,6 +31,13 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { logout } = useAuth()
+
+  async function handleLogout() {
+    await logout()
+    router.replace('/auth')
+  }
 
   function isActive(href: string, exact: boolean) {
     return exact ? pathname === href : pathname.startsWith(href)
@@ -81,8 +90,21 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         })}
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="border-t border-em-border p-2">
+      {/* Logout + Collapse toggle */}
+      <div className="space-y-1 border-t border-em-border p-2">
+        <button
+          type="button"
+          onClick={handleLogout}
+          title={collapsed ? 'Cerrar sesión' : undefined}
+          className={cn(
+            'group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors',
+            'text-em-muted hover:bg-em-negative/10 hover:text-em-negative',
+          )}
+        >
+          <LogOut className="h-4 w-4 flex-shrink-0 transition-colors group-hover:text-em-negative" />
+          {!collapsed && <span className="truncate">Cerrar sesión</span>}
+        </button>
+
         <button
           type="button"
           onClick={onToggle}

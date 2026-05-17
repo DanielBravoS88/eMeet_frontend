@@ -2,6 +2,7 @@ import dynamic from 'next/dynamic'
 import type { ReactNode } from 'react'
 import BottomNavBar from './BottomNavBar'
 import SidebarNav from './SidebarNav'
+import ChatBubble from './ChatBubble'
 
 const BellavistaMap = dynamic(() => import('./BellavistaMap'), {
   ssr: false,
@@ -72,6 +73,8 @@ export default function Layout({
 
           <BottomNavBar />
         </section>
+
+        <ChatBubble />
 
         {showDesktopMap && (
           <aside className="hidden w-[360px] shrink-0

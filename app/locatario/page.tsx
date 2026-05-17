@@ -395,43 +395,45 @@ export default function LocatarioPage() {
     <div className="min-h-screen bg-surface">
       {/* Header */}
       <header className="bg-card border-b border-card sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Panel de Locatario</h1>
-            <p className="text-sm text-muted">{user.businessName}</p>
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold text-white sm:text-2xl truncate">Panel de Locatario</h1>
+            <p className="text-xs text-muted sm:text-sm truncate">{user.businessName}</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => router.push('/')}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg transition-colors"
+              title="Ver feed"
             >
               <FiHome size={18} />
-              Ver feed
+              <span className="hidden sm:inline text-sm">Ver feed</span>
             </button>
             <button
               onClick={() => setShowCreateEvent(true)}
-              className="flex items-center gap-2 bg-accent hover:bg-accent/80 text-white font-semibold px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 bg-accent hover:bg-accent/80 text-white font-semibold px-3 py-2 rounded-lg transition-colors"
             >
               <FiPlus size={18} />
-              Crear Evento
+              <span className="hidden sm:inline text-sm">Crear Evento</span>
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-2 rounded-lg transition-colors"
+              title="Cerrar sesión"
             >
               <FiLogOut size={18} />
-              Cerrar sesión
+              <span className="hidden sm:inline text-sm">Cerrar sesión</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Contenido principal */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-5 sm:py-8">
         {/* Bienvenida */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">Bienvenido, {user.name}</h2>
-          <p className="text-muted">Gestiona tus eventos y promociones en {user.businessName}</p>
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl font-bold text-white mb-1 sm:text-3xl sm:mb-2">Bienvenido, {user.name}</h2>
+          <p className="text-sm text-muted sm:text-base">Gestiona tus eventos y promociones en {user.businessName}</p>
         </div>
 
         {/* Feedback global */}
@@ -576,81 +578,123 @@ export default function LocatarioPage() {
           </div>
         </section>
 
-        {/* Tabla de eventos */}
+        {/* Tabla/Cards de eventos */}
         <div className="bg-card border border-card rounded-lg overflow-hidden mb-8">
-          <div className="px-6 py-4 border-b border-card flex items-center gap-2">
-            <FiCalendar className="text-accent" size={20} />
-            <h3 className="text-lg font-semibold text-white">Tus Eventos</h3>
+          <div className="px-4 py-4 border-b border-card flex items-center justify-between gap-2 sm:px-6">
+            <div className="flex items-center gap-2">
+              <FiCalendar className="text-accent" size={20} />
+              <h3 className="text-lg font-semibold text-white">Tus Eventos</h3>
+            </div>
+            <span className="text-xs text-muted">{locatarioEvents.length} eventos</span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-surface">
-                <tr className="border-b border-card">
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Evento</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Fecha</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Precio</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-muted">GPS</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-muted">
-                      <FiLoader className="animate-spin inline mr-2" size={16} />
-                      Cargando eventos...
-                    </td>
+          {/* Estado vacío / cargando */}
+          {(isLoading || locatarioEvents.length === 0) && (
+            <div className="px-6 py-10 text-center text-sm text-muted">
+              {isLoading
+                ? <><FiLoader className="animate-spin inline mr-2" size={16} />Cargando eventos...</>
+                : 'Aún no tienes eventos creados. Crea uno y aparecerá en el feed principal.'}
+            </div>
+          )}
+
+          {/* Cards — móvil (sm y menor) */}
+          {!isLoading && locatarioEvents.length > 0 && (
+            <div className="divide-y divide-card/50 sm:hidden">
+              {locatarioEvents.map((event) => (
+                <div key={event.id} className="px-4 py-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold text-white leading-snug">{event.title}</p>
+                    {event.lat != null && event.lng != null && (
+                      <span className="flex items-center gap-1 text-[11px] text-green-400 shrink-0">
+                        <FiMapPin size={11} /> GPS
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                    <span>{new Date(event.date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    {event.price == null
+                      ? <span className="text-green-400 font-semibold">Gratis</span>
+                      : <span className="text-primary-light font-semibold">${event.price.toLocaleString('es-CL')}</span>}
+                  </div>
+                  <div className="flex items-center gap-3 pt-1">
+                    <button
+                      onClick={() => handlePromoteEvent(event.id)}
+                      disabled={monetizationAction === `promote-${event.id}`}
+                      className="text-xs font-semibold text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
+                    >
+                      {monetizationAction === `promote-${event.id}` ? 'Destacando...' : '⭐ Destacar'}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(event.id)}
+                      disabled={deletingId === event.id}
+                      className="flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                    >
+                      {deletingId === event.id ? <FiLoader className="animate-spin" size={12} /> : <FiTrash2 size={12} />}
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Tabla — desktop (sm+) */}
+          {!isLoading && locatarioEvents.length > 0 && (
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-surface">
+                  <tr className="border-b border-card">
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Evento</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Fecha</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Precio</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-muted">GPS</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Acciones</th>
                   </tr>
-                )}
-                {!isLoading && locatarioEvents.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-muted">
-                      Aún no tienes eventos creados. Crea uno y aparecerá en el feed principal.
-                    </td>
-                  </tr>
-                )}
-                {!isLoading && locatarioEvents.map((event) => (
-                  <tr key={event.id} className="border-b border-card/50 hover:bg-surface/50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-white font-medium">{event.title}</td>
-                    <td className="px-6 py-4 text-sm text-muted">
-                      {new Date(event.date).toLocaleString('es-CL')}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-semibold">
-                      {event.price == null
-                        ? <span className="text-green-400">Gratis</span>
-                        : <span className="text-primary-light">${event.price.toLocaleString('es-CL')}</span>}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {event.lat != null && event.lng != null
-                        ? <span className="flex items-center gap-1 text-green-400"><FiMapPin size={13} /> Sí</span>
-                        : <span className="text-muted">—</span>}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <button
-                        onClick={() => handlePromoteEvent(event.id)}
-                        disabled={monetizationAction === `promote-${event.id}`}
-                        className="mr-4 text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
-                      >
-                        {monetizationAction === `promote-${event.id}` ? 'Destacando...' : 'Destacar'}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(event.id)}
-                        disabled={deletingId === event.id}
-                        className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
-                      >
-                        {deletingId === event.id
-                          ? <FiLoader className="animate-spin" size={14} />
-                          : <FiTrash2 size={14} />
-                        }
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {locatarioEvents.map((event) => (
+                    <tr key={event.id} className="border-b border-card/50 hover:bg-surface/50 transition-colors">
+                      <td className="px-6 py-4 text-sm text-white font-medium">{event.title}</td>
+                      <td className="px-6 py-4 text-sm text-muted">
+                        {new Date(event.date).toLocaleString('es-CL')}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-semibold">
+                        {event.price == null
+                          ? <span className="text-green-400">Gratis</span>
+                          : <span className="text-primary-light">${event.price.toLocaleString('es-CL')}</span>}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {event.lat != null && event.lng != null
+                          ? <span className="flex items-center gap-1 text-green-400"><FiMapPin size={13} /> Sí</span>
+                          : <span className="text-muted">—</span>}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => handlePromoteEvent(event.id)}
+                            disabled={monetizationAction === `promote-${event.id}`}
+                            className="text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
+                          >
+                            {monetizationAction === `promote-${event.id}` ? 'Destacando...' : 'Destacar'}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(event.id)}
+                            disabled={deletingId === event.id}
+                            className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                          >
+                            {deletingId === event.id
+                              ? <FiLoader className="animate-spin" size={14} />
+                              : <FiTrash2 size={14} />}
+                            Eliminar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {/* Cupones + Analytics */}
@@ -897,6 +941,17 @@ export default function LocatarioPage() {
           )
         })()}
       </main>
+
+      {/* FAB móvil — botón flotante Crear Evento */}
+      {!showCreateEvent && (
+        <button
+          onClick={() => setShowCreateEvent(true)}
+          className="fixed bottom-6 right-4 z-40 flex items-center gap-2 rounded-full bg-accent px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-accent/30 transition-transform hover:scale-105 active:scale-95 sm:hidden"
+        >
+          <FiPlus size={20} />
+          Crear Evento
+        </button>
+      )}
 
       {/* Modal crear evento */}
       {showCreateEvent && (
