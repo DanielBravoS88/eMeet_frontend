@@ -1,15 +1,23 @@
 import type { ScrapedPlace, PlaceType } from '../types'
 import { requireBackendUrl } from '../lib/backend'
 
-const PLACES_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_PLACES_TIMEOUT_MS ?? 9000)
+const PLACES_TIMEOUT_MS = Number(process.env.NEXT_PUBLIC_PLACES_TIMEOUT_MS ?? 35000)
 
 function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
-async function fetchJsonWithTimeout<T>(input: string, init?: RequestInit): Promise<T> {
+function isNetworkError(error: unknown) {
+  return error instanceof TypeError && error.message.toLowerCase().includes('fetch')
+}
+
+async function fetchJsonWithTimeout<T>(
+  input: string,
+  init?: RequestInit,
+  retries = 1,
+): Promise<T> {
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), Math.max(1000, PLACES_TIMEOUT_MS))
+  const timeoutId = setTimeout(() => controller.abort(), Math.max(5000, PLACES_TIMEOUT_MS))
 
   try {
     const response = await fetch(input, {
@@ -28,6 +36,13 @@ async function fetchJsonWithTimeout<T>(input: string, init?: RequestInit): Promi
     }
 
     return payload as T
+  } catch (error) {
+    if (isNetworkError(error) && retries > 0) {
+      // El servidor puede estar despertando (Render free tier): reintento automático
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+      return fetchJsonWithTimeout<T>(input, init, retries - 1)
+    }
+    throw error
   } finally {
     clearTimeout(timeoutId)
   }
