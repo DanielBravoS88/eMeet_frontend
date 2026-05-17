@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarDays, MessageSquare, Heart, Users, RefreshCw } from 'lucide-react'
+import { CalendarDays, MessageSquare, Heart, Users, RefreshCw, Search } from 'lucide-react'
 import { useAuth } from '@/src/context/AuthContext'
 import { fetchApi } from '@/src/lib/fetchApi'
+import { getSupabaseBrowserClient } from '@/src/lib/supabase'
 import KpiCard, { KpiCardSkeleton } from '@/src/components/admin/KpiCard'
 import EventsTable, { EventsTableSkeleton } from '@/src/components/admin/EventsTable'
 import type { AdminEvent } from '@/src/components/admin/EventsTable'
@@ -12,14 +13,14 @@ import { cn } from '@/src/lib/cn'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type RawRecentEvent = {
+type RawEvent = {
   id: string
   title: string
   category: string
   address: string
   created_at: string
   organizer_name: string
-  status?: 'live' | 'draft' | 'flagged' // migración 006 añade esta columna
+  status?: 'live' | 'draft' | 'flagged'
 }
 
 type AdminKpis = {
@@ -31,10 +32,10 @@ type AdminKpis = {
 
 type AdminStats = {
   kpis: AdminKpis
-  recentEvents: RawRecentEvent[]
+  recentEvents: RawEvent[]
 }
 
-function toAdminEvent(e: RawRecentEvent): AdminEvent {
+function toAdminEvent(e: RawEvent): AdminEvent {
   return {
     id: e.id,
     title: e.title,
@@ -45,18 +46,18 @@ function toAdminEvent(e: RawRecentEvent): AdminEvent {
   }
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── API helper ───────────────────────────────────────────────────────────────
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-em-text">
-        <span className="h-4 w-0.5 rounded-full bg-em-accent" />
-        {title}
-      </h2>
-      {children}
-    </div>
-  )
+async function adminFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const { data } = await getSupabaseBrowserClient().auth.getSession()
+  const token = data.session?.access_token
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(path, { ...init, headers })
+  if (res.status === 204) return undefined as T
+  const body = (await res.json()) as T & { error?: string }
+  if (!res.ok) throw new Error((body as { error?: string }).error ?? 'Error en la operación')
+  return body
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -65,9 +66,11 @@ export default function AdminEventsPage() {
   const { user, isAuthReady } = useAuth()
   const router = useRouter()
   const [stats, setStats] = useState<AdminStats | null>(null)
+  const [events, setEvents] = useState<AdminEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (isAuthReady && (!user || user.role !== 'admin')) {
@@ -80,7 +83,18 @@ export default function AdminEventsPage() {
     setLoading(true)
     setError(null)
     try {
-      setStats(await fetchApi<AdminStats>('/admin/stats', { method: 'GET' }))
+      const [statsRes, eventsRes] = await Promise.allSettled([
+        fetchApi<AdminStats>('/admin/stats', { method: 'GET' }),
+        adminFetch<RawEvent[]>('/api/admin/events'),
+      ])
+
+      if (statsRes.status === 'fulfilled') setStats(statsRes.value)
+
+      if (eventsRes.status === 'fulfilled') {
+        setEvents(eventsRes.value.map(toAdminEvent))
+      } else if (statsRes.status === 'fulfilled') {
+        setEvents((statsRes.value.recentEvents ?? []).map(toAdminEvent))
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error desconocido')
     } finally {
@@ -89,6 +103,11 @@ export default function AdminEventsPage() {
   }, [user])
 
   useEffect(() => { load() }, [load, refreshKey])
+
+  const handleDelete = useCallback(async (id: string) => {
+    await adminFetch(`/api/admin/events/${id}`, { method: 'DELETE' })
+    setEvents((prev) => prev.filter((e) => e.id !== id))
+  }, [])
 
   if (!isAuthReady) {
     return (
@@ -100,15 +119,18 @@ export default function AdminEventsPage() {
   if (!user || user.role !== 'admin') return null
 
   const kpis = stats?.kpis
-  const events: AdminEvent[] = (stats?.recentEvents ?? []).map(toAdminEvent)
-
-  // Todos los KPIs son reales desde /admin/stats
   const kpiCards = [
-    { label: 'Total eventos', value: kpis ? kpis.totalEvents.toLocaleString('es-CL') : '—', change: undefined, icon: CalendarDays, accentColor: '#3B82F6' },
-    { label: 'Comunidades activas', value: kpis ? kpis.totalCommunities.toLocaleString('es-CL') : '—', change: undefined, icon: Users, accentColor: '#0ECB81' },
-    { label: 'Likes totales', value: kpis ? kpis.totalLikes.toLocaleString('es-CL') : '—', change: undefined, icon: Heart, accentColor: '#F6465D' },
-    { label: 'Mensajes enviados', value: kpis ? kpis.totalMessages.toLocaleString('es-CL') : '—', change: undefined, icon: MessageSquare, accentColor: '#A855F7' },
+    { label: 'Total eventos', value: kpis ? kpis.totalEvents.toLocaleString('es-CL') : '—', icon: CalendarDays, accentColor: '#3B82F6' },
+    { label: 'Comunidades activas', value: kpis ? kpis.totalCommunities.toLocaleString('es-CL') : '—', icon: Users, accentColor: '#0ECB81' },
+    { label: 'Likes totales', value: kpis ? kpis.totalLikes.toLocaleString('es-CL') : '—', icon: Heart, accentColor: '#F6465D' },
+    { label: 'Mensajes enviados', value: kpis ? kpis.totalMessages.toLocaleString('es-CL') : '—', icon: MessageSquare, accentColor: '#A855F7' },
   ]
+
+  const filteredEvents = events.filter((e) => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return e.title.toLowerCase().includes(q) || e.organizerName.toLowerCase().includes(q) || e.category.toLowerCase().includes(q)
+  })
 
   return (
     <div className="min-h-full p-6">
@@ -116,7 +138,7 @@ export default function AdminEventsPage() {
       <div className="mb-7 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-black tracking-tight text-em-text">Eventos</h1>
-          <p className="mt-0.5 text-xs text-em-muted">Publicaciones recientes · eMeet</p>
+          <p className="mt-0.5 text-xs text-em-muted">Gestión de publicaciones · eMeet</p>
         </div>
         <button
           type="button"
@@ -136,29 +158,58 @@ export default function AdminEventsPage() {
       )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-12">
-        {/* KPIs — todos reales */}
+        {/* KPIs */}
         <div className="col-span-1 grid grid-cols-2 gap-3 md:col-span-12 lg:grid-cols-4">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <KpiCardSkeleton key={i} />)
             : kpiCards.map((c) => (
-                <KpiCard key={c.label} label={c.label} value={c.value} change={c.change} icon={c.icon} accentColor={c.accentColor} />
+                <KpiCard key={c.label} label={c.label} value={c.value} icon={c.icon} accentColor={c.accentColor} />
               ))}
         </div>
 
-        {/* Tabla real de eventos recientes */}
+        {/* Tabla de eventos */}
         <div className="col-span-1 md:col-span-12">
-          <Section title="Eventos recientes">
-            <div className="overflow-hidden rounded-lg border border-em-border bg-em-surface">
-              {loading ? (
-                <EventsTableSkeleton />
-              ) : (
-                <EventsTable events={events} loading={false} />
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-em-text">
+              <span className="h-4 w-0.5 rounded-full bg-em-accent" />
+              Todos los eventos
+              {!loading && (
+                <span className="ml-1 rounded-full bg-em-surface px-2 py-0.5 text-[11px] text-em-muted">
+                  {filteredEvents.length}
+                </span>
               )}
+            </h2>
+
+            {/* Buscador */}
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-em-muted" />
+              <input
+                type="text"
+                placeholder="Buscar por título, organizador…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 w-full rounded-lg border border-em-border bg-em-bg pl-8 pr-3 text-xs text-em-text placeholder:text-em-muted focus:border-em-accent focus:outline-none"
+              />
             </div>
+          </div>
+
+          <div className="overflow-hidden rounded-lg border border-em-border bg-em-surface">
+            {loading ? (
+              <EventsTableSkeleton />
+            ) : (
+              <EventsTable
+                events={filteredEvents}
+                loading={false}
+                onDelete={handleDelete}
+              />
+            )}
+          </div>
+
+          {!loading && filteredEvents.length > 0 && (
             <p className="mt-2 text-[11px] text-em-muted">
-              Mostrando los 8 más recientes. El estado será real tras ejecutar <code className="rounded bg-white/5 px-1">006_transactions_and_event_status.sql</code> en Supabase.
+              Eliminar un evento lo borra permanentemente de la base de datos y del feed público.
             </p>
-          </Section>
+          )}
         </div>
       </div>
     </div>

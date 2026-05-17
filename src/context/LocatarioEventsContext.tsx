@@ -33,25 +33,7 @@ interface LocatarioEventsContextValue {
 
 const LocatarioEventsContext = createContext<LocatarioEventsContextValue | undefined>(undefined)
 
-const STORAGE_KEY = 'emeet-locatario-events'
 const FALLBACK_EVENT_IMAGE = 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&q=80'
-
-function loadEventsFromStorage(): Event[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as Event[]
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function saveEventsToStorage(events: Event[]) {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(events))
-}
 
 type LocatarioEventRow = {
   id: string
@@ -129,44 +111,37 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false)
 
   const loadPublicEvents = useCallback(async () => {
-    if (!hasSupabaseEnv) {
-      const stored = loadEventsFromStorage()
-      setPublicLocatarioEvents(stored)
-      return stored
-    }
+    if (!hasSupabaseEnv) return
 
     const rows = await apiFetch<LocatarioEventRow[]>('/events/locatario/public')
     const mapped = rows.map(dbRowToEvent)
     setPublicLocatarioEvents(mapped)
-    return mapped
   }, [])
 
   const loadPrivateEvents = useCallback(async () => {
-    if (!hasSupabaseEnv) {
-      const stored = loadEventsFromStorage()
-      setLocatarioEvents(stored)
-      return stored
-    }
+    if (!hasSupabaseEnv) return
 
     const session = await getSupabaseAuthSession()
     if (!session) {
       setLocatarioEvents([])
-      return []
+      return
     }
 
-    const rows = await apiFetch<LocatarioEventRow[]>('/events/locatario')
-    const mapped = rows.map(dbRowToEvent)
-    setLocatarioEvents(mapped)
-    return mapped
+    try {
+      const rows = await apiFetch<LocatarioEventRow[]>('/events/locatario')
+      setLocatarioEvents(rows.map(dbRowToEvent))
+    } catch (err) {
+      // 403 = el usuario no tiene rol locatario (ej: admin). No es un error real.
+      const msg = err instanceof Error ? err.message : ''
+      if (!msg.includes('permisos') && !msg.includes('403') && !msg.includes('permission')) {
+        throw err
+      }
+      setLocatarioEvents([])
+    }
   }, [])
 
   useEffect(() => {
-    if (!hasSupabaseEnv) {
-      const stored = loadEventsFromStorage()
-      setLocatarioEvents(stored)
-      setPublicLocatarioEvents(stored)
-      return
-    }
+    if (!hasSupabaseEnv) return
 
     let mounted = true
     setIsLoading(true)
@@ -174,50 +149,37 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
 
     ;(async () => {
       try {
-        const publicEvents = await loadPublicEvents().catch(() => loadEventsFromStorage())
+        await loadPublicEvents().catch((err) => {
+          console.error('[LocatarioEvents] Error cargando eventos públicos:', err)
+        })
         if (!mounted) return
-        setPublicLocatarioEvents(publicEvents)
 
         const session = await getSupabaseAuthSession()
-        if (!mounted) return
+        if (!mounted || !session) return
 
-        if (!session) {
-          setLocatarioEvents([])
-          return
-        }
-
-        const ownEvents = await loadPrivateEvents().catch(() => loadEventsFromStorage())
-        if (!mounted) return
-        setLocatarioEvents(ownEvents)
+        await loadPrivateEvents().catch((err) => {
+          console.error('[LocatarioEvents] Error cargando eventos propios:', err)
+        })
       } finally {
         if (mounted) setIsLoading(false)
       }
-    })().catch(() => {
-      if (!mounted) return
-      const stored = loadEventsFromStorage()
-      setLocatarioEvents(stored)
-      setPublicLocatarioEvents(stored)
-      setIsLoading(false)
-    })
+    })()
 
     const { data: authListener } = getSupabaseBrowserClient().auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         setLocatarioEvents([])
-        loadPublicEvents().catch(() => {
-          if (!mounted) return
-          setPublicLocatarioEvents(loadEventsFromStorage())
+        loadPublicEvents().catch((err) => {
+          console.error('[LocatarioEvents] Error recargando públicos tras logout:', err)
         })
         return
       }
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        loadPrivateEvents().catch(() => {
-          if (!mounted) return
-          setLocatarioEvents(loadEventsFromStorage())
+        loadPrivateEvents().catch((err) => {
+          console.error('[LocatarioEvents] Error cargando propios tras login:', err)
         })
-        loadPublicEvents().catch(() => {
-          if (!mounted) return
-          setPublicLocatarioEvents(loadEventsFromStorage())
+        loadPublicEvents().catch((err) => {
+          console.error('[LocatarioEvents] Error cargando públicos tras login:', err)
         })
       }
     })
@@ -230,39 +192,7 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
 
   const createLocatarioEvent = useCallback(async (input: CreateLocatarioEventInput): Promise<Event> => {
     if (!hasSupabaseEnv) {
-      const newEvent: Event = {
-        id: `loc-event-${Date.now()}`,
-        title: input.title.trim(),
-        description: input.description.trim(),
-        category: input.category,
-        date: new Date(input.date).toISOString(),
-        location: input.organizerName,
-        address: input.address.trim(),
-        distance: 0,
-        lat: input.lat,
-        lng: input.lng,
-        price: input.price,
-        imageUrl: input.imageUrl?.trim() || FALLBACK_EVENT_IMAGE,
-        videoUrl: input.videoUrl?.trim() || null,
-        websiteUrl: null,
-        organizerName: input.organizerName,
-        organizerAvatar: input.organizerAvatar,
-        attendees: 0,
-        capacity: null,
-        tags: ['locatario', input.category],
-        isLiked: false,
-        isSaved: false,
-        rating: undefined,
-        isOpen: null,
-      }
-
-      setLocatarioEvents((prev) => {
-        const next = [newEvent, ...prev]
-        saveEventsToStorage(next)
-        return next
-      })
-      setPublicLocatarioEvents((prev) => [newEvent, ...prev])
-      return newEvent
+      throw new Error('Se requiere conexión a la base de datos para crear eventos.')
     }
 
     const session = await getSupabaseAuthSession()
@@ -291,24 +221,22 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
 
     const newEvent = dbRowToEvent(row)
     setLocatarioEvents((prev) => [newEvent, ...prev])
-    setPublicLocatarioEvents((prev) => [newEvent, ...prev.filter((event) => event.id !== newEvent.id)])
+    setPublicLocatarioEvents((prev) => [newEvent, ...prev.filter((e) => e.id !== newEvent.id)])
     return newEvent
   }, [])
 
   const removeLocatarioEvent = useCallback(async (eventId: string): Promise<void> => {
-    setLocatarioEvents((prev) => {
-      const next = prev.filter((e) => e.id !== eventId)
-      if (!hasSupabaseEnv) saveEventsToStorage(next)
-      return next
-    })
-    setPublicLocatarioEvents((prev) => prev.filter((e) => e.id !== eventId))
-
-    if (!hasSupabaseEnv) return
+    if (!hasSupabaseEnv) {
+      throw new Error('Se requiere conexión a la base de datos para eliminar eventos.')
+    }
 
     const session = await getSupabaseAuthSession()
     if (!session) {
       throw new Error('Debes iniciar sesión para eliminar eventos de locatario.')
     }
+
+    setLocatarioEvents((prev) => prev.filter((e) => e.id !== eventId))
+    setPublicLocatarioEvents((prev) => prev.filter((e) => e.id !== eventId))
 
     await apiFetch<void>(`/events/locatario/${eventId}`, { method: 'DELETE' })
   }, [])

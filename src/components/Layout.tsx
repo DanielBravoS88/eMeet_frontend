@@ -27,8 +27,8 @@ export default function Layout({
 }: LayoutProps) {
   return (
     /* Fondo metálico: gradiente oscuro con tinte púrpura profundo */
-    <div className="min-h-screen bg-[linear-gradient(160deg,_#12082C_0%,_#07040F_45%,_#0E0520_100%)]">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1600px] items-stretch gap-0 px-0 sm:px-3 lg:px-5 lg:py-4">
+    <div className="h-screen overflow-hidden bg-[linear-gradient(160deg,_#12082C_0%,_#07040F_45%,_#0E0520_100%)]">
+      <div className="mx-auto flex h-full w-full max-w-[1600px] items-stretch gap-0 px-0 sm:px-3 lg:px-5 lg:py-4">
 
         <SidebarNav />
 
@@ -66,7 +66,7 @@ export default function Layout({
             </header>
           )}
 
-          <main className="flex min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-16 lg:pb-0">
+          <main className="flex min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-32 lg:pb-0">
             <div className="w-full">{children}</div>
           </main>
 

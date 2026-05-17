@@ -23,7 +23,10 @@ import { useAuth } from '../src/context/AuthContext'
 import { useLocatarioEvents } from '../src/context/LocatarioEventsContext'
 import { hasSupabaseEnv, getSupabaseBrowserClient } from '../src/lib/supabase'
 import { fetchApi } from '../src/lib/fetchApi'
-import type { PlaceType } from '../src/types'
+import { HiMapPin, HiClock } from 'react-icons/hi2'
+import { HiHeart, HiBookmark } from 'react-icons/hi'
+import type { Event, PlaceType } from '../src/types'
+import { formatEventDate, formatPrice, CATEGORY_EMOJI } from '../src/lib/eventUtils'
 
 const DEFAULT_FEED_TYPES: PlaceType[] = ['restaurant', 'bar', 'night_club', 'cafe']
 
@@ -66,7 +69,6 @@ function FeedSkeleton() {
                 <div className="h-6 w-24 rounded-full shimmer" style={{ background: 'rgba(255,255,255,0.12)' }} />
               </div>
             </div>
-
             <div className="flex flex-1 flex-col justify-between p-5">
               <div className="space-y-2">
                 <div className="shimmer h-6 w-3/4 rounded-xl" />
@@ -81,7 +83,6 @@ function FeedSkeleton() {
                   <div className="shimmer h-3.5 w-36 rounded-md" />
                 </div>
               </div>
-
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -103,6 +104,184 @@ function FeedSkeleton() {
   )
 }
 
+function LocationRequired({
+  locationError,
+  onRequest,
+}: {
+  locationError: string | null
+  onRequest: () => void
+}) {
+  const isDenied = locationError?.toLowerCase().includes('denied') || locationError?.toLowerCase().includes('denegado')
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex h-full w-full flex-col items-center justify-center gap-6 px-6 text-center"
+    >
+      <motion.div
+        animate={{ y: [0, -6, 0] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+        className="flex h-20 w-20 items-center justify-center rounded-full border border-primary/40 bg-primary/10 shadow-lg shadow-primary/20"
+      >
+        <HiMapPin className="h-10 w-10 text-primary-light" />
+      </motion.div>
+
+      <div className="max-w-xs">
+        <h2 className="text-xl font-bold text-white">
+          {isDenied ? 'Permiso de ubicación denegado' : 'Activa tu ubicación'}
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
+          eMeet necesita tu ubicación para mostrarte los mejores eventos y lugares cerca de ti.
+        </p>
+        {isDenied && (
+          <p className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+            El permiso fue denegado. Ve a la configuración de tu navegador → Privacidad → Ubicación y activa el permiso para este sitio.
+          </p>
+        )}
+      </div>
+
+      <button
+        onClick={onRequest}
+        className="rounded-full bg-primary px-8 py-3 font-semibold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary-dark active:scale-95"
+      >
+        {isDenied ? 'Reintentar' : 'Activar ubicación'}
+      </button>
+    </motion.div>
+  )
+}
+
+function CommunityEventCard({
+  event,
+  isLiked,
+  isSaved,
+  onLike,
+  onSave,
+}: {
+  event: Event
+  isLiked: boolean
+  isSaved: boolean
+  onLike: () => void
+  onSave: () => void
+}) {
+  return (
+    <div className="group overflow-hidden rounded-2xl border border-white/8 bg-card/80 transition-all hover:border-primary/30">
+      <div className="relative h-28 overflow-hidden">
+        <img
+          src={event.imageUrl}
+          alt={event.title}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          draggable={false}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+          {CATEGORY_EMOJI[event.category]} {event.category}
+        </span>
+        <span
+          className={`absolute bottom-2 right-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+            event.price === null
+              ? 'bg-green-500/30 text-green-300'
+              : 'bg-primary/30 text-primary-light'
+          }`}
+        >
+          {formatPrice(event.price)}
+        </span>
+      </div>
+
+      <div className="p-3">
+        <h3 className="mb-1.5 line-clamp-1 text-sm font-bold text-white">{event.title}</h3>
+
+        <div className="mb-3 flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-white/55">
+            <HiClock className="h-3 w-3 flex-shrink-0 text-primary-light" />
+            <span>{formatEventDate(event.date)}</span>
+          </div>
+          {event.address && (
+            <div className="flex items-center gap-1.5 text-[11px] text-white/55">
+              <HiMapPin className="h-3 w-3 flex-shrink-0 text-primary-light" />
+              <span className="truncate">{event.address}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onLike}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-1.5 text-xs font-semibold transition-all ${
+              isLiked
+                ? 'border border-green-500/40 bg-green-500/20 text-green-300'
+                : 'border border-white/10 bg-white/5 text-white/60 hover:border-green-400/40 hover:text-green-300'
+            }`}
+          >
+            <HiHeart className="h-3.5 w-3.5" />
+            {isLiked ? 'Interesado' : 'Me interesa'}
+          </button>
+          <button
+            onClick={onSave}
+            className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border transition-all ${
+              isSaved
+                ? 'border-primary/50 bg-primary/20 text-primary-light'
+                : 'border-white/10 bg-white/5 text-white/50 hover:border-primary/30 hover:text-primary-light'
+            }`}
+            aria-label="Guardar evento"
+          >
+            <HiBookmark className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CommunityEventsPanel({
+  events,
+  onLike,
+  onSave,
+  likedIds,
+  savedIds,
+}: {
+  events: Event[]
+  onLike: (id: string) => void
+  onSave: (id: string) => void
+  likedIds: Set<string>
+  savedIds: Set<string>
+}) {
+  return (
+    <div className="flex h-full flex-col">
+      <div className="mb-3 flex flex-shrink-0 items-center gap-2">
+        <h2 className="text-sm font-bold text-white">Eventos de la comunidad</h2>
+        {events.length > 0 && (
+          <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-semibold text-primary-light">
+            {events.length}
+          </span>
+        )}
+      </div>
+
+      {events.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/10 px-4 text-center">
+          <span className="text-3xl">🎪</span>
+          <p className="text-xs text-muted">
+            Aún no hay eventos de la comunidad. ¡Sé el primero en crear uno!
+          </p>
+        </div>
+      ) : (
+        <div className="flex-1 space-y-3 overflow-y-auto pr-0.5">
+          {events.map((event) => (
+            <CommunityEventCard
+              key={event.id}
+              event={event}
+              isLiked={likedIds.has(event.id)}
+              isSaved={savedIds.has(event.id)}
+              onLike={() => onLike(event.id)}
+              onSave={() => onSave(event.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function HomePageContent() {
   const {
     places,
@@ -110,6 +289,7 @@ function HomePageContent() {
     userLocation,
     loading,
     locating,
+    locationError,
     invalidApiKey,
     selectedPlaceTypes,
     selectedDistanceKm,
@@ -129,12 +309,7 @@ function HomePageContent() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'like' | 'nope' | 'save' } | null>(null)
-  const [mobileView, setMobileView] = useState<'cards' | 'map'>('cards')
-  const [carretee, setCarretee] = useState<{
-    title: string
-    address: string
-    mapUrl: string
-  } | null>(null)
+  const [mobileView, setMobileView] = useState<'cards' | 'map' | 'comunidad'>('cards')
 
   useEffect(() => {
     if (!user) {
@@ -142,32 +317,28 @@ function HomePageContent() {
       setSavedIds(new Set())
       return
     }
-
     setLikedIds(new Set(user.likedEvents))
     setSavedIds(new Set(user.savedEvents))
   }, [user])
 
   const events = useMemo(() => {
-    const placeEvents = userLocation
-      ? places
-          .filter((place) => selectedPlaceTypes.includes(place.type))
-          .map((place) => {
-            const distance = getDistanceKm(place.position.lat, place.position.lng, userLocation.lat, userLocation.lng)
-            return placeToEvent(place, distance)
-          })
-      : []
+    if (!userLocation) return []
 
-    return placeEvents
-      .concat(
-        publicLocatarioEvents
-          .filter((event) => event.lat != null && event.lng != null)
-          .map((e) => {
-            if (e.lat != null && e.lng != null && userLocation) {
-            return { ...e, distance: getDistanceKm(e.lat, e.lng, userLocation.lat, userLocation.lng) }
-          }
-          return e
-          }),
-      )
+    const placeEvents = places
+      .filter((place) => selectedPlaceTypes.includes(place.type))
+      .map((place) => {
+        const distance = getDistanceKm(place.position.lat, place.position.lng, userLocation.lat, userLocation.lng)
+        return placeToEvent(place, distance)
+      })
+
+    const locatarioMapped = publicLocatarioEvents
+      .filter((e) => e.lat != null && e.lng != null)
+      .map((e) => ({
+        ...e,
+        distance: getDistanceKm(e.lat!, e.lng!, userLocation.lat, userLocation.lng),
+      }))
+
+    return [...placeEvents, ...locatarioMapped]
       .filter((event) => event.distance <= selectedDistanceKm)
       .sort((a, b) => a.distance - b.distance)
       .filter((event) => !dismissedIds.has(event.id))
@@ -176,38 +347,28 @@ function HomePageContent() {
         isLiked: likedIds.has(event.id),
         isSaved: savedIds.has(event.id),
       }))
-  }, [dismissedIds, likedIds, publicLocatarioEvents, places, savedIds, selectedDistanceKm, selectedPlaceTypes, userLocation])
+  }, [dismissedIds, likedIds, places, publicLocatarioEvents, savedIds, selectedDistanceKm, selectedPlaceTypes, userLocation])
 
   function showToast(message: string, type: 'like' | 'nope' | 'save') {
     setToast({ message, type })
     setTimeout(() => setToast(null), 1800)
   }
 
-  function showCarretee(event: { id: string; title: string; address: string }) {
-    setCarretee({
-      title: event.title,
-      address: event.address,
-      mapUrl: `https://www.google.com/maps/place/?q=place_id:${event.id}`,
-    })
-    setTimeout(() => setCarretee(null), 2600)
-  }
-
   const handleSwipeRight = useCallback(async (id: string) => {
-    const likedEvent = events.find((event) => event.id === id)
+    const likedEvent = events.find((event) => event.id === id) ??
+      publicLocatarioEvents.find((event) => event.id === id)
 
     if (!user || !likedEvent) {
       showToast('Inicia sesión para guardar tus likes.', 'nope')
       return
     }
 
-    // Actualizar estado local inmediatamente — la tarjeta ya salió de pantalla
     setLikedIds((prev) => new Set(prev).add(id))
     setDismissedIds((prev) => new Set(prev).add(id))
     excludePlace(id)
-    showToast('¡Te interesa! 💚', 'like')
+    showToast('¡Te interesa! Ruta en el mapa 🗺️', 'like')
 
-    showCarretee({ id: likedEvent.id, title: likedEvent.title, address: likedEvent.address })
-
+    // Activar ruta en el mapa: Google Maps place tiene placeId, locatario usa coordenadas
     const likedPlace = places.find((p) => p.placeId === likedEvent.id)
     if (likedPlace) {
       setSelectedDestination({
@@ -215,20 +376,20 @@ function HomePageContent() {
         title: likedEvent.title,
         position: likedPlace.position,
       })
+    } else if (likedEvent.lat != null && likedEvent.lng != null) {
+      setSelectedDestination({
+        title: likedEvent.title,
+        position: { lat: likedEvent.lat, lng: likedEvent.lng },
+      })
     }
 
-    if (likedEvent.websiteUrl) {
-      window.open(likedEvent.websiteUrl, '_blank', 'noopener,noreferrer')
-    }
+    // Cambiar a vista mapa en mobile tras el like
+    setMobileView('map')
 
-    // Sincronizar estado del perfil inmediatamente — independiente del resultado del backend
     try {
       await updateUser({ likedEvents: Array.from(new Set([...(user.likedEvents ?? []), likedEvent.id])) })
-    } catch {
-      // Fallo silencioso de sync de perfil.
-    }
+    } catch { /* fallo silencioso */ }
 
-    // Persist like + create/join chat room (backend handles both atomically)
     if (hasSupabaseEnv) {
       try {
         await fetchApi('/events/like', {
@@ -241,7 +402,6 @@ function HomePageContent() {
             eventDate: likedPlace ? null : likedEvent.date ?? null,
           }),
         })
-        // Refresh rooms list to show the newly joined chat
         await reloadRooms()
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Error desconocido'
@@ -253,7 +413,7 @@ function HomePageContent() {
         }
       }
     }
-  }, [events, excludePlace, places, reloadRooms, setSelectedDestination, updateUser, user])
+  }, [events, excludePlace, places, publicLocatarioEvents, reloadRooms, setSelectedDestination, updateUser, user])
 
   const handleSwipeLeft = useCallback((id: string) => {
     setDismissedIds((prev) => new Set(prev).add(id))
@@ -267,18 +427,16 @@ function HomePageContent() {
       return
     }
 
-    const eventToSave = events.find((event) => event.id === id)
+    const eventToSave = events.find((event) => event.id === id) ??
+      publicLocatarioEvents.find((event) => event.id === id)
     if (!eventToSave) return
 
     const isCurrentlySaved = savedIds.has(id)
-
-    // Actualizar estado optimisticamente antes del fetch
     const nextSaved = new Set(savedIds)
     if (nextSaved.has(id)) nextSaved.delete(id)
     else nextSaved.add(id)
     setSavedIds(nextSaved)
 
-    // Persistir en Supabase directamente desde el cliente (RLS permite insert/delete propio)
     if (hasSupabaseEnv) {
       const supabase = getSupabaseBrowserClient()
       try {
@@ -294,19 +452,17 @@ function HomePageContent() {
           const { error } = await supabase
             .from('user_events')
             .insert({
-                user_id: user.id,
-                event_id: eventToSave.id,
-                event_title: eventToSave.title,
-                event_image_url: eventToSave.imageUrl ?? null,
-                event_address: eventToSave.address ?? null,
-                action: 'save',
-                created_at: new Date().toISOString(),
-              })
-          // 23505 = unique_violation: el evento ya estaba guardado, no es error real
+              user_id: user.id,
+              event_id: eventToSave.id,
+              event_title: eventToSave.title,
+              event_image_url: eventToSave.imageUrl ?? null,
+              event_address: eventToSave.address ?? null,
+              action: 'save',
+              created_at: new Date().toISOString(),
+            })
           if (error && error.code !== '23505') throw error
         }
       } catch (err) {
-        // Revertir estado optimista si falla la escritura en Supabase
         console.error('[handleSave] Supabase error:', err)
         setSavedIds(savedIds)
         try {
@@ -318,17 +474,15 @@ function HomePageContent() {
       }
     }
 
-    // Sincronizar perfil (contador Guardados)
     try {
       await updateUser({ savedEvents: Array.from(nextSaved) })
     } catch { /* fallo silencioso */ }
 
     showToast(!isCurrentlySaved ? 'Evento guardado 🔖' : 'Quitado de guardados', 'save')
-  }, [events, savedIds, updateUser, user])
+  }, [events, publicLocatarioEvents, savedIds, updateUser, user])
 
   const visibleEvents = events.slice(0, 3)
 
-  // Highlight the top card's location on the side map
   useEffect(() => {
     const active = visibleEvents[0]
     if (!active) { setActiveEventLocation(null); return }
@@ -352,17 +506,10 @@ function HomePageContent() {
 
   function restoreDefaultFilters() {
     setDistanceKm(3)
-
     const selectedSet = new Set(selectedPlaceTypes)
     const defaultSet = new Set(DEFAULT_FEED_TYPES)
-
-    selectedPlaceTypes.forEach((type) => {
-      if (!defaultSet.has(type)) togglePlaceType(type)
-    })
-
-    DEFAULT_FEED_TYPES.forEach((type) => {
-      if (!selectedSet.has(type)) togglePlaceType(type)
-    })
+    selectedPlaceTypes.forEach((type) => { if (!defaultSet.has(type)) togglePlaceType(type) })
+    DEFAULT_FEED_TYPES.forEach((type) => { if (!selectedSet.has(type)) togglePlaceType(type) })
   }
 
   return (
@@ -388,80 +535,25 @@ function HomePageContent() {
           )}
         </AnimatePresence>
 
-        <AnimatePresence>
-          {carretee && (
-            <motion.div
-              key="carretee"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 px-5 backdrop-blur-[2px]"
-            >
-              <motion.div
-                initial={{ scale: 0.75, y: 18, opacity: 0 }}
-                animate={{ scale: 1, y: 0, opacity: 1 }}
-                exit={{ scale: 0.92, y: 8, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-                className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-primary/30 bg-[linear-gradient(150deg,_rgba(14,18,42,0.96),_rgba(40,16,78,0.92))] p-5 shadow-[0_24px_80px_rgba(14,0,40,0.55)]"
-              >
-                <motion.span
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: [0.9, 1.08, 1], opacity: 1 }}
-                  transition={{ duration: 0.45 }}
-                  className="pointer-events-none absolute -right-5 -top-5 h-20 w-20 rounded-full bg-fuchsia-500/30 blur-xl"
-                />
+        <div className="relative flex min-h-0 flex-1 gap-4 px-4 pb-4 pt-3 lg:px-5 lg:pb-5 lg:pt-2">
 
-                <motion.p
-                  initial={{ y: 8, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.05 }}
-                  className="text-center text-3xl font-black tracking-tight text-white"
-                >
-                  Carretee!!!
-                </motion.p>
-
-                <p className="mt-2 text-center text-sm font-semibold text-primary-light">{carretee.title}</p>
-                <p className="mt-1 text-center text-xs text-slate-300">{carretee.address}</p>
-
-                <a
-                  href={carretee.mapUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-primary px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary-dark"
-                >
-                  Ver dirección
-                </a>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="relative flex min-h-0 flex-1 px-4 pb-4 pt-3 lg:px-5 lg:pb-5 lg:pt-2">
-          {/* Toggle Tarjetas / Mapa — solo visible en móvil */}
+          {/* Toggle Tarjetas / Mapa / Comunidad — solo mobile */}
           <div className="absolute left-1/2 top-2 z-30 -translate-x-1/2 lg:hidden">
-            <div className="flex rounded-full bg-white/10 p-1 backdrop-blur-md border border-white/15 shadow-lg">
-              <button
-                type="button"
-                onClick={() => setMobileView('cards')}
-                className={`rounded-full px-5 py-1.5 text-xs font-semibold transition-all ${
-                  mobileView === 'cards'
-                    ? 'bg-primary text-white shadow-md'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                Tarjetas
-              </button>
-              <button
-                type="button"
-                onClick={() => setMobileView('map')}
-                className={`rounded-full px-5 py-1.5 text-xs font-semibold transition-all ${
-                  mobileView === 'map'
-                    ? 'bg-primary text-white shadow-md'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                Mapa
-              </button>
+            <div className="flex rounded-full border border-white/15 bg-white/10 p-1 shadow-lg backdrop-blur-md">
+              {(['cards', 'map', 'comunidad'] as const).map((view) => (
+                <button
+                  key={view}
+                  type="button"
+                  onClick={() => setMobileView(view)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
+                    mobileView === view
+                      ? 'bg-primary text-white shadow-md'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  {view === 'cards' ? 'Tarjetas' : view === 'map' ? 'Mapa' : 'Comunidad'}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -471,6 +563,23 @@ function HomePageContent() {
               <BellavistaMapMobile />
             </div>
           )}
+
+          {/* Vista comunidad en móvil */}
+          {mobileView === 'comunidad' && (
+            <div className="absolute inset-0 overflow-y-auto pt-12 lg:hidden">
+              <div className="px-4 pb-4">
+                <CommunityEventsPanel
+                  events={publicLocatarioEvents}
+                  onLike={handleSwipeRight}
+                  onSave={handleSave}
+                  likedIds={likedIds}
+                  savedIds={savedIds}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Botón filtros — solo desktop */}
           <div className="absolute right-4 top-2 z-30 hidden lg:block lg:right-5">
             <button
               type="button"
@@ -494,7 +603,6 @@ function HomePageContent() {
                   className="mt-3 w-[320px] rounded-2xl border border-white/10 bg-card/95 p-3 shadow-2xl backdrop-blur-lg"
                 >
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-300">Opciones de filtro</p>
-
                   <div className="space-y-3">
                     <div>
                       <p className="mb-1 text-[11px] font-semibold text-muted">Distancia</p>
@@ -504,7 +612,6 @@ function HomePageContent() {
                         className="flex flex-wrap gap-2"
                       />
                     </div>
-
                     <div>
                       <p className="mb-1 text-[11px] font-semibold text-muted">Tipos de lugar</p>
                       <PlaceTypeFilters
@@ -514,7 +621,6 @@ function HomePageContent() {
                       />
                     </div>
                   </div>
-
                   <div className="mt-4 flex items-center justify-between">
                     <button
                       type="button"
@@ -536,68 +642,85 @@ function HomePageContent() {
             </AnimatePresence>
           </div>
 
-          <div className={mobileView === 'map' ? 'hidden lg:contents' : 'contents'}>
-          {invalidApiKey ? (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center">
-              <span className="text-5xl">🔑</span>
-              <h2 className="text-xl font-bold text-white">Configura tu API key de Google Maps</h2>
-              <p className="text-sm text-muted">
-                El feed de eventos cercanos usa lugares reales según tu ubicación.
-              </p>
-            </div>
-          ) : loading || locating || !userLocation ? (
-            <FeedSkeleton />
-          ) : visibleEvents.length > 0 ? (
-            <div className="card-stack mx-auto h-full min-h-[500px] w-full max-w-[380px] lg:min-h-[560px] xl:min-h-[620px]">
-              {[...visibleEvents].reverse().map((event, reverseIndex) => {
-                const stackIndex = visibleEvents.length - 1 - reverseIndex
-                return (
-                  <SwipeCard
-                    key={event.id}
-                    event={event}
-                    stackIndex={stackIndex}
-                    onSwipeRight={handleSwipeRight}
-                    onSwipeLeft={handleSwipeLeft}
-                    onSave={handleSave}
-                  />
-                )
-              })}
-            </div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex h-full flex-col items-center justify-center gap-5 px-6 text-center"
-            >
-              <span className="text-6xl">🎉</span>
-              <h2 className="text-2xl font-bold text-white">No quedan más lugares cercanos</h2>
-              <p className="text-sm text-muted">
-                Ya recorriste los resultados cercanos a tu ubicación actual.
-              </p>
-              <div className="mt-2 flex flex-col items-center gap-3">
-                <button
-                  onClick={() => {
-                    setDismissedIds(new Set())
-                    resetExcludedPlaces()
-                    refreshPlaces()
-                  }}
-                  className="rounded-full bg-primary px-6 py-3 font-semibold text-white transition-colors active:scale-95 hover:bg-primary-dark"
+          {/* Contenido principal: Tarjetas + Panel comunidad */}
+          <div
+            className={`${mobileView !== 'cards' ? 'hidden lg:flex' : 'flex'} min-h-0 h-full w-full gap-5`}
+          >
+            {/* Área de tarjetas */}
+            <div className="flex h-full min-h-0 flex-1 items-center justify-center">
+              {invalidApiKey ? (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center">
+                  <span className="text-5xl">🔑</span>
+                  <h2 className="text-xl font-bold text-white">Configura tu API key de Google Maps</h2>
+                  <p className="text-sm text-muted">El feed de eventos cercanos usa lugares reales según tu ubicación.</p>
+                </div>
+              ) : locating || (!userLocation && !locationError) ? (
+                <FeedSkeleton />
+              ) : !userLocation ? (
+                <LocationRequired locationError={locationError} onRequest={() => requestUserLocation()} />
+              ) : loading ? (
+                <FeedSkeleton />
+              ) : visibleEvents.length > 0 ? (
+                <div className="card-stack mx-auto h-full min-h-[500px] w-full max-w-[380px] lg:min-h-[560px] xl:min-h-[620px]">
+                  {[...visibleEvents].reverse().map((event, reverseIndex) => {
+                    const stackIndex = visibleEvents.length - 1 - reverseIndex
+                    return (
+                      <SwipeCard
+                        key={event.id}
+                        event={event}
+                        stackIndex={stackIndex}
+                        onSwipeRight={handleSwipeRight}
+                        onSwipeLeft={handleSwipeLeft}
+                        onSave={handleSave}
+                      />
+                    )
+                  })}
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex h-full flex-col items-center justify-center gap-5 px-6 text-center"
                 >
-                  Ver de nuevo
-                </button>
-                <button
-                  onClick={() => requestUserLocation(true)}
-                  className="text-sm font-medium text-primary-light"
-                >
-                  Actualizar mi ubicación
-                </button>
-              </div>
-            </motion.div>
-          )}
+                  <span className="text-6xl">🎉</span>
+                  <h2 className="text-2xl font-bold text-white">No quedan más lugares cercanos</h2>
+                  <p className="text-sm text-muted">Ya recorriste los resultados cercanos a tu ubicación actual.</p>
+                  <div className="mt-2 flex flex-col items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setDismissedIds(new Set())
+                        resetExcludedPlaces()
+                        refreshPlaces()
+                      }}
+                      className="rounded-full bg-primary px-6 py-3 font-semibold text-white transition-colors active:scale-95 hover:bg-primary-dark"
+                    >
+                      Ver de nuevo
+                    </button>
+                    <button
+                      onClick={() => requestUserLocation(true)}
+                      className="text-sm font-medium text-primary-light"
+                    >
+                      Actualizar mi ubicación
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Panel eventos de la comunidad — solo desktop */}
+            <div className="hidden h-full w-72 flex-shrink-0 xl:w-80 lg:flex flex-col">
+              <CommunityEventsPanel
+                events={publicLocatarioEvents}
+                onLike={handleSwipeRight}
+                onSave={handleSave}
+                likedIds={likedIds}
+                savedIds={savedIds}
+              />
+            </div>
           </div>
         </div>
 
-        {visibleEvents.length > 0 && (
+        {visibleEvents.length > 0 && mobileView === 'cards' && (
           <div className="flex items-center justify-center gap-3 px-4 pb-2 lg:px-5 lg:pb-3">
             <span className="text-xs text-muted">{events.length} lugares cerca de ti</span>
             {likedIds.size > 0 && (

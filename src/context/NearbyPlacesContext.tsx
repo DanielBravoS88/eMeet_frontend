@@ -26,7 +26,7 @@ const HAS_GOOGLE_MAPS_KEY = GOOGLE_MAPS_API_KEY.length > 0
 const LOOKS_LIKE_GOOGLE_MAPS_KEY = GOOGLE_MAPS_API_KEY.startsWith('AIza')
 
 export interface MapDestination {
-  placeId: string
+  placeId?: string
   title: string
   position: google.maps.LatLngLiteral
 }

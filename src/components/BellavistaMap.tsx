@@ -146,7 +146,9 @@ export default function BellavistaMap() {
     service.route(
       {
         origin: userLocation,
-        destination: { placeId: selectedDestination.placeId },
+        destination: selectedDestination.placeId
+          ? { placeId: selectedDestination.placeId }
+          : selectedDestination.position,
         travelMode: google.maps.TravelMode.WALKING,
       },
       (result, status) => {

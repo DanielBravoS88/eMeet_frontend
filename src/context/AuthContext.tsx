@@ -55,6 +55,7 @@ type ProfilePayload = {
   avatar_url: string | null
   location: string
   interests: User['interests']
+  role?: string | null
 }
 
 type UserEventPayload = {
@@ -252,11 +253,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const likedEvents = likedResult.status === 'fulfilled' ? likedResult.value : []
     const savedEvents = savedResult.status === 'fulfilled' ? savedResult.value : []
 
+    const profileRole = (profile.role === 'admin' || profile.role === 'locatario' || profile.role === 'user')
+      ? profile.role as User['role']
+      : undefined
+
     const nextUser: User = {
       id: profile.id,
       name: profile.name,
       email,
-      role: roleHint ?? 'user',
+      role: profileRole ?? roleHint ?? 'user',
       avatarUrl: profile.avatar_url ?? '',
       bio: profile.bio ?? '',
       interests: profile.interests ?? [],
