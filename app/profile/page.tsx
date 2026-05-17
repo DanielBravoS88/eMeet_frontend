@@ -643,12 +643,23 @@ function ProfilePageContent() {
 
             <button
               onClick={handleLogout}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 py-3.5 text-sm font-semibold text-red-400 transition-colors active:scale-95 hover:bg-red-500/20"
+              className="hidden w-full items-center justify-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 py-3.5 text-sm font-semibold text-red-400 transition-colors active:scale-95 hover:bg-red-500/20 lg:flex"
             >
               <HiArrowRightOnRectangle className="h-5 w-5" />
               Cerrar sesión
             </button>
           </motion.div>
+
+          {/* Botón fijo en móvil para que siempre quede visible sobre el nav inferior */}
+          <div className="fixed inset-x-4 bottom-20 z-40 lg:hidden">
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-500/35 bg-red-500/15 py-3.5 text-sm font-semibold text-red-300 shadow-lg shadow-red-900/20 transition-colors active:scale-95 hover:bg-red-500/25"
+            >
+              <HiArrowRightOnRectangle className="h-5 w-5" />
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </motion.div>
     </Layout>

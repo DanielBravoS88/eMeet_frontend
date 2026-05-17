@@ -3,13 +3,37 @@ import NextTopLoader from 'nextjs-toploader'
 import '../src/index.css'
 import AppProviders from '../src/providers/AppProviders'
 
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ??
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://emeet.app')
+
 export const metadata: Metadata = {
-  title: 'eMeet',
-  description: 'Descubre bares, restaurantes y eventos cercanos.',
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: 'eMeet — Descubre eventos cerca tuyo',
+    template: '%s · eMeet',
+  },
+  description: 'Descubre bares, restaurantes y eventos cercanos en tiempo real. Dale like, únete a la comunidad y encuentra planes cerca tuyo.',
+  keywords: ['eventos', 'bares', 'restaurantes', 'comunidad', 'Santiago', 'planes', 'eMeet'],
+  authors: [{ name: 'eMeet' }],
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
     apple: '/favicon.svg',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'es_CL',
+    url: APP_URL,
+    siteName: 'eMeet',
+    title: 'eMeet — Descubre eventos cerca tuyo',
+    description: 'Descubre bares, restaurantes y eventos cercanos en tiempo real. Dale like, únete a la comunidad y encuentra planes cerca tuyo.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'eMeet — Descubre eventos cerca tuyo',
+    description: 'Descubre bares, restaurantes y eventos cercanos en tiempo real.',
+    creator: '@emeet_app',
   },
 }
 
