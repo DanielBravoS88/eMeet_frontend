@@ -60,67 +60,67 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph FRONTEND [eMeet_frontend — Next.js 14 App Router]
+    subgraph FRONTEND [eMeet_frontend - Next.js 14 App Router]
         direction TB
 
-        subgraph PAGES [Páginas — app/]
-            P1[/ — FeedPage]
-            P2[/auth — AuthPage]
-            P3[/chat — ChatPage]
-            P4[/chat/roomId — ChatRoomPage]
-            P5[/search — SearchPage]
-            P6[/saved — SavedPage]
-            P7[/profile — ProfilePage]
-            P8[/admin — AdminDashboard]
-            P9[/locatario — LocatarioPanel]
+        subgraph PAGES [Páginas - app/]
+            P1["/ - FeedPage"]
+            P2["/auth - AuthPage"]
+            P3["/chat - ChatPage"]
+            P4["/chat/roomId - ChatRoomPage"]
+            P5["/search - SearchPage"]
+            P6["/saved - SavedPage"]
+            P7["/profile - ProfilePage"]
+            P8["/admin - AdminDashboard"]
+            P9["/locatario - LocatarioPanel"]
         end
 
-        subgraph PROVIDERS [Providers — src/providers/]
+        subgraph PROVIDERS [Providers - src/providers/]
             APP[AppProviders]
             GM[GoogleMapsProvider]
         end
 
-        subgraph CONTEXTS [Contextos — src/context/]
+        subgraph CONTEXTS [Contextos - src/context/]
             AUTH[AuthContext]
             CHAT[ChatContext]
             NEAR[NearbyPlacesContext]
             LOC[LocatarioEventsContext]
         end
 
-        subgraph COMPS [Componentes — src/components/]
+        subgraph COMPS [Componentes - src/components/]
             SW[SwipeCard]
             LAY[Layout]
-            NAV[NavBar / BottomNavBar / SidebarNav]
+            NAV["NavBar / BottomNavBar / SidebarNav"]
             MAP[BellavistaMap]
-            LOG[LoginForm / SignUpForm]
-            ADM[admin/AdminShell, KpiCard, EventsTable, etc.]
+            LOG["LoginForm / SignUpForm"]
+            ADM["admin/AdminShell, KpiCard, EventsTable, etc."]
             OTH[DistanceFilter, PlaceTypeFilters, ImageUpload, LocationPickerMap]
         end
 
-        subgraph LIB [Lib — src/lib/]
-            SUP_C[supabase.ts — clientes browser/server]
-            CN[cn.ts — classnames helper]
-            FA[fetchApi.ts — fetch helper con auth]
-            AS[authSession.ts — helpers de sesión]
+        subgraph LIB [Lib - src/lib/]
+            SUP_C["supabase.ts - clientes browser/server"]
+            CN[cn.ts - classnames helper]
+            FA["fetchApi.ts - fetch helper con auth"]
+            AS["authSession.ts - helpers de sesión"]
         end
 
-        subgraph HOOKS [Hooks — src/hooks/]
+        subgraph HOOKS [Hooks - src/hooks/]
             HNP[useNearbyPlaces]
             HIU[useImageUpload]
             HVU[useVideoUpload]
         end
 
-        subgraph API [Route Handlers — app/api/]
-            RH1[api/admin/stats]
-            RH2[api/admin/reports]
-            RH3[api/admin/finance]
-            RH4[auth/callback]
-            RH5[api/deezer — proxy musical]
-            RH6[api/keepalive]
+        subgraph API [Route Handlers - app/api/]
+            RH1["api/admin/stats"]
+            RH2["api/admin/reports"]
+            RH3["api/admin/finance"]
+            RH4["auth/callback"]
+            RH5["api/deezer - proxy musical"]
+            RH6["api/keepalive"]
         end
 
         subgraph MW [Middleware]
-            MWR[middleware.ts — protección de rutas]
+            MWR["middleware.ts - protección de rutas"]
         end
     end
 
@@ -147,51 +147,51 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    START([Usuario accede a la URL]) --> MW{Middleware\n¿Sesión activa?}
+    START([Usuario accede a la URL]) --> MW{Middleware - Sesión activa?}
 
-    MW -->|No / Ruta protegida| AUTH_PAGE[/auth — Login / Registro]
-    MW -->|Sí| ROLE{¿Rol del usuario?}
+    MW -->|No - Ruta protegida| AUTH_PAGE["/auth - Login / Registro"]
+    MW -->|Sí| ROLE{Rol del usuario?}
 
-    AUTH_PAGE --> LOGIN_ACTION{¿Login o Registro?}
-    LOGIN_ACTION -->|Login| SUPABASE_LOGIN[Supabase Auth — login]
-    LOGIN_ACTION -->|Registro| SUPABASE_REG[Supabase Auth — registro]
-    LOGIN_ACTION -->|OAuth Google/Apple| OAUTH[OAuth → /auth/callback]
+    AUTH_PAGE --> LOGIN_ACTION{Login o Registro?}
+    LOGIN_ACTION -->|Login| SUPABASE_LOGIN["Supabase Auth - login"]
+    LOGIN_ACTION -->|Registro| SUPABASE_REG["Supabase Auth - registro"]
+    LOGIN_ACTION -->|OAuth Google/Apple| OAUTH["OAuth - /auth/callback"]
 
-    SUPABASE_LOGIN --> SYNC[syncUserData — cargar perfil y eventos]
-    SUPABASE_REG --> EMAIL_VER{¿Requiere\nverificación?}
-    EMAIL_VER -->|Sí| VERIFY[/auth/verify-email]
+    SUPABASE_LOGIN --> SYNC["syncUserData - cargar perfil y eventos"]
+    SUPABASE_REG --> EMAIL_VER{Requiere verificación?}
+    EMAIL_VER -->|Sí| VERIFY["/auth/verify-email"]
     EMAIL_VER -->|No| SYNC
     OAUTH --> SYNC
 
     SYNC --> ROLE
 
-    ROLE -->|user| FEED[/ — Feed de lugares]
-    ROLE -->|admin| ADMIN[/admin — Panel Admin]
-    ROLE -->|locatario| LOCAT[/locatario — Panel Locatario]
+    ROLE -->|user| FEED["/ - Feed de lugares"]
+    ROLE -->|admin| ADMIN["/admin - Panel Admin"]
+    ROLE -->|locatario| LOCAT["/locatario - Panel Locatario"]
 
     FEED --> GEOLOCATE[Solicitar geolocalización]
-    GEOLOCATE --> PLACES[Google Places API — lugares cercanos]
-    PLACES --> SWIPE{Usuario interactúa\ncon tarjetas}
+    GEOLOCATE --> PLACES["Google Places API - lugares cercanos"]
+    PLACES --> SWIPE{Usuario interactúa con tarjetas}
 
     SWIPE -->|Like| LIKE_ACTION[Persistir like en Supabase]
-    LIKE_ACTION --> JOIN_CHAT{¿Unirse al chat?}
-    JOIN_CHAT -->|Sí| CHAT[/chat/roomId — Chat en tiempo real]
+    LIKE_ACTION --> JOIN_CHAT{Unirse al chat?}
+    JOIN_CHAT -->|Sí| CHAT["/chat/roomId - Chat en tiempo real"]
     SWIPE -->|Guardar| SAVE_ACTION[Persistir save en Supabase]
     SWIPE -->|Descartar| EXCLUDE[Excluir lugar del feed local]
 
-    CHAT --> REALTIME[Supabase Realtime — Suscripción chat_messages]
+    CHAT --> REALTIME["Supabase Realtime - Suscripción chat_messages"]
 
     FEED --> NAV[Navegación inferior]
-    NAV -->|Search| SEARCH[/search]
-    NAV -->|Saved| SAVED[/saved]
-    NAV -->|Profile| PROFILE[/profile]
+    NAV -->|Search| SEARCH["/search"]
+    NAV -->|Saved| SAVED["/saved"]
+    NAV -->|Profile| PROFILE["/profile"]
     NAV -->|Chat| CHAT
 
-    PROFILE --> UPDATE[PATCH /api/profile → Backend]
-    SAVED --> LOAD_SAVED[GET /api/events/saved → Backend]
+    PROFILE --> UPDATE["PATCH /api/profile -> Backend"]
+    SAVED --> LOAD_SAVED["GET /api/events/saved -> Backend"]
 
-    ADMIN --> STATS[GET /api/admin/stats → Backend]
-    LOCAT --> LOCAT_EVENTS[GET/POST /events/locatario → Backend]
+    ADMIN --> STATS["GET /api/admin/stats -> Backend"]
+    LOCAT --> LOCAT_EVENTS["GET/POST /events/locatario -> Backend"]
 ```
 
 ---
