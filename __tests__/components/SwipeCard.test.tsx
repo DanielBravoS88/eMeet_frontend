@@ -14,11 +14,15 @@ window.HTMLMediaElement.prototype.pause = jest.fn()
 // Simplificar framer-motion para tests: renderiza hijos normalmente
 jest.mock('framer-motion', () => {
   const actual = jest.requireActual<typeof import('framer-motion')>('framer-motion')
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('react')
   return {
     ...actual,
     motion: {
-      div: ({ children, style, ...rest }: React.HTMLAttributes<HTMLDivElement> & { style?: React.CSSProperties }) => (
-        <div style={style} {...rest}>{children}</div>
+      div: React.forwardRef(
+        ({ children, style, ...rest }: React.HTMLAttributes<HTMLDivElement> & { style?: React.CSSProperties }, ref: React.Ref<HTMLDivElement>) => (
+          <div ref={ref} style={style} {...rest}>{children}</div>
+        ),
       ),
     },
     useMotionValue: () => ({ get: () => 0, set: jest.fn(), on: jest.fn() }),
