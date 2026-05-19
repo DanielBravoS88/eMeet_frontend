@@ -62,15 +62,15 @@ Los datos del feed principal provienen en tiempo real desde la **Google Maps Pla
 3. `useNearbyPlaces` llama a `google.maps.places.PlacesService.nearbySearch()`.
 4. Los resultados `ScrapedPlace[]` se adaptan a `Event[]` mediante `placeFeedAdapter.ts`.
 
-**Estos datos no se almacenan en el frontend**. El documento `docs/backend_plan.md` propone una tabla `cached_places` en Supabase para persistirlos.
+**Estos datos no se almacenan en Supabase**. Las consultas a Google Places API se realizan a través del backend Express (`/places`), que actúa como proxy protegiendo la API key y controlando el consumo de cuota.
 
 ---
 
 ## 3. Estructura Real de la Base de Datos (Supabase)
 
-Las siguientes tablas están confirmadas desde el tipo `Database` en `src/lib/supabase.ts`. El esquema SQL completo debe validarse con el proyecto Supabase: `https://supabase.com/dashboard/project/ksghpwonmnxmbhmfpaog`.
+El esquema de la base de datos tiene **14 tablas** confirmadas según el Informe EP2 y el análisis de ambos repositorios. Residen en el proyecto Supabase: `https://supabase.com/dashboard/project/ksghpwonmnxmbhmfpaog`.
 
-> ⏳ **Pendiente por validar**: el esquema SQL exacto, índices, políticas RLS, triggers y funciones de la base de datos Supabase real.
+Las 14 tablas son: `profiles`, `user_events`, `chat_rooms`, `room_members`, `chat_messages`, `locatario_events`, `token_wallets`, `token_transactions`, `payment_orders`, `promotion_campaigns`, `coupons`, `transactions`, `reports`, `qr_validations`.
 
 ---
 
@@ -190,6 +190,119 @@ CREATE TABLE IF NOT EXISTS locatario_events (
   lng              DOUBLE PRECISION,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Tabla: token_wallets
+-- Billetera de tokens por usuario (relación 1:1 con profiles)
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS token_wallets (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+  balance    INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Tabla: token_transactions
+-- Movimientos de tokens (crédito/débito)
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS token_transactions (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  wallet_id   UUID NOT NULL REFERENCES token_wallets(id) ON DELETE CASCADE,
+  user_id     UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  amount      INTEGER NOT NULL,
+  type        TEXT NOT NULL CHECK (type IN ('credit', 'debit')),
+  description TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Tabla: payment_orders
+-- Órdenes de pago (Mercado Pago / Transbank)
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS payment_orders (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  amount      NUMERIC NOT NULL,
+  currency    TEXT NOT NULL DEFAULT 'CLP',
+  status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','failed','refunded')),
+  provider    TEXT NOT NULL CHECK (provider IN ('mercadopago','transbank')),
+  external_id TEXT,
+  metadata    JSONB,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Tabla: promotion_campaigns
+-- Campañas de promoción creadas por locatarios
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS promotion_campaigns (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  locatario_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  event_id     UUID NOT NULL REFERENCES locatario_events(id) ON DELETE CASCADE,
+  title        TEXT NOT NULL,
+  budget       NUMERIC NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','paused','ended')),
+  start_date   TIMESTAMPTZ NOT NULL,
+  end_date     TIMESTAMPTZ NOT NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Tabla: coupons
+-- Cupones de descuento generados por campañas
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS coupons (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID NOT NULL REFERENCES promotion_campaigns(id) ON DELETE CASCADE,
+  code        TEXT NOT NULL UNIQUE,
+  discount    NUMERIC NOT NULL,
+  max_uses    INTEGER NOT NULL,
+  used_count  INTEGER NOT NULL DEFAULT 0,
+  expires_at  TIMESTAMPTZ NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Tabla: transactions
+-- Registro histórico de transacciones financieras
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS transactions (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id          UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  payment_order_id UUID NOT NULL REFERENCES payment_orders(id) ON DELETE CASCADE,
+  amount           NUMERIC NOT NULL,
+  status           TEXT NOT NULL CHECK (status IN ('success','failed','reversed')),
+  provider         TEXT NOT NULL,
+  metadata         JSONB,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Tabla: reports
+-- Reportes generados por usuarios sobre contenido o usuarios
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS reports (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL CHECK (target_type IN ('user','event','message')),
+  target_id   TEXT NOT NULL,
+  reason      TEXT NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','reviewed','resolved')),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ──────────────────────────────────────────────────────────────────────────────
+-- Tabla: qr_validations
+-- Registro de validaciones de cupones QR
+-- ──────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS qr_validations (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coupon_id    UUID NOT NULL REFERENCES coupons(id) ON DELETE CASCADE,
+  user_id      UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  validated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  location     TEXT
+);
 ```
 
 ---
@@ -205,7 +318,7 @@ CREATE TABLE IF NOT EXISTS locatario_events (
 INSERT INTO profiles (id, name, role, bio, location, interests) VALUES
   ('00000000-0000-0000-0000-000000000001', 'Daniel Bravo', 'admin', 'Administrador del sistema', 'Santiago, Chile', ARRAY['gastronomia','musica']::event_category[]),
   ('00000000-0000-0000-0000-000000000002', 'Francisco Levipil', 'locatario', 'Dueño de Bar Constitución', 'Santiago, Chile', ARRAY['musica','fiesta']::event_category[]),
-  ('00000000-0000-0000-0000-000000000003', 'Antoni Vivar', 'user', 'Explorando panoramas', 'Santiago, Chile', ARRAY['cultura','arte']::event_category[]);
+  ('00000000-0000-0000-0000-000000000003', 'Antonio Vivar', 'user', 'Explorando panoramas', 'Santiago, Chile', ARRAY['cultura','arte']::event_category[]);
 
 -- ── Sala de chat de ejemplo
 INSERT INTO chat_rooms (id, event_title, event_address) VALUES
@@ -282,12 +395,12 @@ ORDER BY created_at DESC;
 
 ---
 
-## 8. Información Pendiente por Validar
+## 8. Notas de Implementación
 
 | Elemento | Estado |
 |---|---|
-| Esquema SQL completo con índices y triggers | ⏳ Pendiente — requiere acceso a Supabase o `eMeet_Backend_Supabase` |
-| Políticas RLS aplicadas | ⏳ Pendiente |
-| Funciones SQL o procedimientos almacenados | ⏳ Pendiente |
-| Script real de migraciones del backend | ⏳ Pendiente — requiere acceso a `eMeet_Backend_Supabase` |
-| Campos `lat` y `lng` en `locatario_events` (inferidos del código, no del tipo Supabase) | ⏳ Pendiente de sincronización |
+| Esquema SQL con 14 tablas | ✅ Confirmado — documentado en este archivo y en `Documentacion/MER.md` |
+| Políticas RLS | ✅ Configuradas en el dashboard de Supabase (Service Role Key para bypass en admin) |
+| Campos `lat` y `lng` en `locatario_events` | ✅ Presentes en el schema (`DOUBLE PRECISION`) |
+| Script real de migraciones | Gestionado directamente en el dashboard de Supabase y desde el backend Express |
+| Índices de rendimiento | Se recomienda agregar índices en `user_events(user_id)`, `chat_messages(room_id)`, `payment_orders(user_id)` para tablas de alto volumen |

@@ -25,4 +25,4 @@ Esta carpeta contiene los documentos de gestión del proyecto eMeet, incluyendo 
 ---
 
 > Documentación generada en mayo de 2026 para la entrega académica del proyecto eMeet.  
-> Integrantes: **Daniel Bravo**, **Francisco Levipil**, **Antoni Vivar**.
+> Integrantes: **Daniel Bravo**, **Francisco Levipil**, **Antonio Vivar**.

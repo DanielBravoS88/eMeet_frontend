@@ -37,4 +37,4 @@ Esta carpeta contiene la documentación académica completa del proyecto **eMeet
 ---
 
 > Documentación generada en mayo de 2026 para la entrega académica del proyecto eMeet.  
-> Integrantes: **Daniel Bravo**, **Francisco Levipil**, **Antoni Vivar**.
+> Integrantes: **Daniel Bravo**, **Francisco Levipil**, **Antonio Vivar**.

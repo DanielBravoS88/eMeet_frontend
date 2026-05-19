@@ -1,6 +1,6 @@
 # Funcionalidades del Sistema eMeet
 
-> Este documento clasifica las funcionalidades detectadas en el repositorio `eMeet_frontend` según su estado de implementación. Las funcionalidades que dependen del backend se señalan con nota cuando no pueden ser validadas directamente desde el frontend.
+> Este documento clasifica las funcionalidades confirmadas del sistema eMeet según el Informe EP2 y el análisis de ambos repositorios (`eMeet_frontend` y `eMeet_Backend_Supabase`).
 
 ---
 
@@ -111,11 +111,25 @@
 
 ---
 
+### Monetización y Pagos
+
+| Funcionalidad | Componente / Archivo | Detalles |
+|---|---|---|
+| Billetera de tokens | `monetizationService.ts`, backend `/monetization` | Cada usuario tiene un saldo de tokens en `token_wallets` |
+| Compra de tokens | Backend `/monetization/tokens` | Flujo de compra integrado con pasarela de pago |
+| Pago con Mercado Pago | Backend `/monetization` | Checkout + Webhook de confirmación |
+| Pago con Transbank | Backend `/monetization` | WebPay Plus para pagos en Chile |
+| Campañas de promoción | Backend `/monetization` | Locatarios crean campañas vinculadas a sus eventos |
+| Cupones QR | Backend `/monetization` | Generación de cupones con código único y validación QR |
+| Proxy musical Deezer | `app/api/deezer/route.ts` | Route Handler que proxea Deezer API para el feed |
+| Recuperación de contraseña | `AuthContext.tsx` | `supabase.auth.resetPasswordForEmail()` |
+
+---
+
 ## 2. Funcionalidades Parcialmente Implementadas 🔄
 
 | Funcionalidad | Estado | Detalle |
 |---|---|---|
-| Integración completa con `eMeet_Backend_Supabase` | Parcial | Los Route Handlers y contextos consumen el backend, pero la integración completa depende del despliegue del backend externo |
 | Detalle expandido de evento | Parcial | No existe página dedicada de detalle; el modal de `SwipeCard` en `/search` es el acercamiento actual |
 | Búsqueda en `/search` | Parcial | La UI existe; la integración con datos reales del backend para búsqueda avanzada está pendiente de validar |
 | Estadísticas de likes/guardados en perfil | Parcial | Se muestra el conteo desde el estado local, no desde el backend en tiempo real |
@@ -139,28 +153,24 @@
 
 | Funcionalidad | Prioridad | Detalle |
 |---|---|---|
-| Recuperación de contraseña | Alta | No detectada; requiere Supabase Auth `resetPasswordForEmail()` |
 | Notificaciones push | Media | Mencionadas en roadmap del README original |
-| Sistema de pagos / tickets | Media | Sin implementación detectada |
 | PWA (Progressive Web App) | Baja | Sin `manifest.json` ni service worker |
 | Modo oscuro / claro | Baja | Solo modo oscuro disponible actualmente |
 | Pruebas automatizadas | Alta | Sin suite de tests implementada |
-| Limitación de cuota Google Places en BFF | Alta | API key expuesta en cliente; se recomienda mover al Route Handler |
 | Perfil expandido de locatario (analítica) | Media | Panel básico existe; analítica avanzada pendiente |
-| Sistema de reportes para usuarios | Media | Solo visible en panel admin; flujo de reporte del usuario no detectado |
 
 ---
 
 ## 5. Funcionalidades del Backend (`eMeet_Backend_Supabase`)
 
-> Las siguientes funcionalidades dependen del repositorio `eMeet_Backend_Supabase`. Se documentan según lo inferido desde el frontend.
+El backend Express está desplegado en Render (https://emeet-backend-supabase-p0i6.onrender.com) y expone los siguientes grupos de rutas, todos confirmados según el Informe EP2.
 
-| Funcionalidad backend | Estado desde frontend | Pendiente |
+| Grupo | Rutas principales | Consumidor en frontend |
 |---|---|---|
-| `POST /auth/login` | Llamado desde `AuthContext` | ⏳ Validar implementación interna |
-| `POST /auth/register` | Llamado desde `AuthContext` | ⏳ Validar implementación interna |
-| `GET /profile`, `PATCH /profile` | Llamado desde `AuthContext` y `updateUser()` | ⏳ Validar implementación interna |
-| `GET /events/liked`, `GET /events/saved` | Llamado al sincronizar el usuario post-login | ⏳ Validar implementación interna |
-| `GET/POST /chat/rooms/:id/messages` | Llamado desde `ChatContext` | ⏳ Validar implementación interna |
-| `GET /admin/stats` | Llamado desde `app/admin/page.tsx` vía BFF | ⏳ Validar implementación interna |
-| `GET/POST /events/locatario` | Llamado desde `LocatarioEventsContext` | ⏳ Validar implementación interna |
+| `/auth` | login, register, logout, reset-password | `AuthContext` |
+| `/profile` | GET y PATCH de perfil, upload de avatar | `AuthContext.updateUser()` |
+| `/events` | like, save, CRUD locatario, liked, saved | `AuthContext`, `LocatarioEventsContext` |
+| `/chat` | rooms, messages, join, read | `ChatContext` |
+| `/places` | search-nearby, photo proxy | `useNearbyPlaces.ts` (vía contexto) |
+| `/admin` | stats, reports, users, finance | `app/admin/*` (vía Route Handler) |
+| `/monetization` | tokens, pagos, QR, cupones, campañas | `monetizationService.ts` |

@@ -7,10 +7,12 @@
 | Campo | Detalle |
 |---|---|
 | **Nombre del proyecto** | eMeet — Plataforma de descubrimiento social de eventos y lugares cercanos |
-| **Integrantes** | Daniel Bravo · Francisco Levipil · Antoni Vivar |
-| **Repositorio frontend** | `eMeet_frontend` |
-| **Repositorio backend** | `eMeet_Backend_Supabase` |
-| **Plataforma backend** | Supabase — https://supabase.com/dashboard/project/ksghpwonmnxmbhmfpaog |
+| **Integrantes** | Antonio Vivar · Daniel Bravo · Francisco Levipil |
+| **Repositorio frontend** | `eMeet_frontend` — https://github.com/DanielBravoS88/eMeet_frontend |
+| **Repositorio backend** | `eMeet_Backend_SupaBase` — https://github.com/DanielBravoS88/eMeet_Backend_SupaBase |
+| **Frontend desplegado** | https://e-meet-frontend-nine.vercel.app/ |
+| **Backend desplegado** | https://emeet-backend-supabase-p0i6.onrender.com |
+| **Base de Datos** | Supabase — https://supabase.com/dashboard/project/ksghpwonmnxmbhmfpaog |
 | **Fecha del informe** | Mayo de 2026 |
 | **Tipo de documento** | Informe académico de entrega de proyecto |
 
@@ -38,7 +40,7 @@ Adicionalmente, los propietarios de establecimientos (locatarios) carecen de una
 
 La existencia de una plataforma integrada que combine geolocalización, descubrimiento social, comunidad y gestión de eventos responde a una necesidad real del mercado local. La mecánica de swipe simplifica la toma de decisión del usuario, reduce la fricción al explorar opciones y fomenta la participación activa al conectar personas con la oferta de entretenimiento y gastronomía de su entorno inmediato.
 
-Desde el punto de vista técnico, el proyecto permite aplicar y demostrar competencias en desarrollo web moderno con tecnologías actuales: Next.js 14, React 18, Supabase, Google Maps API, TypeScript estricto y arquitectura orientada a microservicios lógicos.
+Desde el punto de vista técnico, el proyecto permite aplicar y demostrar competencias en desarrollo web moderno con tecnologías actuales: Next.js 14, React 18, Express.js, Supabase, Google Maps API y TypeScript estricto, con una arquitectura de tres capas directa.
 
 ---
 
@@ -56,7 +58,7 @@ Desarrollar una plataforma web móvil-first que permita a los usuarios descubrir
 4. Construir un sistema de chat comunitario en tiempo real utilizando Supabase Realtime.
 5. Desarrollar paneles diferenciados para el rol de locatario (creación de eventos) y administrador (moderación y estadísticas).
 6. Persistir preferencias, likes, guardados y mensajes del usuario mediante Supabase PostgreSQL.
-7. Diseñar una arquitectura escalable basada en microservicios lógicos coordinados por un BFF en Next.js.
+7. Diseñar e implementar una arquitectura de tres capas directa (frontend Next.js → backend Express.js → Supabase), donde el backend centraliza la seguridad (Helmet, CORS, JWT), la lógica de negocio y las reglas de negocio, sin capa BFF intermedia.
 
 ---
 
@@ -94,13 +96,11 @@ Desarrollar una plataforma web móvil-first que permita a los usuarios descubrir
 
 ## 8. Descripción General de la Solución
 
-eMeet es una Single Page Application (SPA) construida sobre Next.js 14 App Router, que combina:
+eMeet es una Single Page Application (SPA) construida sobre Next.js 14 App Router, que sigue una **arquitectura de tres capas directa sin BFF**:
 
-- Una **capa de presentación** (frontend) con componentes React en TypeScript, estilos Tailwind y animaciones Framer Motion.
-- Una **capa de integración** (BFF/Route Handlers) dentro de Next.js para comunicación segura con servicios externos.
-- Una **capa de datos y autenticación** gestionada por Supabase (base de datos PostgreSQL, autenticación, tiempo real y almacenamiento).
-- Un **backend externo** (`eMeet_Backend_Supabase`) que expone endpoints REST consumidos por el frontend.
-- Integración con **Google Maps Places API** para obtener lugares reales según la ubicación del usuario.
+- Una **capa de presentación** (frontend Next.js 14 en Vercel) con componentes React en TypeScript, estilos Tailwind y animaciones Framer Motion. El frontend llama directamente al backend Express vía `fetchApi.ts` con Bearer JWT.
+- Una **capa de lógica de negocio** (backend Express.js en Render) que concentra seguridad (Helmet, CORS, JWT), validaciones y reglas de negocio. Expone 7 grupos de rutas REST: `/auth`, `/profile`, `/events`, `/chat`, `/places`, `/admin`, `/monetization`.
+- Una **capa de datos y servicios** gestionada por Supabase (PostgreSQL, Auth, Realtime, Storage) y servicios externos (Google Maps Places API, Mercado Pago, Transbank, Deezer API).
 
 ---
 
@@ -121,7 +121,7 @@ app/                    ← Rutas del App Router (Next.js)
   profile/              ← Perfil del usuario
   admin/                ← Panel de administración (dashboard, eventos, usuarios, etc.)
   locatario/            ← Panel de locatario
-  api/                  ← Route Handlers (BFF hacia backend externo)
+  api/                  ← Route Handlers (operaciones admin con Service Role Key, proxy Deezer, callback OAuth)
 
 src/
   components/           ← Componentes reutilizables (SwipeCard, Layout, NavBar, etc.)
@@ -146,16 +146,26 @@ src/
 
 ---
 
-## 10. Descripción del Backend — `eMeet_Backend_Supabase`
+## 10. Descripción del Backend — `eMeet_Backend_SupaBase`
 
-El repositorio `eMeet_Backend_Supabase` corresponde al backend oficial del sistema eMeet. No fue posible acceder directamente a este repositorio durante el análisis; sin embargo, a partir del código del frontend, se confirman los siguientes aspectos:
+El repositorio `eMeet_Backend_SupaBase` es el backend oficial del sistema eMeet. Está construido con **Express.js + TypeScript + Node 20** y desplegado en **Render** (https://emeet-backend-supabase-p0i6.onrender.com). Utiliza el Supabase JS Client para acceder a PostgreSQL y Supabase Auth para validar tokens JWT en cada request.
 
-- El frontend consume endpoints REST a través de la variable de entorno `NEXT_PUBLIC_BACKEND_URL`.
-- Los endpoints confirmados desde el frontend incluyen: `/api/auth/login`, `/api/auth/register`, `/api/auth/logout`, `/api/profile`, `/api/events/liked`, `/api/events/saved`, `/api/chat/rooms`, `/api/chat/rooms/:id/messages`, `/api/chat/rooms/:id/join`, `/api/chat/rooms/:id/read`, `/events/locatario`, `/admin/stats`, `/admin/reports`, entre otros.
-- El backend valida sesiones Supabase mediante tokens JWT en el encabezado `Authorization: Bearer`.
-- Existe protección por roles: las rutas de administración requieren rol `admin`.
+### Grupos de rutas confirmados:
 
-> ⏳ **Pendiente por validar**: estructura interna del repositorio, framework, ORM, migraciones, tests y documentación interna del backend.
+| Ruta | Funcionalidad |
+|---|---|
+| `/auth` | login · register · logout · reset-password |
+| `/profile` | GET · PATCH perfil · upload avatar (Supabase Storage) |
+| `/events` | like · save · CRUD eventos · locatario events |
+| `/chat` | rooms · messages · join · read |
+| `/places` | search-nearby · photo proxy (Google Maps) |
+| `/admin` | stats · reports · users · finance · moderation |
+| `/monetization` | tokens · pagos MercadoPago/Transbank · QR · cupones |
+
+### Características técnicas:
+- **Seguridad**: Helmet, CORS con whitelist (Vercel + localhost), validación JWT Bearer en cada request.
+- **Pagos**: integración con **Mercado Pago SDK** (Checkout + Webhook) y **Transbank WebPay Plus**.
+- **CI/CD**: auto-deploy en Render desde rama `main` vía GitHub.
 
 ---
 
@@ -192,7 +202,12 @@ URL del proyecto Supabase: https://supabase.com/dashboard/project/ksghpwonmnxmbh
 | Chat comunitario por lugar | ✅ Implementado | ChatContext con Supabase Realtime |
 | Mensajes en tiempo real | ✅ Implementado | Canal Supabase Realtime (INSERT en chat_messages) |
 | Panel de administración | ✅ Implementado | Dashboard, KPIs, gestión de eventos y usuarios |
-| Panel de locatario | ✅ Implementado | Crear/eliminar eventos propios |
+| Panel de locatario | ✅ Implementado | Crear/editar/eliminar eventos, subida de imagen y video |
+| Sistema de monetización | ✅ Implementado | Wallet de tokens, compra de packs (Starter/Growth/Pro), pagos MercadoPago/Transbank |
+| Campañas de promoción | ✅ Implementado | Tipos: featured, geo_boost, coupon, premium_badge; descuenta tokens del wallet |
+| Cupones QR | ✅ Implementado | Generación de QR único por cupón, validación y redención |
+| Integración Deezer | ✅ Implementado | Búsqueda musical proxeada vía /api/deezer en Next.js |
+| Recuperación de contraseña | ✅ Implementado | Reset vía Supabase Auth + /auth/reset-password |
 | Protección de rutas por rol | ✅ Implementado | Middleware Next.js + ProtectedRoute component |
 | Mapa interactivo (BellavistaMap) | ✅ Implementado | Google Maps con Places API |
 | Verificación de email | ✅ Implementado | Página `/auth/verify-email` |
@@ -204,13 +219,11 @@ URL del proyecto Supabase: https://supabase.com/dashboard/project/ksghpwonmnxmbh
 
 | Funcionalidad | Prioridad | Detalle |
 |---|---|---|
-| Recuperación de contraseña | Alta | No detectada en el frontend actual |
-| Notificaciones push | Media | Mencionado en roadmap del README original |
-| Sistema de pagos / tickets | Media | No existe implementación detectada |
-| PWA instalable | Baja | No hay configuración `manifest.json` ni service worker |
-| Modo oscuro / claro toggle | Baja | Solo modo oscuro detectado |
+| Notificaciones push | Media | No implementado — mencionado en roadmap |
+| PWA instalable | Baja | Sin `manifest.json` ni service worker |
+| Modo oscuro / claro toggle | Baja | Solo modo oscuro disponible |
 | Detalle expandido de evento | Media | Sin página dedicada de detalle por evento |
-| Recomendaciones personalizadas | Media | Actualmente solo por tipo y distancia |
+| Pruebas automatizadas | Alta | Sin suite de tests (Jest/Vitest/Playwright) |
 
 ---
 
@@ -229,8 +242,8 @@ URL del proyecto Supabase: https://supabase.com/dashboard/project/ksghpwonmnxmbh
 
 - El sistema depende de variables de entorno que deben configurarse manualmente (Supabase, Google Maps, URL del backend).
 - Sin las variables configuradas, el sistema opera en modo local (localStorage), lo que limita la persistencia entre sesiones y dispositivos.
-- La integración con Google Places API desde el cliente expone la API key en el navegador; se recomienda moverla al BFF.
-- El repositorio backend `eMeet_Backend_Supabase` no está disponible para análisis directo en este informe.
+- La integración con Google Places API desde el cliente expone la API key en el navegador; se recomienda moverla al backend Express (/places), que ya existe y proxea Google Maps.
+- El plan gratuito de Supabase no incluye backups automáticos; se recomienda hacer backup manual antes de la entrega final.
 - No existen pruebas automatizadas detectadas en el frontend (sin archivos de test ni configuración de testing).
 
 ---
@@ -269,21 +282,21 @@ URL del proyecto Supabase: https://supabase.com/dashboard/project/ksghpwonmnxmbh
 
 ## 17. Arquitectura General
 
-El sistema sigue una arquitectura de **tres capas con BFF** (Backend For Frontend):
+El sistema sigue una **arquitectura de tres capas directa sin BFF**. El frontend llama directamente al backend Express via Bearer JWT. Los Route Handlers de Next.js (`app/api/`) solo manejan operaciones admin con Service Role Key, el proxy Deezer y el callback OAuth — no actúan como intermediarios BFF.
 
 ```
-[Usuario] → [Frontend Next.js 14 App Router]
-               ↓
-         [BFF / Route Handlers]
-               ↓
-   ┌───────────┼───────────────┐
-   ↓           ↓               ↓
-[Supabase]  [eMeet_Backend  [Google Places
- Auth/DB/    Supabase API]     API]
- Realtime]
+[Usuario]
+    ↓ HTTPS
+[Frontend Next.js 14 — Vercel]
+    ↓ REST + Bearer JWT          ↓ signIn/signOut OAuth    ↓ WebSocket Realtime
+[Backend Express — Render]   [Supabase Auth]           [Supabase Realtime]
+    ↓                              ↓
+[Supabase PostgreSQL]         [Supabase Storage]
+    ↓
+[Google Maps | Mercado Pago | Transbank | Deezer]
 ```
 
-> Ver [Arquitectura.md](./Arquitectura.md) para el diagrama completo.
+> La justificación completa del cambio de BFF a tres capas directa se documenta en la sección 2.1.1 del informe EP2 y en [Arquitectura.md](./Arquitectura.md).
 
 ---
 
@@ -308,7 +321,7 @@ El sistema sigue una arquitectura de **tres capas con BFF** (Backend For Fronten
 
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |---|---|---|---|
-| Exposición de Google Maps API key en cliente | Media | Alto | Mover consultas al BFF/Route Handlers |
+| Exposición de Google Maps API key en cliente | Media | Alto | Mover consultas al backend Express (/places) — ya existe la ruta |
 | Dependencia de servicios externos (Supabase, Google) | Alta | Alto | Modo local (localStorage) como fallback |
 | Falta de pruebas automatizadas | Alta | Medio | Implementar suite de pruebas (Vitest, Playwright) |
 | Consumo no controlado de cuota de Google Places | Media | Medio | Limitar llamadas, implementar caché en backend |
@@ -321,25 +334,23 @@ El sistema sigue una arquitectura de **tres capas con BFF** (Backend For Fronten
 
 El proyecto eMeet ha alcanzado un estado de MVP funcional con las características principales implementadas: autenticación real con roles, descubrimiento de lugares por geolocalización, sistema de guardados, chat en tiempo real y paneles diferenciados para cada tipo de usuario. La base tecnológica elegida (Next.js 14, Supabase, Google Maps) es moderna, escalable y alineada con las prácticas actuales de la industria.
 
-Las principales áreas de mejora identificadas son la implementación de pruebas automatizadas, la centralización de llamadas a APIs externas en el BFF, y la incorporación de funcionalidades como recuperación de contraseña, notificaciones y detalle de eventos.
+Las principales áreas de mejora identificadas son la implementación de pruebas automatizadas, la centralización de las llamadas a Google Maps en el backend Express (/places), y la incorporación de funcionalidades como notificaciones push y detalle expandido de eventos.
 
 El proyecto demuestra una integración coherente entre frontend y backend, un manejo claro de roles y autenticación, y una arquitectura preparada para escalar progresivamente.
 
 ---
 
-## 21. Sección "Pendiente por Validar"
+## 21. Referencias del Proyecto
 
-Los siguientes aspectos no pudieron ser confirmados directamente desde el repositorio `eMeet_frontend` y requieren validación con el equipo o con el repositorio `eMeet_Backend_Supabase`:
-
-| Ítem | Estado |
+| Recurso | Detalle |
 |---|---|
-| Estructura interna del repositorio `eMeet_Backend_Supabase` | ⏳ Pendiente |
-| Framework y lenguaje utilizado en el backend | ⏳ Pendiente |
-| Esquema completo de base de datos Supabase (migraciones SQL) | ⏳ Pendiente |
-| Configuración de RLS (Row Level Security) en Supabase | ⏳ Pendiente |
-| Correos electrónicos oficiales de los integrantes del equipo | ⏳ Pendiente |
-| Fechas reales de inicio y entrega del proyecto | ⏳ Pendiente |
-| Entorno de producción desplegado (URL pública de la app) | ⏳ Pendiente |
-| Configuración de CI/CD (despliegue automático en Vercel u otra plataforma) | ⏳ Pendiente |
-| Tests existentes en el backend | ⏳ Pendiente |
-| Valor real de la variable `NEXT_PUBLIC_BACKEND_URL` en producción | ⏳ Pendiente |
+| **Frontend desplegado** | https://e-meet-frontend-nine.vercel.app/ |
+| **Backend desplegado** | https://emeet-backend-supabase-p0i6.onrender.com |
+| **Repositorio frontend** | https://github.com/DanielBravoS88/eMeet_frontend |
+| **Repositorio backend** | https://github.com/DanielBravoS88/eMeet_Backend_SupaBase |
+| **Base de datos Supabase** | https://supabase.com/dashboard/project/ksghpwonmnxmbhmfpaog |
+| **Framework backend** | Express.js + TypeScript + Node 20 |
+| **Plataforma backend** | Render (auto-deploy desde main) |
+| **Plataforma frontend** | Vercel (auto-deploy desde main) |
+| **Pagos integrados** | Mercado Pago SDK (Checkout + Webhook) + Transbank WebPay Plus |
+| **Pruebas automatizadas** | No implementadas (pendiente — Vitest / Playwright recomendado) |

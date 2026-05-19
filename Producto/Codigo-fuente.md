@@ -64,10 +64,12 @@ app/
 │   └── page.tsx            ← Panel de locatario
 └── api/
     ├── admin/
-    │   ├── stats/route.ts  ← BFF: GET /admin/stats
-    │   ├── reports/route.ts ← BFF: GET/POST /admin/reports
-    │   ├── reports/[id]/route.ts ← BFF: PATCH /admin/reports/:id
-    │   └── finance/route.ts ← BFF: GET /admin/finance
+    │   ├── stats/route.ts  ← Route Handler: GET /admin/stats
+    │   ├── reports/route.ts ← Route Handler: GET/POST /admin/reports
+    │   ├── reports/[id]/route.ts ← Route Handler: PATCH /admin/reports/:id
+    │   └── finance/route.ts ← Route Handler: GET /admin/finance
+    ├── deezer/route.ts     ← Route Handler: proxy musical Deezer API
+    ├── keepalive/route.ts  ← Route Handler: ping al backend Render (evita cold start)
     └── auth/callback/route.ts ← Callback OAuth
 ```
 
@@ -120,7 +122,7 @@ src/
 │   └── GoogleMapsProvider.tsx ← Provider de Google Maps
 ├── services/               ← Servicios de negocio
 │   ├── placesService.ts    ← Configuración visual de tipos de lugar + queries
-│   └── monetizationService.ts ← Servicio de monetización (pendiente)
+│   └── monetizationService.ts ← Servicio de monetización (tokens, pagos, cupones)
 ├── types/
 │   └── index.ts            ← Tipos TypeScript centrales (Event, User, ChatRoom, etc.)
 └── data/

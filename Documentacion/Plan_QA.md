@@ -151,5 +151,5 @@ Para la entrega académica, se recomienda documentar la siguiente evidencia:
 2. **Agregar pruebas unitarias**: Usar Vitest para testear funciones puras como helpers de formato, adaptadores y validaciones.
 3. **Configurar un entorno de staging**: Usar variables de entorno separadas para no contaminar datos de producción durante las pruebas.
 4. **Revisar políticas RLS**: Verificar que las políticas de Row Level Security en Supabase impidan el acceso cruzado entre usuarios.
-5. **Revisar exposición de API keys**: Mover la clave de Google Maps al BFF (Route Handler) para evitar exposición en el cliente.
+5. **Revisar exposición de API keys**: Mover la clave de Google Maps al backend Express (`/places`) para evitar exposición en el cliente.
 6. **Documentar casos fallidos**: Registrar los casos que fallen durante QA con capturas de pantalla y pasos para reproducir, para su corrección antes de la entrega.

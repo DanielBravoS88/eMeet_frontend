@@ -1,6 +1,6 @@
 # Diagramas UML — Proyecto eMeet
 
-> Todos los diagramas están representados en formato **Mermaid** y se basan en el análisis real del repositorio `eMeet_frontend`. El backend `eMeet_Backend_Supabase` aparece como componente externo dada la falta de acceso directo a su repositorio.
+> Todos los diagramas están representados en formato **Mermaid** y se basan en el análisis real de ambos repositorios (`eMeet_frontend` y `eMeet_Backend_Supabase`) confirmado en el Informe EP2 del proyecto.
 
 ---
 
@@ -29,17 +29,29 @@ flowchart TD
     L -->|Crear evento propio| SYS
     L -->|Eliminar evento propio| SYS
     L -->|Ver mis eventos publicados| SYS
+    L -->|Comprar tokens| SYS
+    L -->|Crear campaña de promoción| SYS
+    L -->|Generar cupón QR| SYS
+    L -->|Validar cupón QR| SYS
+    L -->|Ver analíticos del negocio| SYS
+    L -->|Pagar con Mercado Pago / Transbank| SYS
 
     A -->|Ver dashboard y KPIs| SYS
     A -->|Gestionar usuarios| SYS
     A -->|Gestionar eventos publicados| SYS
     A -->|Moderar contenido y reportes| SYS
+    A -->|Resolver reportes de usuarios| SYS
+    A -->|Gestionar transacciones financieras| SYS
+    A -->|Banear usuario o evento| SYS
     A -->|Ver estadísticas financieras| SYS
 
     SYS -->|Supabase Auth| SA[(Supabase Auth)]
     SYS -->|Google Places API| GP[(Google Places)]
     SYS -->|Supabase Realtime| RT[(Supabase Realtime)]
     SYS -->|eMeet_Backend_Supabase| BE[(Backend API REST)]
+    SYS -->|Checkout + Webhook| MP[(Mercado Pago)]
+    SYS -->|WebPay Plus| TB[(Transbank)]
+    SYS -->|Proxy musical| DZ[(Deezer API)]
 ```
 
 ---
@@ -99,10 +111,12 @@ flowchart TD
         end
 
         subgraph API [Route Handlers — app/api/]
-            BFF1[api/admin/stats]
-            BFF2[api/admin/reports]
-            BFF3[api/admin/finance]
-            BFF4[auth/callback]
+            RH1[api/admin/stats]
+            RH2[api/admin/reports]
+            RH3[api/admin/finance]
+            RH4[auth/callback]
+            RH5[api/deezer — proxy musical]
+            RH6[api/keepalive]
         end
 
         subgraph MW [Middleware]
@@ -122,6 +136,9 @@ flowchart TD
     SUP_C -->|Supabase Auth + Realtime| SB[(Supabase)]
     FA -->|REST + Bearer JWT| BE[(eMeet_Backend_Supabase)]
     MAP -->|Places API| GME[(Google Maps Platform)]
+    RH5 -->|HTTP proxy| DZ[(Deezer API)]
+    BE -->|Checkout + Webhook| MP[(Mercado Pago)]
+    BE -->|WebPay Plus| TB[(Transbank)]
 ```
 
 ---
@@ -273,20 +290,76 @@ classDiagram
         +String accessToken
     }
 
+    class TokenWallet {
+        +String id
+        +String userId
+        +Integer balance
+        +String createdAt
+    }
+
+    class PaymentOrder {
+        +String id
+        +String userId
+        +Number amount
+        +String currency
+        +String status
+        +String provider
+        +String externalId
+        +String createdAt
+    }
+
+    class PromotionCampaign {
+        +String id
+        +String locatarioId
+        +String eventId
+        +String title
+        +Number budget
+        +String status
+        +String startDate
+        +String endDate
+    }
+
+    class Coupon {
+        +String id
+        +String campaignId
+        +String code
+        +Number discount
+        +Integer maxUses
+        +Integer usedCount
+        +String expiresAt
+    }
+
+    class Report {
+        +String id
+        +String reporterId
+        +String targetType
+        +String targetId
+        +String reason
+        +String status
+        +String createdAt
+    }
+
     User "1" --> "0..*" UserEvent : genera
     User "0..*" --> "0..*" ChatRoom : pertenece a
+    User "1" --> "1" TokenWallet : posee
+    User "1" --> "0..*" PaymentOrder : genera
+    User "1" --> "0..*" Report : crea
     ChatRoom "1" --> "0..*" ChatMessage : contiene
     ChatMessage "1" --> "1" User : enviado por
     ScrapedPlace --> Event : se adapta a\n(placeFeedAdapter)
     AuthState --> User : contiene
     UserEvent --> Event : referencia
+    Event "1" --> "0..*" PromotionCampaign : tiene
+    PromotionCampaign "1" --> "0..*" Coupon : genera
 ```
 
 ---
 
 ## 5. Notas sobre los Diagramas
 
-- Los diagramas representan el estado actual del repositorio `eMeet_frontend` según el análisis del código.
-- El componente `eMeet_Backend_Supabase` se incluye como caja negra externa, ya que no fue posible analizar su código interno.
-- Las tablas de Supabase (`profiles`, `user_events`, `chat_rooms`, `room_members`, `chat_messages`, `locatario_events`) fueron confirmadas desde el tipo `Database` en `src/lib/supabase.ts`.
+- Los diagramas representan el estado actual del proyecto según el análisis de ambos repositorios (`eMeet_frontend` y `eMeet_Backend_Supabase`) y el Informe EP2.
+- El backend Express (`eMeet_Backend_Supabase`) expone 7 grupos de rutas: `/auth`, `/profile`, `/events`, `/chat`, `/places`, `/admin`, `/monetization`.
+- Las tablas de Supabase confirmadas son 14 en total: `profiles`, `user_events`, `chat_rooms`, `room_members`, `chat_messages`, `locatario_events`, `token_wallets`, `token_transactions`, `payment_orders`, `promotion_campaigns`, `coupons`, `transactions`, `reports`, `qr_validations`.
 - La clase `ScrapedPlace` representa los datos obtenidos desde Google Places API y se transforma en objetos `Event` mediante el adaptador `src/data/placeFeedAdapter.ts`.
+- Los Route Handlers `app/api/admin/*` usan Service Role Key de Supabase y no son una capa BFF — solo gestionan operaciones administrativas y el proxy de Deezer.
+- La integración de pagos (Mercado Pago y Transbank) se realiza desde el backend Express, no desde el frontend.
