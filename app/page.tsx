@@ -155,13 +155,13 @@ function CommunityEventCard({
   event,
   isLiked,
   isSaved,
-  onLike,
+  onViewCard,
   onSave,
 }: {
   event: Event
   isLiked: boolean
   isSaved: boolean
-  onLike: () => void
+  onViewCard: () => void
   onSave: () => void
 }) {
   return (
@@ -206,7 +206,7 @@ function CommunityEventCard({
 
         <div className="flex items-center gap-2">
           <button
-            onClick={onLike}
+            onClick={onViewCard}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-full py-1.5 text-xs font-semibold transition-all ${
               isLiked
                 ? 'border border-green-500/40 bg-green-500/20 text-green-300'
@@ -235,13 +235,13 @@ function CommunityEventCard({
 
 function CommunityEventsPanel({
   events,
-  onLike,
+  onViewCard,
   onSave,
   likedIds,
   savedIds,
 }: {
   events: Event[]
-  onLike: (id: string) => void
+  onViewCard: (event: Event) => void
   onSave: (id: string) => void
   likedIds: Set<string>
   savedIds: Set<string>
@@ -272,7 +272,7 @@ function CommunityEventsPanel({
               event={event}
               isLiked={likedIds.has(event.id)}
               isSaved={savedIds.has(event.id)}
-              onLike={() => onLike(event.id)}
+              onViewCard={() => onViewCard(event)}
               onSave={() => onSave(event.id)}
             />
           ))}
@@ -310,6 +310,7 @@ function HomePageContent() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'like' | 'nope' | 'save' } | null>(null)
   const [mobileView, setMobileView] = useState<'cards' | 'map' | 'comunidad'>('cards')
+  const [featuredEvent, setFeaturedEvent] = useState<Event | null>(null)
 
   useEffect(() => {
     if (!user) {
@@ -354,7 +355,13 @@ function HomePageContent() {
     setTimeout(() => setToast(null), 1800)
   }
 
+  const handleViewCommunityEvent = useCallback((event: Event) => {
+    setFeaturedEvent(event)
+    setMobileView('cards')
+  }, [])
+
   const handleSwipeRight = useCallback(async (id: string) => {
+    if (featuredEvent?.id === id) setFeaturedEvent(null)
     const likedEvent = events.find((event) => event.id === id) ??
       publicLocatarioEvents.find((event) => event.id === id)
 
@@ -413,13 +420,14 @@ function HomePageContent() {
         }
       }
     }
-  }, [events, excludePlace, places, publicLocatarioEvents, reloadRooms, setSelectedDestination, updateUser, user])
+  }, [events, excludePlace, featuredEvent, places, publicLocatarioEvents, reloadRooms, setSelectedDestination, updateUser, user])
 
   const handleSwipeLeft = useCallback((id: string) => {
+    if (featuredEvent?.id === id) setFeaturedEvent(null)
     setDismissedIds((prev) => new Set(prev).add(id))
     excludePlace(id)
     showToast('No es para ti', 'nope')
-  }, [excludePlace])
+  }, [excludePlace, featuredEvent])
 
   const handleSave = useCallback(async (id: string) => {
     if (!user) {
@@ -481,7 +489,11 @@ function HomePageContent() {
     showToast(!isCurrentlySaved ? 'Evento guardado 🔖' : 'Quitado de guardados', 'save')
   }, [events, publicLocatarioEvents, savedIds, updateUser, user])
 
-  const visibleEvents = events.slice(0, 3)
+  const visibleEvents = useMemo(() => {
+    if (!featuredEvent) return events.slice(0, 3)
+    const rest = events.filter((e) => e.id !== featuredEvent.id).slice(0, 2)
+    return [{ ...featuredEvent, isLiked: likedIds.has(featuredEvent.id), isSaved: savedIds.has(featuredEvent.id) }, ...rest]
+  }, [events, featuredEvent, likedIds, savedIds])
 
   useEffect(() => {
     const active = visibleEvents[0]
@@ -570,7 +582,7 @@ function HomePageContent() {
               <div className="px-4 pb-4">
                 <CommunityEventsPanel
                   events={publicLocatarioEvents}
-                  onLike={handleSwipeRight}
+                  onViewCard={handleViewCommunityEvent}
                   onSave={handleSave}
                   likedIds={likedIds}
                   savedIds={savedIds}
@@ -711,7 +723,7 @@ function HomePageContent() {
             <div className="hidden h-full w-72 flex-shrink-0 xl:w-80 lg:flex flex-col">
               <CommunityEventsPanel
                 events={publicLocatarioEvents}
-                onLike={handleSwipeRight}
+                onViewCard={handleViewCommunityEvent}
                 onSave={handleSave}
                 likedIds={likedIds}
                 savedIds={savedIds}
