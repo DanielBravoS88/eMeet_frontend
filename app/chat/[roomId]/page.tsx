@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChatContext } from '../../../src/context/ChatContext'
@@ -41,7 +41,7 @@ export default function ChatRoomRoutePage() {
   } = useChatContext()
   const { user, isAuthReady } = useAuth()
   const [input, setInput] = useState('')
-  const [typingUser, setTypingUser] = useState<string | null>(null)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [leaveConfirm, setLeaveConfirm] = useState(false)
   const [isLeaving, setIsLeaving] = useState(false)
@@ -87,29 +87,6 @@ export default function ChatRoomRoutePage() {
     return null
   }
 
-  const otherParticipants = useMemo(() => {
-    const bySender = new Map<string, { name: string; avatar: string }>()
-    for (const msg of roomMessages) {
-      if (msg.senderId !== user?.id && !bySender.has(msg.senderId)) {
-        bySender.set(msg.senderId, { name: msg.senderName, avatar: msg.senderAvatar })
-      }
-    }
-    return Array.from(bySender.values())
-  }, [roomMessages, user?.id])
-
-  useEffect(() => {
-    if (!roomId || otherParticipants.length === 0) return
-
-    const interval = setInterval(() => {
-      const chance = Math.random()
-      if (chance > 0.45) return
-      const randomUser = otherParticipants[Math.floor(Math.random() * otherParticipants.length)]
-      setTypingUser(randomUser.name)
-      setTimeout(() => setTypingUser((curr) => (curr === randomUser.name ? null : curr)), 2000)
-    }, 6500)
-
-    return () => clearInterval(interval)
-  }, [otherParticipants, roomId])
 
   async function handleLeave() {
     if (!roomId) return
@@ -163,6 +140,19 @@ export default function ChatRoomRoutePage() {
       e.preventDefault()
       handleSend()
     }
+  }
+
+  const EMOJIS = [
+    '😀','😂','🥰','😍','🤩','😎','🥳','😅','😭','🤣',
+    '❤️','🔥','👏','🙌','💪','✨','🎉','🥂','💯','👀',
+    '😤','🤔','😴','🤗','😇','🤭','😬','😑','🙄','😏',
+    '🍕','☕','🎶','⚽','🏖️','🌙','☀️','🌈','🐶','🦋',
+  ]
+
+  function insertEmoji(emoji: string) {
+    setInput((prev) => prev + emoji)
+    setShowEmojiPicker(false)
+    inputRef.current?.focus()
   }
 
   const groupedMessages: { label: string; msgs: typeof roomMessages }[] = []
@@ -370,22 +360,6 @@ export default function ChatRoomRoutePage() {
             ))}
 
             <div ref={bottomRef} />
-
-            <AnimatePresence>
-              {typingUser && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 6 }}
-                  className="mt-1 flex items-center gap-2 px-1"
-                >
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
-                  <span className="text-xs text-muted">
-                    {typingUser} está escribiendo...
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </>
         )}
       </div>
@@ -396,14 +370,38 @@ export default function ChatRoomRoutePage() {
           className="shrink-0 border-t border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 pt-3 backdrop-blur-md"
           style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
         >
-          <div className="flex items-center gap-2">
+          <div className="relative flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setShowEmojiPicker((v) => !v)}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg text-muted transition-colors hover:bg-white/10 hover:text-white"
               aria-label="Emojis"
             >
               😊
             </button>
+
+            <AnimatePresence>
+              {showEmojiPicker && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                  transition={{ duration: 0.12 }}
+                  className="absolute bottom-12 left-0 z-50 grid w-56 grid-cols-8 gap-0.5 rounded-2xl border border-white/10 bg-card/95 p-2 shadow-xl backdrop-blur-lg"
+                >
+                  {EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => insertEmoji(emoji)}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg text-base transition-colors hover:bg-white/10"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <input
               ref={inputRef}
@@ -481,6 +479,14 @@ export default function ChatRoomRoutePage() {
         <div
           className="fixed inset-0 z-40"
           onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      {/* Close emoji picker on outside click */}
+      {showEmojiPicker && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowEmojiPicker(false)}
         />
       )}
     </div>
