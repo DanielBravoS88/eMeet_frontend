@@ -104,7 +104,7 @@ export default function SignUpForm() {
   const passwordsMatch = formData.confirmPassword.length > 0 && formData.password === formData.confirmPassword
   const passwordsMismatch = formData.confirmPassword.length > 0 && formData.password !== formData.confirmPassword
 
-  const inputBase = 'w-full bg-[hsl(222,30%,16%)] border border-white/10 hover:border-[hsl(262,80%,60%)]/30 focus:border-[hsl(262,80%,60%)] outline-none py-3 rounded-xl text-white placeholder-slate-500 transition-colors'
+  const inputBase = 'w-full bg-violet-500/8 border border-violet-500/20 hover:border-violet-500/40 focus:border-violet-500/70 outline-none py-3 rounded-xl text-white placeholder-violet-300/30 transition-colors'
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
@@ -140,7 +140,7 @@ export default function SignUpForm() {
             onClick={() => setRole('locatario')}
             className={`flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-sm font-medium transition-all ${
               role === 'locatario'
-                ? 'bg-[hsl(38,95%,55%)] text-black shadow-lg'
+                ? 'bg-violet-500/20 border border-violet-400/40 text-violet-200 shadow-lg'
                 : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
             }`}
           >
@@ -194,7 +194,7 @@ export default function SignUpForm() {
           />
           <button
             type="button" onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[hsl(262,80%,60%)] transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-violet-400/50 hover:text-violet-300 transition-colors"
           >
             {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
           </button>
@@ -241,7 +241,7 @@ export default function SignUpForm() {
           </div>
           <button
             type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[hsl(262,80%,60%)] transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-violet-400/50 hover:text-violet-300 transition-colors"
           >
             {showConfirmPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
           </button>
@@ -295,7 +295,7 @@ export default function SignUpForm() {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-[hsl(262,80%,60%)] hover:bg-[hsl(262,80%,60%)]/90 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 hover:translate-y-[-1px] hover:shadow-lg"
+        className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 hover:-translate-y-px hover:shadow-lg hover:shadow-violet-900/40"
       >
         <FiUserPlus size={20} />
         {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}

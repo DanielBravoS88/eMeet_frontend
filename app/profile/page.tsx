@@ -211,26 +211,26 @@ function ProfilePageContent() {
       value: user.likedEvents.length,
       icon: HiHeart,
       tint: 'text-green-300',
-      bg: 'from-green-500/20',
-      border: 'border-green-500/25',
+      bg: 'from-green-500/30',
+      border: 'border-green-500/30',
       href: null,
     },
     {
       label: 'Guardados',
       value: user.savedEvents.length,
       icon: HiBookmark,
-      tint: 'text-primary-light',
-      bg: 'from-primary/20',
-      border: 'border-primary/25',
+      tint: 'text-violet-300',
+      bg: 'from-violet-500/30',
+      border: 'border-violet-500/30',
       href: '/saved',
     },
     {
       label: 'Intereses',
       value: user.interests.length,
       icon: HiSparkles,
-      tint: 'text-purple-200',
-      bg: 'from-purple-500/20',
-      border: 'border-purple-500/25',
+      tint: 'text-purple-300',
+      bg: 'from-purple-500/30',
+      border: 'border-purple-500/30',
       href: null,
       progress: Math.min(100, (user.interests.length / ALL_INTERESTS.length) * 100),
     },
@@ -239,8 +239,8 @@ function ProfilePageContent() {
       value: rooms.length,
       icon: HiChatBubbleLeftRight,
       tint: 'text-pink-300',
-      bg: 'from-pink-500/20',
-      border: 'border-pink-500/25',
+      bg: 'from-pink-500/30',
+      border: 'border-pink-500/30',
       href: '/chat',
     },
   ]
@@ -268,11 +268,13 @@ function ProfilePageContent() {
         {/* ── Banner ── */}
         <motion.div
           variants={itemVariants}
-          className="relative h-36 overflow-hidden bg-gradient-to-br from-primary/50 via-purple-600/40 to-pink-600/30"
+          className="relative h-40 overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, rgba(109,40,217,0.75) 0%, rgba(124,58,237,0.60) 35%, rgba(168,85,247,0.45) 65%, rgba(236,72,153,0.35) 100%)' }}
         >
-          <div className="absolute -left-8 -top-8 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
-          <div className="absolute right-6 top-2 h-32 w-32 rounded-full bg-purple-500/25 blur-2xl" />
-          <div className="absolute -bottom-6 left-1/3 h-28 w-28 rounded-full bg-pink-500/20 blur-2xl" />
+          <div className="absolute -left-8 -top-8 h-56 w-56 rounded-full bg-violet-600/40 blur-3xl" />
+          <div className="absolute right-6 top-2 h-40 w-40 rounded-full bg-purple-500/45 blur-2xl" />
+          <div className="absolute -bottom-6 left-1/3 h-36 w-36 rounded-full bg-pink-500/35 blur-2xl" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[rgba(9,5,20,0.5)]" />
         </motion.div>
 
         <div className="px-4">
@@ -312,7 +314,7 @@ function ProfilePageContent() {
                       onError={() => setAvatarError(true)}
                     />
                   ) : (
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[radial-gradient(circle_at_25%_20%,_rgba(124,58,237,0.45),_rgba(10,14,28,1)_70%)] text-2xl font-extrabold text-white">
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-[radial-gradient(circle_at_30%_25%,_rgba(139,92,246,0.70),_rgba(14,6,30,1)_65%)] text-2xl font-extrabold text-white">
                       {user.name
                         .split(' ')
                         .map((n) => n[0])
@@ -435,7 +437,7 @@ function ProfilePageContent() {
                 </>
               )
 
-              const cardClass = `rounded-2xl border bg-gradient-to-b ${stat.bg} ${stat.border} to-card p-3`
+              const cardClass = `rounded-2xl border bg-gradient-to-b ${stat.bg} ${stat.border} to-[#0e0820] p-4`
 
               return stat.href ? (
                 <Link key={stat.label} href={stat.href} className={`${cardClass} transition-opacity active:opacity-70`}>
@@ -464,7 +466,7 @@ function ProfilePageContent() {
             {loadingPreviews ? (
               <div className="flex flex-col gap-2">
                 {[1, 2].map((i) => (
-                  <div key={i} className="flex h-20 overflow-hidden rounded-2xl bg-card">
+                  <div key={i} className="flex h-20 overflow-hidden rounded-2xl border border-violet-500/15 bg-violet-500/8">
                     <div className="shimmer h-full w-20 flex-shrink-0" />
                     <div className="flex flex-1 flex-col justify-center gap-2 p-3">
                       <div className="shimmer h-3 w-3/4 rounded-md" />
@@ -474,7 +476,7 @@ function ProfilePageContent() {
                 ))}
               </div>
             ) : savedPreviews.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-card py-6 text-center">
+              <div className="flex flex-col items-center gap-2 rounded-2xl border border-violet-500/15 bg-violet-500/6 py-6 text-center">
                 <span className="text-3xl">🔖</span>
                 <p className="text-sm text-muted">Aún no guardaste eventos</p>
                 <Link href="/" className="text-xs text-primary-light">
@@ -484,7 +486,7 @@ function ProfilePageContent() {
             ) : (
               <div className="flex flex-col gap-2">
                 {savedPreviews.map((event) => (
-                  <div key={event.event_id} className="flex overflow-hidden rounded-2xl border border-white/5 bg-card">
+                  <div key={event.event_id} className="flex overflow-hidden rounded-2xl border border-violet-500/15 bg-violet-500/8">
                     <img
                       src={event.event_image_url ?? FALLBACK_IMAGE}
                       alt={event.event_title}
@@ -533,7 +535,7 @@ function ProfilePageContent() {
             </SectionTitle>
 
             {rooms.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/5 bg-card px-6 py-6 text-center">
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-violet-500/15 bg-violet-500/6 px-6 py-6 text-center">
                 <HiChatBubbleLeftRight className="h-8 w-8 text-muted" />
                 <p className="text-sm font-medium text-white">Aún no te uniste a ninguna comunidad</p>
                 <p className="text-xs text-muted">
@@ -549,7 +551,7 @@ function ProfilePageContent() {
                   <Link
                     key={room.id}
                     href={`/chat/${room.id}`}
-                    className="flex items-center gap-3 overflow-hidden rounded-2xl border border-white/5 bg-card p-3 transition-opacity active:opacity-70"
+                    className="flex items-center gap-3 overflow-hidden rounded-2xl border border-violet-500/15 bg-violet-500/8 p-3 transition-all hover:bg-violet-500/12 active:opacity-70"
                   >
                     <div className="relative flex-shrink-0">
                       <img
@@ -557,7 +559,7 @@ function ProfilePageContent() {
                         alt={room.eventTitle}
                         className="h-12 w-12 rounded-xl object-cover"
                       />
-                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-green-400" />
+                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#0e0820] bg-green-400" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-white">{room.eventTitle}</p>
@@ -620,7 +622,7 @@ function ProfilePageContent() {
           {/* ── Cuenta ── */}
           <motion.div variants={itemVariants}>
             <SectionTitle>Cuenta</SectionTitle>
-            <div className="mb-6 overflow-hidden rounded-2xl border border-white/5 bg-card">
+            <div className="mb-6 overflow-hidden rounded-2xl border border-violet-500/15 bg-violet-500/8">
               <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3.5">
                 <HiEnvelope className="h-4 w-4 shrink-0 text-primary-light" />
                 <div>

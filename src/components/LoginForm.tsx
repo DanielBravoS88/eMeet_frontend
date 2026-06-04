@@ -62,7 +62,7 @@ export default function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="tu@email.com"
-            className="w-full bg-[hsl(222,30%,16%)] border border-white/10 hover:border-[hsl(262,80%,60%)]/30 focus:border-[hsl(262,80%,60%)] outline-none py-3 pl-10 pr-4 rounded-xl text-white placeholder-slate-500 transition-colors"
+            className="w-full bg-violet-500/8 border border-violet-500/20 hover:border-violet-500/40 focus:border-violet-500/70 outline-none py-3 pl-10 pr-4 rounded-xl text-white placeholder-violet-300/30 transition-colors"
             required
           />
         </div>
@@ -78,13 +78,13 @@ export default function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full bg-[hsl(222,30%,16%)] border border-white/10 hover:border-[hsl(262,80%,60%)]/30 focus:border-[hsl(262,80%,60%)] outline-none py-3 pl-10 pr-12 rounded-xl text-white placeholder-slate-500 transition-colors"
+            className="w-full bg-violet-500/8 border border-violet-500/20 hover:border-violet-500/40 focus:border-violet-500/70 outline-none py-3 pl-10 pr-12 rounded-xl text-white placeholder-violet-300/30 transition-colors"
             required
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[hsl(262,80%,60%)] transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-violet-400/50 hover:text-violet-300 transition-colors"
           >
             {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
           </button>
@@ -97,7 +97,7 @@ export default function LoginForm() {
           <input type="checkbox" className="w-4 h-4 rounded accent-[hsl(262,80%,60%)]" />
           <span className="text-slate-300">Recordarme</span>
         </label>
-        <Link href="/auth/forgot-password" className="text-sm text-[hsl(262,80%,60%)] hover:text-[hsl(262,80%,60%)]/80 transition-colors">
+        <Link href="/auth/forgot-password" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
           ¿Olvidaste tu contraseña?
         </Link>
       </div>
@@ -106,7 +106,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-[hsl(38,95%,55%)] hover:bg-[hsl(38,95%,55%)]/95 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 hover:translate-y-[-1px] hover:shadow-lg"
+        className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2 hover:-translate-y-px hover:shadow-lg hover:shadow-violet-900/40"
       >
         <FiLogIn size={20} />
         {isLoading ? 'Iniciando sesión...' : 'Inicia Sesión'}

@@ -55,69 +55,93 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(124,58,237,0.18),_transparent_30%),_radial-gradient(circle_at_bottom_right,_rgba(245,158,11,0.14),_transparent_25%),_hsl(222,47%,6%)] p-4">
-      <div className="pointer-events-none absolute inset-0 opacity-50">
-        <div className="absolute left-1/2 top-0 h-96 w-96 -translate-x-1/2 rounded-full bg-white/5 blur-3xl" />
-        <div className="absolute right-0 top-1/3 h-64 w-64 rounded-full bg-[hsl(262,80%,60%)]/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-[hsl(38,95%,55%)]/10 blur-3xl" />
+    <div
+      className="relative flex min-h-screen items-center justify-center overflow-hidden p-4"
+      style={{
+        background: 'radial-gradient(ellipse 90% 70% at 20% 10%, rgba(124,58,237,0.22) 0%, transparent 55%), radial-gradient(ellipse 60% 50% at 80% 90%, rgba(109,40,217,0.15) 0%, transparent 45%), linear-gradient(160deg, #0F0820 0%, #080514 55%, #0C0619 100%)',
+      }}
+    >
+      {/* Orbes de luz de fondo */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-1/4 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-violet-600/10 blur-3xl" />
+        <div className="absolute right-1/4 bottom-0 h-64 w-64 rounded-full bg-purple-700/10 blur-3xl" />
+        <div className="absolute left-0 top-1/2 h-48 w-48 rounded-full bg-violet-500/8 blur-2xl" />
       </div>
 
-      <div className="relative z-10 w-full max-w-6xl">
-        <div className="grid items-stretch gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="hidden flex-col justify-between rounded-[2rem] border border-white/10 bg-[rgba(15,23,42,0.88)] p-10 text-white shadow-2xl backdrop-blur-xl lg:flex">
-            <div className="space-y-6">
-              <div className="inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-white/10 text-[hsl(262,80%,60%)] shadow-lg">
-                <span className="text-2xl">🎉</span>
+      <div className="relative z-10 w-full max-w-5xl">
+        <div className="grid items-stretch gap-6 lg:grid-cols-[1fr_1fr]">
+
+          {/* Panel izquierdo — presentación */}
+          <div className="hidden flex-col justify-between rounded-2xl border border-violet-500/15 bg-[rgba(14,8,28,0.80)] p-9 text-white shadow-2xl backdrop-blur-xl lg:flex">
+            <div className="space-y-5">
+              {/* Logo */}
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 shadow-lg shadow-violet-900/40">
+                  <span className="text-lg">✨</span>
+                </div>
+                <span className="text-xl font-extrabold tracking-tight">
+                  <span className="text-white">e</span>
+                  <span className="bg-gradient-to-r from-violet-300 via-white to-violet-300 bg-clip-text text-transparent">Meet</span>
+                </span>
               </div>
+
               <div>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-[hsl(262,80%,60%)]">eMeet</p>
-                <h1 className="text-4xl font-semibold leading-tight">Tu acceso a eventos, bares y experiencias únicas.</h1>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-violet-400/70">Descubre • Conecta</p>
+                <h1 className="text-[2rem] font-bold leading-tight text-white">
+                  Tu acceso a eventos, bares y experiencias únicas.
+                </h1>
               </div>
             </div>
 
-            <div className="my-4 flex flex-grow items-center justify-center">
+            <div className="my-6 flex flex-grow items-center justify-center">
               <img
                 src="/auth-map-illustration.svg"
                 alt="Ilustración de mapa de eventos"
-                className="h-auto w-full max-w-sm object-contain opacity-70"
+                className="h-auto w-full max-w-xs object-contain opacity-60"
               />
             </div>
 
-            <div className="space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-                <p className="text-sm text-slate-300">• Descubre lugares en Santiago con recomendaciones personalizadas.</p>
-              </div>
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-                <p className="text-sm text-slate-300">• Regístrate como usuario o locatario y gestiona eventos desde el panel.</p>
-              </div>
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-                <p className="text-sm text-slate-300">• Accede rápido con cuentas demo para probar la app.</p>
-              </div>
+            <div className="space-y-2.5">
+              {[
+                'Descubre lugares en Santiago con recomendaciones personalizadas.',
+                'Regístrate como usuario o locatario y gestiona eventos desde el panel.',
+                'Accede rápido con cuentas demo para probar la app.',
+              ].map((text, i) => (
+                <div key={i} className="flex items-start gap-3 rounded-xl border border-violet-500/12 bg-violet-500/6 px-4 py-3">
+                  <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-violet-500/30 text-[10px] text-violet-300">✓</span>
+                  <p className="text-sm leading-relaxed text-violet-100/70">{text}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-[rgba(15,23,42,0.92)] p-6 shadow-2xl backdrop-blur-xl">
-            <div className="flex flex-col gap-6">
+          {/* Panel derecho — formulario */}
+          <div className="rounded-2xl border border-violet-500/15 bg-[rgba(14,8,28,0.85)] p-6 shadow-2xl backdrop-blur-xl">
+            <div className="flex flex-col gap-5">
               <div className="text-center lg:text-left">
-                <p className="mb-3 text-sm font-semibold uppercase tracking-[0.35em] text-[hsl(262,80%,60%)]">Accede a eMeet</p>
-                <h2 className="text-3xl font-semibold text-white">Inicia sesión o crea tu cuenta</h2>
-                <p className="mt-3 text-slate-400">Usa tu cuenta demo para explorar eventos, salas y paneles según tu rol.</p>
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-violet-400/60">Accede a eMeet</p>
+                <h2 className="text-2xl font-bold text-white">Inicia sesión o crea tu cuenta</h2>
+                <p className="mt-2 text-sm text-violet-200/50">Usa tu cuenta demo para explorar eventos y paneles.</p>
               </div>
 
-              {/* Tab selector horizontal */}
-              <div className="grid grid-cols-2 gap-2 rounded-3xl bg-white/5 p-2">
+              {/* Tab selector */}
+              <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-violet-500/15 bg-violet-500/5 p-1.5">
                 <button
                   onClick={() => setMode('login')}
-                  className={`rounded-2xl py-3 text-sm font-semibold transition-all ${
-                    mode === 'login' ? 'bg-[hsl(262,80%,60%)] text-white shadow-lg' : 'text-slate-300 hover:text-white'
+                  className={`rounded-lg py-2.5 text-sm font-semibold transition-all ${
+                    mode === 'login'
+                      ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/40'
+                      : 'text-violet-300/60 hover:text-violet-200'
                   }`}
                 >
                   Inicia Sesión
                 </button>
                 <button
                   onClick={() => setMode('signup')}
-                  className={`rounded-2xl py-3 text-sm font-semibold transition-all ${
-                    mode === 'signup' ? 'bg-[hsl(262,80%,60%)] text-white shadow-lg' : 'text-slate-300 hover:text-white'
+                  className={`rounded-lg py-2.5 text-sm font-semibold transition-all ${
+                    mode === 'signup'
+                      ? 'bg-violet-600 text-white shadow-lg shadow-violet-900/40'
+                      : 'text-violet-300/60 hover:text-violet-200'
                   }`}
                 >
                   Registrarse
@@ -125,34 +149,34 @@ export default function AuthPage() {
               </div>
             </div>
 
-            <div className="mt-8 rounded-[1.5rem] bg-[rgba(255,255,255,0.04)] p-8 shadow-inner shadow-white/5">
+            <div className="mt-6 rounded-xl border border-violet-500/10 bg-violet-500/4 p-6">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={mode}
-                  initial={{ opacity: 0, y: 24 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -24 }}
-                  transition={{ duration: 0.28, ease: 'easeOut' }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
                 >
                   {mode === 'login' ? <LoginForm /> : <SignUpForm />}
                 </motion.div>
               </AnimatePresence>
 
-              <div className="my-6 flex items-center gap-4">
-                <div className="h-px flex-1 bg-white/10" />
-                <span className="text-xs text-slate-400">o continúa con</span>
-                <div className="h-px flex-1 bg-white/10" />
+              <div className="my-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-violet-500/15" />
+                <span className="text-[11px] text-violet-400/50">o continúa con</span>
+                <div className="h-px flex-1 bg-violet-500/15" />
               </div>
 
               {oauthError && (
                 <p className="mb-3 text-center text-sm text-red-400">{oauthError}</p>
               )}
 
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <button
                   onClick={handleGoogle}
                   disabled={oauthLoading !== null}
-                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 py-3 font-medium text-white transition-all hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-violet-500/20 bg-violet-500/8 py-3 text-sm font-medium text-white/80 transition-all hover:bg-violet-500/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {oauthLoading === 'google' ? (
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -162,29 +186,28 @@ export default function AuthPage() {
                   Continuar con Google
                 </button>
                 <button
-                  onClick={handleApple}
                   disabled
-                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/5 py-3 font-medium text-white transition-all hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-violet-500/10 bg-violet-500/4 py-3 text-sm font-medium text-white/30 cursor-not-allowed"
                 >
                   <AppleIcon />
                   Continuar con Apple
                 </button>
               </div>
 
-              <p className="mt-6 text-center text-sm text-slate-400">
+              <p className="mt-5 text-center text-xs text-violet-300/40">
                 {mode === 'login' ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
                 <button
                   onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-                  className="inline-flex items-center gap-1 font-medium text-[hsl(262,80%,60%)] hover:text-[hsl(262,80%,60%)]/80"
+                  className="inline-flex items-center gap-1 font-semibold text-violet-400 hover:text-violet-300 transition-colors"
                 >
-                  {mode === 'login' ? 'Regístrate' : 'Inicia sesión'} <FiArrowRight size={14} />
+                  {mode === 'login' ? 'Regístrate' : 'Inicia sesión'} <FiArrowRight size={13} />
                 </button>
               </p>
             </div>
           </div>
         </div>
 
-        <div className="mt-8 text-center text-xs text-slate-400">
+        <div className="mt-6 text-center text-xs text-violet-400/30">
           <p>Disponible en Santiago, Chile</p>
         </div>
       </div>

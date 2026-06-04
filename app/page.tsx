@@ -298,6 +298,7 @@ function HomePageContent() {
     setDistanceKm,
     togglePlaceType,
     refreshPlaces,
+    selectedDestination,
     setSelectedDestination,
     setActiveEventLocation,
   } = useNearbyPlacesContext()
@@ -309,7 +310,7 @@ function HomePageContent() {
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'like' | 'nope' | 'save' } | null>(null)
-  const [mobileView, setMobileView] = useState<'cards' | 'map' | 'comunidad'>('cards')
+  const [routeVisible, setRouteVisible] = useState(false)
   const [featuredEvent, setFeaturedEvent] = useState<Event | null>(null)
 
   useEffect(() => {
@@ -357,7 +358,6 @@ function HomePageContent() {
 
   const handleViewCommunityEvent = useCallback((event: Event) => {
     setFeaturedEvent(event)
-    setMobileView('cards')
   }, [])
 
   const handleSwipeRight = useCallback(async (id: string) => {
@@ -390,8 +390,8 @@ function HomePageContent() {
       })
     }
 
-    // Cambiar a vista mapa en mobile tras el like
-    setMobileView('map')
+    // Mostrar panel de ruta en mobile tras el like
+    setRouteVisible(true)
 
     try {
       await updateUser({ likedEvents: Array.from(new Set([...(user.likedEvents ?? []), likedEvent.id])) })
@@ -549,48 +549,6 @@ function HomePageContent() {
 
         <div className="relative flex min-h-0 flex-1 gap-4 px-4 pb-4 pt-3 lg:px-5 lg:pb-5 lg:pt-2">
 
-          {/* Toggle Tarjetas / Mapa / Comunidad — solo mobile */}
-          <div className="absolute left-1/2 top-2 z-30 -translate-x-1/2 lg:hidden">
-            <div className="flex rounded-full border border-white/15 bg-white/10 p-1 shadow-lg backdrop-blur-md">
-              {(['cards', 'map', 'comunidad'] as const).map((view) => (
-                <button
-                  key={view}
-                  type="button"
-                  onClick={() => setMobileView(view)}
-                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
-                    mobileView === view
-                      ? 'bg-primary text-white shadow-md'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  {view === 'cards' ? 'Tarjetas' : view === 'map' ? 'Mapa' : 'Comunidad'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Vista mapa en móvil */}
-          {mobileView === 'map' && (
-            <div className="absolute inset-0 lg:hidden">
-              <BellavistaMapMobile />
-            </div>
-          )}
-
-          {/* Vista comunidad en móvil */}
-          {mobileView === 'comunidad' && (
-            <div className="absolute inset-0 overflow-y-auto pt-12 lg:hidden">
-              <div className="px-4 pb-4">
-                <CommunityEventsPanel
-                  events={publicLocatarioEvents}
-                  onViewCard={handleViewCommunityEvent}
-                  onSave={handleSave}
-                  likedIds={likedIds}
-                  savedIds={savedIds}
-                />
-              </div>
-            </div>
-          )}
-
           {/* Botón filtros — solo desktop */}
           <div className="absolute right-4 top-2 z-30 hidden lg:block lg:right-5">
             <button
@@ -655,11 +613,42 @@ function HomePageContent() {
           </div>
 
           {/* Contenido principal: Tarjetas + Panel comunidad */}
-          <div
-            className={`${mobileView !== 'cards' ? 'hidden lg:flex' : 'flex'} min-h-0 h-full w-full gap-5`}
-          >
-            {/* Área de tarjetas */}
-            <div className="flex h-full min-h-0 flex-1 items-center justify-center">
+          <div className="flex min-h-0 h-full w-full gap-5">
+            {/* Mapa de ruta — móvil, REEMPLAZA las tarjetas tras el primer like */}
+            {routeVisible && (
+              <motion.div
+                key="mobile-route-map"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+                className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-violet-500/15 lg:hidden"
+              >
+                {/* Cabecera */}
+                <div className="flex flex-shrink-0 items-center gap-2 border-b border-violet-500/15 bg-violet-500/10 px-4 py-2.5">
+                  <HiMapPin className="h-4 w-4 flex-shrink-0 text-primary-light" />
+                  <span className="flex-1 truncate text-sm font-semibold text-white">
+                    {selectedDestination?.title ?? 'Ruta al evento'}
+                  </span>
+                  <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-medium text-green-300">
+                    En camino
+                  </span>
+                  <button
+                    onClick={() => setRouteVisible(false)}
+                    className="ml-1 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-white/20"
+                    aria-label="Volver a tarjetas"
+                  >
+                    Volver
+                  </button>
+                </div>
+                {/* Mapa */}
+                <div className="flex-1 min-h-0">
+                  <BellavistaMapMobile />
+                </div>
+              </motion.div>
+            )}
+
+            {/* Área de tarjetas — en móvil se oculta cuando hay ruta activa */}
+            <div className={`h-full min-h-0 flex-1 items-center justify-center ${routeVisible ? 'hidden lg:flex' : 'flex'}`}>
               {invalidApiKey ? (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center">
                   <span className="text-5xl">🔑</span>
@@ -732,8 +721,8 @@ function HomePageContent() {
           </div>
         </div>
 
-        {visibleEvents.length > 0 && mobileView === 'cards' && (
-          <div className="flex items-center justify-center gap-3 px-4 pb-2 lg:px-5 lg:pb-3">
+        {visibleEvents.length > 0 && (
+          <div className={`items-center justify-center gap-3 px-4 pb-2 lg:flex lg:px-5 lg:pb-3 ${routeVisible ? 'hidden' : 'flex'}`}>
             <span className="text-xs text-muted">{events.length} lugares cerca de ti</span>
             {likedIds.size > 0 && (
               <span className="text-xs font-medium text-green-400">· {likedIds.size} te interesaron</span>

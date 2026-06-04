@@ -120,3 +120,91 @@ html, body {
   background: var(--metal-sheen);
   pointer-events: none;
 }
+
+@layer base {
+  .theme {
+    --font-heading: "Inter", system-ui, sans-serif;
+    --font-sans:    "Inter", system-ui, sans-serif;
+  }
+  /* eMeet siempre usa dark mode — tema morado metalizado */
+  :root,
+  .dark {
+    /* Superficies — tonos violeta profundo con vida propia */
+    --background:           oklch(0.09 0.030 278);   /* fondo base violeta oscuro */
+    --foreground:           oklch(0.96 0.008 270);   /* blanco ligeramente cálido */
+    --card:                 oklch(0.13 0.040 274);   /* card con tinte violeta visible */
+    --card-foreground:      oklch(0.96 0.008 270);
+    --popover:              oklch(0.15 0.044 274);
+    --popover-foreground:   oklch(0.96 0.008 270);
+
+    /* Acción principal — violeta eMeet */
+    --primary:              oklch(0.488 0.243 264);   /* #7C3AED */
+    --primary-foreground:   oklch(0.97 0 0);
+
+    /* Secundario — superficie elevada */
+    --secondary:            oklch(0.17 0.045 276);
+    --secondary-foreground: oklch(0.96 0.008 270);
+
+    /* Muted — superficie sutil */
+    --muted:                oklch(0.17 0.035 276);
+    --muted-foreground:     oklch(0.68 0.10 268);    /* gris-lavanda legible */
+
+    /* Accent — elevación de hover */
+    --accent:               oklch(0.21 0.050 273);
+    --accent-foreground:    oklch(0.96 0.008 270);
+
+    /* Destructivo */
+    --destructive:          oklch(0.60 0.22 25);
+
+    /* Bordes e inputs */
+    --border:               oklch(0.26 0.050 273);
+    --input:                oklch(0.19 0.040 275);
+    --ring:                 oklch(0.488 0.243 264);   /* #7C3AED */
+
+    /* Radio */
+    --radius: 0.75rem;
+
+    /* Charts — escala violeta */
+    --chart-1: oklch(0.488 0.243 264);
+    --chart-2: oklch(0.60  0.18  265);
+    --chart-3: oklch(0.73  0.12  265);
+    --chart-4: oklch(0.35  0.15  270);
+    --chart-5: oklch(0.25  0.08  275);
+
+    /* Sidebar */
+    --sidebar:                oklch(0.11 0.035 278);
+    --sidebar-foreground:     oklch(0.96 0.008 270);
+    --sidebar-primary:        oklch(0.488 0.243 264);
+    --sidebar-primary-foreground: oklch(0.97 0 0);
+    --sidebar-accent:         oklch(0.18 0.040 275);
+    --sidebar-accent-foreground: oklch(0.96 0.008 270);
+    --sidebar-border:         oklch(0.26 0.050 273);
+    --sidebar-ring:           oklch(0.488 0.243 264);
+  }
+  * {
+    border-color: var(--border);
+    outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+  html {
+    font-family: var(--font-sans, "Inter", system-ui, sans-serif);
+  }
+
+}
+
+/*
+ * Fix: text-muted en el código usa var(--muted) que es un color de superficie,
+ * no un color de texto. Redirigimos text-muted al foreground legible.
+ * Debe estar en @layer utilities (no en base) para ganar al utility generado por Tailwind.
+ */
+@layer utilities {
+  .text-muted {
+    color: var(--muted-foreground);
+  }
+  .placeholder-muted::placeholder {
+    color: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
+  }
+}
