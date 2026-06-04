@@ -4,8 +4,9 @@ import { useAuth } from '@/src/context/AuthContext'
 import { useLocatarioEvents } from '@/src/context/LocatarioEventsContext'
 import { hasSupabaseEnv } from '@/src/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { FiLogOut, FiPlus, FiBarChart2, FiCalendar, FiAlertCircle, FiLoader, FiTrash2, FiHome, FiMapPin } from 'react-icons/fi'
+import { FiLogOut, FiPlus, FiBarChart2, FiCalendar, FiAlertCircle, FiLoader, FiTrash2, FiHome, FiMapPin, FiX, FiInfo, FiImage, FiTag } from 'react-icons/fi'
 import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { EventCategory } from '@/src/types'
 import { ImageUpload } from '@/src/components/ImageUpload'
 import { VideoUpload } from '@/src/components/VideoUpload'
@@ -46,6 +47,44 @@ const EMPTY_FORM = {
 }
 
 const COUPON_COST_PER_DAY = 25
+
+/** Bloque de sección del formulario de crear evento: cabecera con ícono + campos. */
+function FormSection({
+  icon,
+  title,
+  hint,
+  children,
+}: {
+  icon: ReactNode
+  title: string
+  hint?: string
+  children: ReactNode
+}) {
+  return (
+    <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+      <div className="mb-3.5 flex items-center gap-2.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary-light">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold leading-tight text-white">{title}</h3>
+          {hint && <p className="text-[11px] leading-tight text-muted">{hint}</p>}
+        </div>
+      </div>
+      <div className="space-y-3">{children}</div>
+    </section>
+  )
+}
+
+/** Label persistente para los campos del formulario. */
+function FieldLabel({ children, required }: { children: ReactNode; required?: boolean }) {
+  return (
+    <label className="mb-1.5 block text-xs font-medium text-violet-200/70">
+      {children}
+      {required && <span className="text-primary-light"> *</span>}
+    </label>
+  )
+}
 
 function formatCLP(value: number) {
   return new Intl.NumberFormat('es-CL', {
@@ -970,161 +1009,192 @@ export default function LocatarioPage() {
             <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-white/20 sm:hidden" />
 
             <div className="px-5 pt-4 sm:px-8 sm:pt-6">
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white sm:text-2xl">Crear Nuevo Evento</h2>
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-xl font-bold text-white sm:text-2xl">Crear nuevo evento</h2>
+                  <p className="mt-0.5 text-xs text-muted">Completa los datos y publícalo en el feed</p>
+                </div>
                 <button
                   onClick={() => setShowCreateEvent(false)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-white/10 hover:text-white transition-colors"
+                  aria-label="Cerrar"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-white/10 hover:text-white"
                 >
-                  <FiLogOut size={16} style={{ transform: 'rotate(180deg)' }} />
+                  <FiX size={18} />
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <input
-                  type="text"
-                  placeholder="Nombre del evento *"
-                  value={eventForm.title}
-                  onChange={(e) => setEventForm((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full rounded-lg border border-card bg-surface px-4 py-3 text-white placeholder-muted outline-none focus:border-primary"
-                />
-                <textarea
-                  placeholder="Descripción del evento *"
-                  rows={3}
-                  value={eventForm.description}
-                  onChange={(e) => setEventForm((prev) => ({ ...prev, description: e.target.value }))}
-                  className="w-full resize-none rounded-lg border border-card bg-surface px-4 py-3 text-white placeholder-muted outline-none focus:border-primary"
-                />
+              <div className="space-y-3">
+                {/* ── Información básica ─────────────────────────────── */}
+                <FormSection icon={<FiInfo size={16} />} title="Información básica" hint="Lo esencial de tu evento">
+                  <div>
+                    <FieldLabel required>Nombre del evento</FieldLabel>
+                    <input
+                      type="text"
+                      placeholder="Ej. Noche de jazz en el rooftop"
+                      value={eventForm.title}
+                      onChange={(e) => setEventForm((prev) => ({ ...prev, title: e.target.value }))}
+                      className="w-full rounded-lg border border-card bg-surface px-4 py-3 text-white placeholder-muted outline-none transition-colors focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel required>Descripción</FieldLabel>
+                    <textarea
+                      placeholder="Cuenta de qué trata y qué van a vivir los asistentes…"
+                      rows={3}
+                      value={eventForm.description}
+                      onChange={(e) => setEventForm((prev) => ({ ...prev, description: e.target.value }))}
+                      className="w-full resize-none rounded-lg border border-card bg-surface px-4 py-3 text-white placeholder-muted outline-none transition-colors focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Categoría</FieldLabel>
+                    <div className="grid grid-cols-4 gap-2">
+                      {(
+                        [
+                          { value: 'fiesta', label: '🎉 Fiesta' },
+                          { value: 'musica', label: '🎵 Música' },
+                          { value: 'gastronomia', label: '🍽️ Gastro' },
+                          { value: 'networking', label: '🤝 Network' },
+                          { value: 'arte', label: '🎨 Arte' },
+                          { value: 'cultura', label: '🏛️ Cultura' },
+                          { value: 'teatro', label: '🎭 Teatro' },
+                          { value: 'deporte', label: '⚽ Deporte' },
+                        ] as { value: EventCategory; label: string }[]
+                      ).map((cat) => (
+                        <button
+                          key={cat.value}
+                          type="button"
+                          onClick={() => setEventForm((prev) => ({ ...prev, category: cat.value }))}
+                          className={`rounded-lg py-2 text-xs font-semibold transition-colors ${
+                            eventForm.category === cat.value
+                              ? 'bg-primary text-white'
+                              : 'bg-surface text-muted hover:text-white border border-card'
+                          }`}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </FormSection>
 
-                {/* Categoría en grid de chips */}
-                <div>
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted">
-                    Categoría
-                  </span>
-                  <div className="grid grid-cols-4 gap-2">
-                    {(
-                      [
-                        { value: 'fiesta', label: '🎉 Fiesta' },
-                        { value: 'musica', label: '🎵 Música' },
-                        { value: 'gastronomia', label: '🍽️ Gastro' },
-                        { value: 'networking', label: '🤝 Network' },
-                        { value: 'arte', label: '🎨 Arte' },
-                        { value: 'cultura', label: '🏛️ Cultura' },
-                        { value: 'teatro', label: '🎭 Teatro' },
-                        { value: 'deporte', label: '⚽ Deporte' },
-                      ] as { value: EventCategory; label: string }[]
-                    ).map((cat) => (
+                {/* ── Cuándo y dónde ─────────────────────────────────── */}
+                <FormSection icon={<FiMapPin size={16} />} title="Cuándo y dónde" hint="Fecha, hora y ubicación del evento">
+                  <div>
+                    <FieldLabel required>Fecha y hora</FieldLabel>
+                    <DateTimePicker
+                      value={eventForm.date}
+                      onChange={(val) => setEventForm((prev) => ({ ...prev, date: val }))}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel>Ubicación</FieldLabel>
+                    <div className="space-y-2">
+                      <LocationPickerMap
+                        value={gpsCoords}
+                        onLocationChange={(coords, address) => {
+                          setGpsCoords(coords)
+                          setEventForm((prev) => ({ ...prev, address }))
+                        }}
+                      />
+                      {gpsCoords && (
+                        <div className="flex items-center gap-2 text-xs text-green-400">
+                          <FiMapPin size={12} />
+                          <span className="truncate">
+                            {eventForm.address || `${gpsCoords.lat.toFixed(4)}, ${gpsCoords.lng.toFixed(4)}`}
+                          </span>
+                        </div>
+                      )}
+                      <input
+                        type="text"
+                        placeholder="Dirección (se auto-completa al fijar en el mapa)"
+                        value={eventForm.address}
+                        onChange={(e) => {
+                          setEventForm((prev) => ({ ...prev, address: e.target.value }))
+                          setGpsCoords(null)
+                        }}
+                        className="w-full rounded-lg border border-card bg-surface px-4 py-2.5 text-sm text-white placeholder-muted outline-none transition-colors focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                </FormSection>
+
+                {/* ── Multimedia ─────────────────────────────────────── */}
+                <FormSection icon={<FiImage size={16} />} title="Multimedia" hint="Portada y música de fondo (opcional)">
+                  <div>
+                    <FieldLabel>Portada</FieldLabel>
+                    <div className="overflow-hidden rounded-lg border border-card flex">
                       <button
-                        key={cat.value}
                         type="button"
-                        onClick={() => setEventForm((prev) => ({ ...prev, category: cat.value }))}
-                        className={`rounded-lg py-2 text-xs font-semibold transition-colors ${
-                          eventForm.category === cat.value
+                        onClick={() => setEventForm((prev) => ({ ...prev, mediaType: 'image', videoUrl: '' }))}
+                        className={`flex-1 py-2 text-sm font-semibold transition-colors ${
+                          eventForm.mediaType === 'image'
                             ? 'bg-primary text-white'
-                            : 'bg-surface text-muted hover:text-white border border-card'
+                            : 'bg-surface text-muted hover:text-white'
                         }`}
                       >
-                        {cat.label}
+                        Imagen
                       </button>
-                    ))}
-                  </div>
-                </div>
-
-                <DateTimePicker
-                  value={eventForm.date}
-                  onChange={(val) => setEventForm((prev) => ({ ...prev, date: val }))}
-                />
-
-                <div className="space-y-2">
-                  <LocationPickerMap
-                    value={gpsCoords}
-                    onLocationChange={(coords, address) => {
-                      setGpsCoords(coords)
-                      setEventForm((prev) => ({ ...prev, address }))
-                    }}
-                  />
-                  {gpsCoords && (
-                    <div className="flex items-center gap-2 text-xs text-green-400">
-                      <FiMapPin size={12} />
-                      <span className="truncate">
-                        {eventForm.address || `${gpsCoords.lat.toFixed(4)}, ${gpsCoords.lng.toFixed(4)}`}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setEventForm((prev) => ({ ...prev, mediaType: 'video', imageUrl: '' }))}
+                        className={`flex-1 py-2 text-sm font-semibold transition-colors ${
+                          eventForm.mediaType === 'video'
+                            ? 'bg-primary text-white'
+                            : 'bg-surface text-muted hover:text-white'
+                        }`}
+                      >
+                        Video (15-20 s)
+                      </button>
                     </div>
-                  )}
-                  <input
-                    type="text"
-                    placeholder="Dirección (se auto-completa al fijar en el mapa)"
-                    value={eventForm.address}
-                    onChange={(e) => {
-                      setEventForm((prev) => ({ ...prev, address: e.target.value }))
-                      setGpsCoords(null)
+                    <div className="mt-2">
+                      {eventForm.mediaType === 'image' ? (
+                        <ImageUpload
+                          bucket="event-images"
+                          folder="events"
+                          value={eventForm.imageUrl}
+                          onChange={(url) => setEventForm((prev) => ({ ...prev, imageUrl: url }))}
+                          placeholder="Subir imagen del evento"
+                          aspectRatio="video"
+                        />
+                      ) : (
+                        <VideoUpload
+                          bucket="event-videos"
+                          folder="events"
+                          value={eventForm.videoUrl}
+                          onChange={(url) => setEventForm((prev) => ({ ...prev, videoUrl: url }))}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <DeezerSearch
+                    value={audioPreviewUrl}
+                    trackLabel={audioTrackLabel}
+                    onChange={(url, label, trackId) => {
+                      setAudioPreviewUrl(url)
+                      setAudioTrackLabel(label)
+                      setAudioTrackId(trackId)
                     }}
-                    className="w-full rounded-lg border border-card bg-surface px-4 py-2.5 text-sm text-white placeholder-muted outline-none focus:border-primary"
                   />
-                </div>
+                </FormSection>
 
-                {/* Selector imagen / video */}
-                <div className="overflow-hidden rounded-lg border border-card flex">
-                  <button
-                    type="button"
-                    onClick={() => setEventForm((prev) => ({ ...prev, mediaType: 'image', videoUrl: '' }))}
-                    className={`flex-1 py-2 text-sm font-semibold transition-colors ${
-                      eventForm.mediaType === 'image'
-                        ? 'bg-primary text-white'
-                        : 'bg-surface text-muted hover:text-white'
-                    }`}
-                  >
-                    Imagen
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEventForm((prev) => ({ ...prev, mediaType: 'video', imageUrl: '' }))}
-                    className={`flex-1 py-2 text-sm font-semibold transition-colors ${
-                      eventForm.mediaType === 'video'
-                        ? 'bg-primary text-white'
-                        : 'bg-surface text-muted hover:text-white'
-                    }`}
-                  >
-                    Video (15-20 s)
-                  </button>
-                </div>
-
-                {eventForm.mediaType === 'image' ? (
-                  <ImageUpload
-                    bucket="event-images"
-                    folder="events"
-                    value={eventForm.imageUrl}
-                    onChange={(url) => setEventForm((prev) => ({ ...prev, imageUrl: url }))}
-                    placeholder="Subir imagen del evento"
-                    aspectRatio="video"
-                  />
-                ) : (
-                  <VideoUpload
-                    bucket="event-videos"
-                    folder="events"
-                    value={eventForm.videoUrl}
-                    onChange={(url) => setEventForm((prev) => ({ ...prev, videoUrl: url }))}
-                  />
-                )}
-
-                {/* Música Deezer */}
-                <DeezerSearch
-                  value={audioPreviewUrl}
-                  trackLabel={audioTrackLabel}
-                  onChange={(url, label, trackId) => {
-                    setAudioPreviewUrl(url)
-                    setAudioTrackLabel(label)
-                    setAudioTrackId(trackId)
-                  }}
-                />
-
-                <input
-                  type="number"
-                  placeholder="Precio (vacío = gratis)"
-                  value={eventForm.price}
-                  onChange={(e) => setEventForm((prev) => ({ ...prev, price: e.target.value }))}
-                  className="w-full rounded-lg border border-card bg-surface px-4 py-3 text-white placeholder-muted outline-none focus:border-primary"
-                />
+                {/* ── Precio ─────────────────────────────────────────── */}
+                <FormSection icon={<FiTag size={16} />} title="Precio" hint="Déjalo vacío si la entrada es gratis">
+                  <div>
+                    <FieldLabel>Valor de entrada</FieldLabel>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted">$</span>
+                      <input
+                        type="number"
+                        placeholder="0 = gratis"
+                        value={eventForm.price}
+                        onChange={(e) => setEventForm((prev) => ({ ...prev, price: e.target.value }))}
+                        className="w-full rounded-lg border border-card bg-surface py-3 pl-8 pr-4 text-white placeholder-muted outline-none transition-colors focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                </FormSection>
               </div>
 
               <div className="mt-6 mb-2 flex gap-3">
