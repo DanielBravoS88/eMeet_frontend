@@ -26,7 +26,8 @@ export interface Database {
         Row: {
           id: string
           name: string
-          role: 'user' | 'locatario' | 'admin'
+          role: 'user' | 'admin'
+          is_event_creator: boolean
           bio: string
           avatar_url: string | null
           location: string
@@ -38,7 +39,8 @@ export interface Database {
         Insert: {
           id: string
           name: string
-          role?: 'user' | 'locatario' | 'admin'
+          role?: 'user' | 'admin'
+          is_event_creator?: boolean
           bio?: string
           avatar_url?: string | null
           location?: string
@@ -50,7 +52,8 @@ export interface Database {
         Update: {
           id?: string
           name?: string
-          role?: 'user' | 'locatario' | 'admin'
+          role?: 'user' | 'admin'
+          is_event_creator?: boolean
           bio?: string
           avatar_url?: string | null
           location?: string

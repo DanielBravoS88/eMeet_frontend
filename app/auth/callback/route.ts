@@ -25,7 +25,8 @@ function roleRedirectPath(user: { app_metadata?: Record<string, unknown>; user_m
     (user.user_metadata?.role as string | undefined) ??
     'user'
 
-  if (role === 'locatario') return '/locatario'
+  // Legacy: cuentas 'locatario' migradas son creadores; van al panel de creador.
+  if (role === 'locatario') return '/creator'
   if (role === 'admin') return '/admin'
   return fallback.startsWith('/') ? fallback : '/'
 }

@@ -15,7 +15,7 @@ interface AdminUser {
   id: string
   name: string
   email: string
-  role: 'user' | 'locatario' | 'admin'
+  role: 'user' | 'admin'
   created_at: string
 }
 
@@ -53,7 +53,6 @@ function formatRelative(iso: string) {
 
 const ROLE_CONFIG: Record<AdminUser['role'], { label: string; className: string }> = {
   admin: { label: 'Admin', className: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
-  locatario: { label: 'Creador', className: 'bg-em-accent/15 text-em-accent border-em-accent/30' },
   user: { label: 'Usuario', className: 'bg-white/8 text-em-muted border-white/10' },
 }
 
@@ -84,7 +83,7 @@ function UserRow({
     .toUpperCase()
 
   const safeRole: AdminUser['role'] =
-    user.role === 'admin' || user.role === 'locatario' || user.role === 'user' ? user.role : 'user'
+    user.role === 'admin' || user.role === 'user' ? user.role : 'user'
   // El select muestra pendingRole si hay cambio pendiente, si no muestra el rol real
   const displayRole = pendingRole ?? safeRole
   const roleDirty = pendingRole !== null && pendingRole !== safeRole
@@ -151,7 +150,6 @@ function UserRow({
               className="rounded-md border border-em-border bg-em-bg px-2 py-1 text-xs text-em-text focus:border-em-accent focus:outline-none disabled:opacity-50"
             >
               <option value="user">Usuario</option>
-              <option value="locatario">Creador de eventos</option>
               <option value="admin">Admin</option>
             </select>
             {roleDirty && (
@@ -425,8 +423,8 @@ export default function AdminUsersPage() {
             <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-em-accent" />
             <div className="space-y-1 text-[11px] text-em-muted">
               <p><span className="font-semibold text-em-text">Eliminar usuario</span> — borra el perfil y sus datos. Acción irreversible.</p>
-              <p><span className="font-semibold text-em-text">Cambiar a Creador</span> — permite al usuario crear y publicar eventos en eMeet.</p>
-              <p><span className="font-semibold text-em-text">Cambiar a Usuario</span> — revoca el acceso al panel de locatario.</p>
+              <p><span className="font-semibold text-em-text">Cambiar a Admin</span> — otorga acceso total al panel de administración.</p>
+              <p><span className="font-semibold text-em-text">Cambiar a Usuario</span> — cuenta estándar. Cada usuario activa el modo creador desde su propio perfil.</p>
             </div>
           </div>
         </div>

@@ -68,7 +68,8 @@ describe('LoginForm', () => {
       await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/'))
     })
 
-    it('redirige a /locatario cuando el rol es locatario', async () => {
+    it('redirige a / para roles no-admin (incluye legacy locatario)', async () => {
+      // El rol 'locatario' fue eliminado; estas cuentas ahora son 'user' y van al home.
       mockLogin.mockResolvedValue('locatario')
       const user = userEvent.setup()
       renderForm()
@@ -77,7 +78,7 @@ describe('LoginForm', () => {
       await user.type(screen.getByPlaceholderText('••••••••'), 'password123')
       await user.click(screen.getByRole('button', { name: /inicia sesión/i }))
 
-      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/locatario'))
+      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/'))
     })
 
     it('redirige a /admin cuando el rol es admin', async () => {

@@ -17,13 +17,14 @@ export async function loginWithGoogle() {
 }
 
 // ─── Interfaz del contexto ───────────────────────────────────────────────────
-type RegisterOptions = {
-  role?: User['role']
+type RegisterResult = { needsEmailVerification: true; email: string } | { needsEmailVerification: false }
+
+/** Datos opcionales que el usuario llena cuando activa "Modo creador" */
+export type CreatorOnboarding = {
   businessName?: string
   businessLocation?: string
+  bio?: string
 }
-
-type RegisterResult = { needsEmailVerification: true; email: string } | { needsEmailVerification: false }
 
 interface AuthContextValue extends AuthState {
   isAuthReady: boolean
@@ -32,9 +33,13 @@ interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<User['role']>
   loginWithGoogle: () => Promise<void>
   loginWithApple: () => Promise<void>
-  register: (name: string, email: string, password: string, options?: RegisterOptions) => Promise<RegisterResult>
+  register: (name: string, email: string, password: string) => Promise<RegisterResult>
   logout: () => Promise<void>
   updateUser: (data: Partial<User>) => Promise<void>
+  /** Activa la capacidad de crear eventos sobre la cuenta actual. */
+  becomeEventCreator: (data?: CreatorOnboarding) => Promise<void>
+  /** Desactiva el modo creador. */
+  stopBeingEventCreator: () => Promise<void>
 }
 
 // ─── Creación del contexto ───────────────────────────────────────────────────
@@ -56,6 +61,9 @@ type ProfilePayload = {
   location: string
   interests: User['interests']
   role?: string | null
+  is_event_creator?: boolean | null
+  business_name?: string | null
+  business_location?: string | null
 }
 
 type UserEventPayload = {
@@ -71,6 +79,7 @@ type AuthResponsePayload = {
     }
     user_metadata?: {
       role?: User['role']
+      is_event_creator?: boolean
       business_name?: string | null
       business_location?: string | null
     }
@@ -84,7 +93,7 @@ type AuthResponsePayload = {
 function readRoleBucket(value: unknown): User['role'] | undefined {
   if (!value || typeof value !== 'object') return undefined
   const role = (value as { role?: unknown }).role
-  if (role === 'admin' || role === 'locatario' || role === 'user') {
+  if (role === 'admin' || role === 'user') {
     return role
   }
   return undefined
@@ -94,24 +103,20 @@ function extractRoleFromAuthUser(user: unknown): User['role'] | undefined {
   if (!user || typeof user !== 'object') return undefined
 
   const appRole = readRoleBucket((user as { app_metadata?: unknown }).app_metadata)
-  if (appRole === 'admin' || appRole === 'locatario' || appRole === 'user') {
-    return appRole
-  }
+  if (appRole) return appRole
 
   const userRole = readRoleBucket((user as { user_metadata?: unknown }).user_metadata)
-  if (userRole === 'admin' || userRole === 'locatario' || userRole === 'user') {
-    return userRole
-  }
+  if (userRole) return userRole
 
   return undefined
 }
 
 const LOCAL_AUTH_STORAGE_KEY = 'emeet-local-auth-user'
 
+/** En modo dev/local sin Supabase, se infieren admin por convención de email. */
 function inferLocalRoleByEmail(email: string): User['role'] {
   const normalized = email.toLowerCase()
   if (normalized.includes('admin')) return 'admin'
-  if (normalized.includes('locatario')) return 'locatario'
   return 'user'
 }
 
@@ -119,27 +124,27 @@ function createLocalUser(
   name: string,
   email: string,
   previousUser?: User | null,
-  options?: RegisterOptions,
 ): User {
-  const role = options?.role ?? previousUser?.role ?? inferLocalRoleByEmail(email)
+  const role = previousUser?.role ?? inferLocalRoleByEmail(email)
+  // Para compatibilidad con cuentas demo locales con "locatario" en el email
+  const wasLocatario = email.toLowerCase().includes('locatario')
 
   return {
     id: previousUser?.id ?? `local-${email.toLowerCase()}`,
     name: name.trim() || previousUser?.name || email.split('@')[0],
     email,
     role,
+    isEventCreator: previousUser?.isEventCreator ?? wasLocatario,
     avatarUrl: previousUser?.avatarUrl ?? 'https://i.pravatar.cc/150?img=32',
     bio: previousUser?.bio ?? 'Explorando panoramas cerca de mi.',
     interests: previousUser?.interests ?? ['gastronomia', 'musica'],
     likedEvents: previousUser?.likedEvents ?? [],
     savedEvents: previousUser?.savedEvents ?? [],
-    location: options?.businessLocation ?? previousUser?.location ?? 'Santiago, Chile',
+    location: previousUser?.location ?? 'Santiago, Chile',
     createdAt: previousUser?.createdAt ?? new Date().toISOString(),
     isVerified: previousUser?.isVerified ?? true,
-    businessName: role === 'locatario' ? options?.businessName ?? previousUser?.businessName ?? name : undefined,
-    businessLocation: role === 'locatario'
-      ? options?.businessLocation ?? previousUser?.businessLocation ?? previousUser?.location ?? 'Santiago, Chile'
-      : undefined,
+    businessName: previousUser?.businessName,
+    businessLocation: previousUser?.businessLocation,
   }
 }
 
@@ -204,11 +209,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null)
 
   // Carga perfil + eventos del usuario dado un email conocido.
-  // Usada post-login/register para evitar round-trip extra de sesión.
   const syncUserData = useCallback(async (
     email: string,
     roleHint?: User['role'],
-    businessMeta?: { businessName?: string | null; businessLocation?: string | null },
+    creatorMeta?: {
+      isEventCreator?: boolean
+      businessName?: string | null
+      businessLocation?: string | null
+    },
     accessToken?: string | null,
     userId?: string | null,
   ) => {
@@ -220,8 +228,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (profileResult.status === 'rejected') {
       console.error('[syncUserData] profile fetch failed:', profileResult.reason)
-      // Si tenemos userId del JWT podemos seguir con datos mínimos — el usuario
-      // está autenticado aunque el backend tenga problemas transitorios.
       if (!userId) throw profileResult.reason
       const errMsg = profileResult.reason instanceof Error
         ? profileResult.reason.message
@@ -233,6 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name: email.split('@')[0],
           email,
           role: roleHint ?? 'user',
+          isEventCreator: creatorMeta?.isEventCreator ?? false,
           avatarUrl: '',
           bio: '',
           interests: [],
@@ -240,8 +247,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           savedEvents: [],
           location: '',
           isVerified: true,
-          businessName: businessMeta?.businessName ?? undefined,
-          businessLocation: businessMeta?.businessLocation ?? undefined,
+          businessName: creatorMeta?.businessName ?? undefined,
+          businessLocation: creatorMeta?.businessLocation ?? undefined,
         },
         isAuthenticated: true,
         accessToken: accessToken ?? null,
@@ -253,15 +260,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const likedEvents = likedResult.status === 'fulfilled' ? likedResult.value : []
     const savedEvents = savedResult.status === 'fulfilled' ? savedResult.value : []
 
-    const profileRole = (profile.role === 'admin' || profile.role === 'locatario' || profile.role === 'user')
-      ? profile.role as User['role']
-      : undefined
+    // El tipo ya no incluye 'locatario', pero cuentas legacy en la DB aún pueden
+    // traer ese valor en runtime. Lo leemos como string para migrarlo en caliente.
+    const rawRole = profile.role as string
+    const isLegacyLocatario = rawRole === 'locatario'
+
+    const profileRole = (rawRole === 'admin' || rawRole === 'user')
+      ? (rawRole as User['role'])
+      // Migración legacy: cuentas marcadas como 'locatario' pasan a 'user' + creator
+      : (isLegacyLocatario ? 'user' as const : undefined)
+
+    const isCreator = profile.is_event_creator
+      ?? creatorMeta?.isEventCreator
+      ?? isLegacyLocatario
 
     const nextUser: User = {
       id: profile.id,
       name: profile.name,
       email,
       role: profileRole ?? roleHint ?? 'user',
+      isEventCreator: !!isCreator,
       avatarUrl: profile.avatar_url ?? '',
       bio: profile.bio ?? '',
       interests: profile.interests ?? [],
@@ -269,15 +287,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       savedEvents: savedEvents.map((row) => row.event_id),
       location: profile.location ?? '',
       isVerified: true,
-      businessName: businessMeta?.businessName ?? undefined,
-      businessLocation: businessMeta?.businessLocation ?? undefined,
+      businessName: profile.business_name ?? creatorMeta?.businessName ?? undefined,
+      businessLocation: profile.business_location ?? creatorMeta?.businessLocation ?? undefined,
     }
 
     setAuthError(null)
     setAuthState({ user: nextUser, isAuthenticated: true, accessToken: accessToken ?? null })
   }, [])
 
-  // Usada al montar la app: primero verifica si hay sesión activa, luego carga datos.
   const syncFromApi = useCallback(async () => {
     if (!hasSupabaseEnv) {
       const localUser = loadLocalUser()
@@ -306,11 +323,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: userData } = await getSupabaseBrowserClient().auth.getUser()
     const roleHint = extractRoleFromAuthUser(userData.user)
+    const isEventCreator = Boolean(userData.user?.user_metadata?.is_event_creator)
     const businessName = userData.user?.user_metadata?.business_name as string | undefined
     const businessLocation = userData.user?.user_metadata?.business_location as string | undefined
 
     try {
       await syncUserData(sessionPayload.session.user.email ?? '', roleHint, {
+        isEventCreator,
         businessName,
         businessLocation,
       }, data.session?.access_token ?? null, userData.user?.id)
@@ -383,15 +402,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const role = extractRoleFromAuthUser(payload.user) ?? 'user'
     await syncUserData(email, role, {
+      isEventCreator: payload.user?.user_metadata?.is_event_creator,
       businessName: payload.user?.user_metadata?.business_name,
       businessLocation: payload.user?.user_metadata?.business_location,
     }, payload.session?.access_token ?? null, payload.user?.id)
     return role
   }, [syncUserData])
 
-  const register = useCallback(async (name: string, email: string, password: string, options?: RegisterOptions): Promise<RegisterResult> => {
+  /**
+   * Registro simplificado: solo nombre, email y contraseña.
+   * Todos los usuarios nuevos son rol 'user'. Si después quieren crear
+   * eventos, activan el modo creador desde el perfil.
+   */
+  const register = useCallback(async (name: string, email: string, password: string): Promise<RegisterResult> => {
     if (!hasSupabaseEnv) {
-      const localUser = createLocalUser(name, email, loadLocalUser(), options)
+      const localUser = createLocalUser(name, email, loadLocalUser())
       saveLocalUser(localUser)
       setAuthError(null)
       setAuthState({ user: localUser, isAuthenticated: true, accessToken: null })
@@ -400,14 +425,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const payload = await fetchApi<AuthResponsePayload>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({
-        name,
-        email,
-        password,
-        role: options?.role,
-        businessName: options?.businessName,
-        businessLocation: options?.businessLocation,
-      }),
+      body: JSON.stringify({ name, email, password }),
     })
 
     if (payload.session?.access_token && payload.session?.refresh_token) {
@@ -415,14 +433,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         access_token: payload.session.access_token,
         refresh_token: payload.session.refresh_token,
       })
-      await syncUserData(email, options?.role ?? extractRoleFromAuthUser(payload.user), {
-        businessName: options?.businessName ?? payload.user?.user_metadata?.business_name,
-        businessLocation: options?.businessLocation ?? payload.user?.user_metadata?.business_location,
+      await syncUserData(email, extractRoleFromAuthUser(payload.user), {
+        isEventCreator: false,
       }, payload.session.access_token, payload.user?.id)
       return { needsEmailVerification: false }
     }
 
-    // Supabase requiere confirmación por email — user creado pero sin sesión activa.
     return { needsEmailVerification: true, email }
   }, [syncUserData])
 
@@ -472,6 +488,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       avatar_url?: string
       location?: string
       interests?: User['interests']
+      is_event_creator?: boolean
+      business_name?: string | null
+      business_location?: string | null
     } = {}
 
     if (typeof data.name === 'string') profilePayload.name = data.name
@@ -479,6 +498,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof data.avatarUrl === 'string') profilePayload.avatar_url = data.avatarUrl
     if (typeof data.location === 'string') profilePayload.location = data.location
     if (Array.isArray(data.interests)) profilePayload.interests = data.interests
+    if (typeof data.isEventCreator === 'boolean') profilePayload.is_event_creator = data.isEventCreator
+    if (typeof data.businessName === 'string' || data.businessName === null) {
+      profilePayload.business_name = data.businessName ?? null
+    }
+    if (typeof data.businessLocation === 'string' || data.businessLocation === null) {
+      profilePayload.business_location = data.businessLocation ?? null
+    }
 
     if (hasSupabaseEnv && Object.keys(profilePayload).length > 0) {
       await fetchApi('/profile', {
@@ -496,8 +522,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [authState.user])
 
+  /** Activa el modo creador. Si recibe datos del onboarding, los persiste. */
+  const becomeEventCreator = useCallback(async (data?: CreatorOnboarding) => {
+    await updateUser({
+      isEventCreator: true,
+      ...(data?.businessName ? { businessName: data.businessName } : {}),
+      ...(data?.businessLocation ? { businessLocation: data.businessLocation } : {}),
+      ...(data?.bio ? { bio: data.bio } : {}),
+    })
+  }, [updateUser])
+
+  /** Desactiva el modo creador. No borra los datos del negocio (se mantienen ocultos). */
+  const stopBeingEventCreator = useCallback(async () => {
+    await updateUser({ isEventCreator: false })
+  }, [updateUser])
+
   return (
-    <AuthContext.Provider value={{ ...authState, isAuthReady, authError, refreshAuth, login, loginWithGoogle, loginWithApple, register, logout, updateUser }}>
+    <AuthContext.Provider value={{
+      ...authState,
+      isAuthReady,
+      authError,
+      refreshAuth,
+      login,
+      loginWithGoogle,
+      loginWithApple,
+      register,
+      logout,
+      updateUser,
+      becomeEventCreator,
+      stopBeingEventCreator,
+    }}>
       {children}
     </AuthContext.Provider>
   )

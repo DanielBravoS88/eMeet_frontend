@@ -60,29 +60,30 @@ export default function SidebarNav() {
       {/* Navegación */}
       <nav className="flex flex-1 flex-col gap-1 px-3">
 
-        {/* Panel locatario */}
-        {user?.role === 'locatario' && (
+        {/* Panel creador — visible solo si el usuario activó el modo creador */}
+        {user?.isEventCreator && (
           <>
             <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-violet-400/40">
-              Panel
+              Modo creador
             </p>
             <Link
-              href="/locatario"
+              href="/creator"
               className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
-                pathname === '/locatario'
+                pathname.startsWith('/creator') || pathname.startsWith('/locatario')
                   ? 'bg-violet-500/15 text-white shadow-[inset_0_1px_0_rgba(196,181,253,0.12)]'
                   : 'text-violet-300/60 hover:bg-violet-500/8 hover:text-white'
               }`}
             >
               <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
-                pathname === '/locatario'
+                pathname.startsWith('/creator') || pathname.startsWith('/locatario')
                   ? 'bg-violet-500/25 text-violet-300'
                   : 'bg-white/5 text-violet-400/50 group-hover:bg-violet-500/15 group-hover:text-violet-300'
               }`}>
                 <HiBuildingStorefront className="h-4.5 w-4.5" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="leading-none">Mi Panel</p>
+                <p className="leading-none">Mis eventos</p>
+                <p className="mt-0.5 text-[11px] leading-none text-violet-400/35 truncate">Crear y gestionar</p>
               </div>
             </Link>
             <div className="mx-3 my-2 h-px bg-violet-500/10" />

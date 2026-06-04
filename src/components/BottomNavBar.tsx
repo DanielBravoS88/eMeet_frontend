@@ -35,21 +35,21 @@ export default function BottomNavBar() {
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/50 to-transparent" />
 
       <div className="mx-auto flex h-16 w-full items-center justify-around">
-        {user?.role === 'locatario' && (
+        {user?.isEventCreator && (
           <Link
-            href="/locatario"
+            href="/creator"
             className={`flex flex-col items-center gap-1 text-xs font-medium transition-all duration-200 ${
-              pathname === '/locatario'
+              pathname.startsWith('/creator') || pathname.startsWith('/locatario')
                 ? 'text-white'
                 : 'text-slate-400 hover:text-violet-300'
             }`}
           >
             <HiBuildingStorefront className={`h-6 w-6 transition-all duration-200 ${
-              pathname === '/locatario'
+              pathname.startsWith('/creator') || pathname.startsWith('/locatario')
                 ? 'scale-110 text-violet-300 drop-shadow-[0_0_8px_rgba(196,181,253,0.7)]'
                 : ''
             }`} />
-            <span className={pathname === '/locatario' ? 'text-violet-300' : ''}>Mi Panel</span>
+            <span className={pathname.startsWith('/creator') || pathname.startsWith('/locatario') ? 'text-violet-300' : ''}>Crear</span>
           </Link>
         )}
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
