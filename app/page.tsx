@@ -167,12 +167,24 @@ function CommunityEventCard({
   return (
     <div className="group overflow-hidden rounded-2xl border border-white/8 bg-card/80 transition-all hover:border-primary/30">
       <div className="relative h-28 overflow-hidden">
-        <img
-          src={event.imageUrl}
-          alt={event.title}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          draggable={false}
-        />
+        {event.videoUrl ? (
+          <video
+            src={event.videoUrl}
+            muted
+            playsInline
+            loop
+            autoPlay
+            preload="metadata"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <img
+            src={event.imageUrl}
+            alt={event.title}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            draggable={false}
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
           {CATEGORY_EMOJI[event.category]} {event.category}
@@ -340,16 +352,27 @@ function HomePageContent() {
         distance: getDistanceKm(e.lat!, e.lng!, userLocation.lat, userLocation.lng),
       }))
 
+    // Personalización por intereses: los eventos cuya categoría coincide con los
+    // intereses del usuario rankean como si estuvieran ~40% más cerca, de modo
+    // que aparecen antes en el feed. Si el usuario no tiene intereses, el orden
+    // sigue siendo puramente por distancia.
+    const interests = new Set(user?.interests ?? [])
+    const INTEREST_WEIGHT = 0.6
+    const rankScore = (event: Event) =>
+      interests.size > 0 && interests.has(event.category)
+        ? event.distance * INTEREST_WEIGHT
+        : event.distance
+
     return [...placeEvents, ...locatarioMapped]
       .filter((event) => event.distance <= selectedDistanceKm)
-      .sort((a, b) => a.distance - b.distance)
+      .sort((a, b) => rankScore(a) - rankScore(b))
       .filter((event) => !dismissedIds.has(event.id))
       .map((event) => ({
         ...event,
         isLiked: likedIds.has(event.id),
         isSaved: savedIds.has(event.id),
       }))
-  }, [dismissedIds, likedIds, places, publicLocatarioEvents, savedIds, selectedDistanceKm, selectedPlaceTypes, userLocation])
+  }, [dismissedIds, likedIds, places, publicLocatarioEvents, savedIds, selectedDistanceKm, selectedPlaceTypes, user?.interests, userLocation])
 
   function showToast(message: string, type: 'like' | 'nope' | 'save') {
     setToast({ message, type })
