@@ -251,3 +251,44 @@ textarea::selection {
   background-color: rgba(124, 58, 237, 0.55);
   color: #ffffff;
 }
+
+/*
+ * Google Places Autocomplete (.pac-container).
+ * El widget inyecta su dropdown en <body>, así que lo estilizamos globalmente
+ * para que combine con el tema oscuro y se muestre por encima de los modales
+ * (que usan z-50).
+ */
+.pac-container {
+  z-index: 9999 !important;
+  background-color: var(--color-card);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  border-radius: 0.75rem;
+  margin-top: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow: hidden;
+}
+.pac-container::after {
+  display: none; /* oculta el logo "powered by Google" repetido */
+}
+.pac-item {
+  border-top: 1px solid rgba(124, 58, 237, 0.12);
+  padding: 0.5rem 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.pac-item:hover,
+.pac-item-selected {
+  background-color: rgba(124, 58, 237, 0.18);
+}
+.pac-item-query {
+  color: #ffffff;
+  font-size: 0.8125rem;
+}
+.pac-matched {
+  color: var(--color-primary-light);
+}
+.pac-icon {
+  filter: invert(1) brightness(0.8);
+}

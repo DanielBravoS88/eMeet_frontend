@@ -25,6 +25,11 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() 
 const HAS_GOOGLE_MAPS_KEY = GOOGLE_MAPS_API_KEY.length > 0
 const LOOKS_LIKE_GOOGLE_MAPS_KEY = GOOGLE_MAPS_API_KEY.startsWith('AIza')
 
+// Ubicación por defecto (Santiago, Chile) — se usa como fallback cuando el
+// usuario deniega el permiso de ubicación o la geolocalización falla, para que
+// el slide/feed siga mostrando lugares en vez de quedar bloqueado.
+const DEFAULT_LOCATION: google.maps.LatLngLiteral = { lat: -33.4364, lng: -70.6358 }
+
 export interface MapDestination {
   placeId?: string
   title: string
@@ -123,7 +128,13 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const requestUserLocation = useCallback((_recenter = true) => {
-    if (!navigator.geolocation || locatingRef.current) return
+    // Sin API de geolocalización: usamos el fallback para no bloquear el slide.
+    if (!navigator.geolocation) {
+      setLocationError('Tu navegador no soporta geolocalización. Mostrando lugares en Santiago.')
+      setUserLocation((prev) => prev ?? DEFAULT_LOCATION)
+      return
+    }
+    if (locatingRef.current) return
 
     locatingRef.current = true
     setLocating(true)
@@ -136,6 +147,7 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
           lng: pos.coords.longitude,
         }
         setUserLocation(nextLocation)
+        setLocationError(null)
         locatingRef.current = false
         setLocating(false)
       },
@@ -143,14 +155,17 @@ export function NearbyPlacesProvider({ children }: { children: ReactNode }) {
         let message = 'No se pudo obtener tu ubicación actual.'
 
         if (geoError.code === geoError.PERMISSION_DENIED) {
-          message = 'Permiso de ubicación denegado. Habilítalo para mostrar tu posición.'
+          message = 'Permiso de ubicación denegado. Mostrando lugares en Santiago; habilítalo para ver los cercanos a ti.'
         } else if (geoError.code === geoError.TIMEOUT) {
-          message = 'Se agotó el tiempo al buscar tu ubicación. Intenta nuevamente.'
+          message = 'Se agotó el tiempo al buscar tu ubicación. Mostrando lugares en Santiago.'
         } else if (geoError.code === geoError.POSITION_UNAVAILABLE) {
-          message = 'Tu ubicación no está disponible en este momento.'
+          message = 'Tu ubicación no está disponible. Mostrando lugares en Santiago.'
         }
 
         setLocationError(message)
+        // Fallback: si aún no hay ubicación, usamos Santiago para que el slide
+        // cargue igual en vez de quedar bloqueado pidiendo permiso.
+        setUserLocation((prev) => prev ?? DEFAULT_LOCATION)
         locatingRef.current = false
         setLocating(false)
       },

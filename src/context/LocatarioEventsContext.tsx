@@ -17,6 +17,7 @@ interface CreateLocatarioEventInput {
   imageUrl?: string
   videoUrl?: string
   audioPreviewUrl?: string | null
+  audioTrackId?: string | null
   organizerName: string
   organizerAvatar: string
   lat?: number
@@ -46,6 +47,7 @@ type LocatarioEventRow = {
   image_url: string | null
   video_url: string | null
   audio_preview_url: string | null
+  audio_track_id: string | null
   organizer_name: string
   organizer_avatar: string | null
   lat: number | null
@@ -68,6 +70,7 @@ function dbRowToEvent(row: LocatarioEventRow): Event {
     imageUrl: row.image_url || FALLBACK_EVENT_IMAGE,
     videoUrl: row.video_url ?? null,
     audioPreviewUrl: row.audio_preview_url ?? null,
+    audioTrackId: row.audio_track_id ?? null,
     websiteUrl: null,
     organizerName: row.organizer_name,
     organizerAvatar: row.organizer_avatar || 'https://i.pravatar.cc/150?img=32',
@@ -212,6 +215,7 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
         image_url: input.imageUrl || null,
         video_url: input.videoUrl || null,
         audio_preview_url: input.audioPreviewUrl || null,
+        audio_track_id: input.audioTrackId || null,
         organizer_name: input.organizerName,
         organizer_avatar: input.organizerAvatar,
         lat: input.lat ?? null,

@@ -16,7 +16,7 @@ interface DeezerTrack {
 interface Props {
   value: string | null
   trackLabel: string | null
-  onChange: (previewUrl: string | null, label: string | null) => void
+  onChange: (previewUrl: string | null, label: string | null, trackId: string | null) => void
 }
 
 export function DeezerSearch({ value, trackLabel, onChange }: Props) {
@@ -67,7 +67,7 @@ export function DeezerSearch({ value, trackLabel, onChange }: Props) {
   function selectTrack(track: DeezerTrack) {
     audioRef.current?.pause()
     setPlayingId(null)
-    onChange(track.preview, `${track.artist.name} — ${track.title}`)
+    onChange(track.preview, `${track.artist.name} — ${track.title}`, String(track.id))
     setQuery('')
     setResults([])
   }
@@ -75,7 +75,7 @@ export function DeezerSearch({ value, trackLabel, onChange }: Props) {
   function clearSelection() {
     audioRef.current?.pause()
     setPlayingId(null)
-    onChange(null, null)
+    onChange(null, null, null)
   }
 
   return (

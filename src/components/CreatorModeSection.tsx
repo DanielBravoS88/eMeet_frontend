@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { useAuth, type CreatorOnboarding } from '../context/AuthContext'
+import { LocationPickerMap } from './LocationPickerMap'
 import {
   HiBuildingStorefront,
   HiSparkles,
@@ -31,6 +32,8 @@ export default function CreatorModeSection({ autoOpen = false }: { autoOpen?: bo
     businessLocation: '',
     bio: '',
   })
+  // Coordenadas seleccionadas en el mapa (para centrar el pin).
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
     if (autoOpen && user && !user.isEventCreator && !triggeredAutoOpen.current) {
@@ -53,6 +56,7 @@ export default function CreatorModeSection({ autoOpen = false }: { autoOpen?: bo
       })
       setModalOpen(false)
       setForm({ businessName: '', businessLocation: '', bio: '' })
+      setCoords(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo activar el modo creador.')
     } finally {
@@ -189,7 +193,7 @@ export default function CreatorModeSection({ autoOpen = false }: { autoOpen?: bo
                 </div>
 
                 {/* Body */}
-                <div className="space-y-4 px-5 py-5">
+                <div className="max-h-[65vh] space-y-4 overflow-y-auto px-5 py-5">
                   {error && (
                     <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
                       {error}
@@ -213,13 +217,20 @@ export default function CreatorModeSection({ autoOpen = false }: { autoOpen?: bo
                     <label className="mb-1.5 block text-xs font-medium text-white/80">
                       Ubicación
                     </label>
-                    <input
-                      type="text"
-                      placeholder="Santiago, Chile"
-                      value={form.businessLocation ?? ''}
-                      onChange={(e) => setForm((p) => ({ ...p, businessLocation: e.target.value }))}
-                      className="w-full rounded-xl border border-violet-500/20 bg-violet-500/8 px-3 py-2.5 text-sm text-white placeholder-violet-300/30 outline-none transition-colors focus:border-violet-500/70"
+                    <LocationPickerMap
+                      value={coords}
+                      address={form.businessLocation ?? ''}
+                      onLocationChange={(c, address) => {
+                        setCoords(c)
+                        setForm((p) => ({ ...p, businessLocation: address }))
+                      }}
+                      onAddressChange={(address) =>
+                        setForm((p) => ({ ...p, businessLocation: address }))
+                      }
                     />
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-violet-300/40">
+                      Escribe y elige una dirección real, o toca el mapa para fijar el punto exacto.
+                    </p>
                   </div>
 
                   <div>

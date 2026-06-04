@@ -98,6 +98,7 @@ export default function LocatarioPage() {
   const [gpsCoords, setGpsCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null)
   const [audioTrackLabel, setAudioTrackLabel] = useState<string | null>(null)
+  const [audioTrackId, setAudioTrackId] = useState<string | null>(null)
   const [eventForm, setEventForm] = useState({
     ...EMPTY_FORM,
     address: user?.businessLocation ?? user?.location ?? '',
@@ -229,6 +230,7 @@ export default function LocatarioPage() {
         imageUrl: eventForm.mediaType === 'image' ? eventForm.imageUrl : undefined,
         videoUrl: eventForm.mediaType === 'video' ? eventForm.videoUrl : undefined,
         audioPreviewUrl: audioPreviewUrl ?? null,
+        audioTrackId: audioTrackId ?? null,
         organizerName: user?.businessName || user?.name || '',
         organizerAvatar: user?.avatarUrl || 'https://i.pravatar.cc/150?img=32',
         lat: gpsCoords?.lat,
@@ -239,6 +241,7 @@ export default function LocatarioPage() {
       setGpsCoords(null)
       setAudioPreviewUrl(null)
       setAudioTrackLabel(null)
+      setAudioTrackId(null)
       setShowCreateEvent(false)
       setFeedback({
         message: 'Evento publicado correctamente. Si tiene ubicación GPS, quedará visible en el feed público.',
@@ -1108,9 +1111,10 @@ export default function LocatarioPage() {
                 <DeezerSearch
                   value={audioPreviewUrl}
                   trackLabel={audioTrackLabel}
-                  onChange={(url, label) => {
+                  onChange={(url, label, trackId) => {
                     setAudioPreviewUrl(url)
                     setAudioTrackLabel(label)
+                    setAudioTrackId(trackId)
                   }}
                 />
 
