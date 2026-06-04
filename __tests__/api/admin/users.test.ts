@@ -111,7 +111,7 @@ describe('GET /api/admin/users', () => {
     profilesChain.order.mockResolvedValue({
       data: [
         { id: 'u1', name: 'Alice', role: 'user', created_at: '2024-01-01' },
-        { id: 'u2', name: 'Bob', role: 'locatario', created_at: '2024-01-02' },
+        { id: 'u2', name: 'Bob', role: 'admin', created_at: '2024-01-02' },
       ],
       error: null,
     })
@@ -225,10 +225,21 @@ describe('PATCH /api/admin/users/[id]/role', () => {
     expect(body.error).toMatch(/rol inválido/i)
   })
 
-  it('acepta los roles válidos: user, locatario, admin', async () => {
+  it('rechaza el rol legacy locatario (ya no es válido)', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: 'admin-1' } }, error: null })
+    const res = await PATCH(
+      makeRequest({ method: 'PATCH', headers: authHeader(), body: { role: 'locatario' } }),
+      { params: { id: 'u2' } },
+    )
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toMatch(/rol inválido/i)
+  })
+
+  it('acepta los roles válidos: user, admin', async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: 'admin-1' } }, error: null })
 
-    for (const role of ['user', 'locatario', 'admin']) {
+    for (const role of ['user', 'admin']) {
       // Resetear el chain para que update/select/eq/single funcionen en cadena
       const chain: Record<string, jest.Mock> = {
         select: jest.fn().mockReturnThis(),

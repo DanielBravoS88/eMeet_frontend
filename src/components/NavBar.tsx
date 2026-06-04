@@ -29,11 +29,11 @@ export default function NavBar() {
       icon: FiLock, 
       show: user.role === 'admin' 
     },
-    { 
-      label: 'Panel Locatario', 
-      href: '/locatario', 
-      icon: FiBriefcase, 
-      show: user.role === 'locatario' 
+    {
+      label: 'Mis eventos',
+      href: '/creator',
+      icon: FiBriefcase,
+      show: !!user.isEventCreator
     },
   ]
 
@@ -83,7 +83,7 @@ export default function NavBar() {
               <div className="text-left">
                 <p className="text-sm font-semibold text-white">{user.name}</p>
                 <p className="text-xs text-muted capitalize">
-                  {user.role === 'user' ? 'Usuario' : user.role === 'admin' ? 'Administrador' : 'Locatario'}
+                  {user.role === 'admin' ? 'Administrador' : user.isEventCreator ? 'Creador' : 'Usuario'}
                 </p>
               </div>
             </div>
@@ -136,7 +136,7 @@ export default function NavBar() {
                 <div>
                   <p className="text-sm font-semibold text-white">{user.name}</p>
                   <p className="text-xs text-muted capitalize">
-                    {user.role === 'user' ? 'Usuario' : user.role === 'admin' ? 'Administrador' : 'Locatario'}
+                    {user.role === 'admin' ? 'Administrador' : user.isEventCreator ? 'Creador' : 'Usuario'}
                   </p>
                 </div>
               </div>

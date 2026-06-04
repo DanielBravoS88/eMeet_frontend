@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SignUpForm from '@/src/components/SignUpForm'
 
@@ -30,7 +30,7 @@ function renderForm() {
   return render(<SignUpForm />)
 }
 
-async function fillAndSubmitUser(user: ReturnType<typeof userEvent.setup>) {
+async function fillAndSubmit(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByPlaceholderText('Juan Pérez'), 'Carlos Test')
   await user.type(screen.getByPlaceholderText('tu@email.com'), 'carlos@emeet.com')
   await user.type(screen.getByLabelText('Contraseña'), 'Abc123!!')
@@ -42,38 +42,15 @@ async function fillAndSubmitUser(user: ReturnType<typeof userEvent.setup>) {
 
 describe('SignUpForm', () => {
   describe('renderizado inicial', () => {
-    it('muestra el título y el selector de tipo de cuenta', () => {
+    it('muestra el título y la descripción de registro único', () => {
       renderForm()
       expect(screen.getByText('Crea tu cuenta')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /usuario regular/i })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /soy locatario/i })).toBeInTheDocument()
+      expect(screen.getByText(/activar el modo creador desde tu perfil/i)).toBeInTheDocument()
     })
 
-    it('empieza en modo usuario (campo nombre visible, no nombre de negocio)', () => {
+    it('no muestra selector de tipo de cuenta ni campos de negocio', () => {
       renderForm()
-      expect(screen.getByPlaceholderText('Juan Pérez')).toBeInTheDocument()
-      expect(screen.queryByPlaceholderText('Mi Restaurante')).not.toBeInTheDocument()
-    })
-  })
-
-  describe('cambio de rol', () => {
-    it('al seleccionar Locatario muestra campos de negocio', async () => {
-      const user = userEvent.setup()
-      renderForm()
-
-      await user.click(screen.getByRole('button', { name: /soy locatario/i }))
-
-      expect(screen.getByPlaceholderText('Mi Restaurante')).toBeInTheDocument()
-      expect(screen.queryByPlaceholderText('Juan Pérez')).not.toBeInTheDocument()
-    })
-
-    it('al volver a Usuario oculta campos de negocio', async () => {
-      const user = userEvent.setup()
-      renderForm()
-
-      await user.click(screen.getByRole('button', { name: /soy locatario/i }))
-      await user.click(screen.getByRole('button', { name: /usuario regular/i }))
-
+      expect(screen.queryByRole('button', { name: /soy locatario/i })).not.toBeInTheDocument()
       expect(screen.queryByPlaceholderText('Mi Restaurante')).not.toBeInTheDocument()
       expect(screen.getByPlaceholderText('Juan Pérez')).toBeInTheDocument()
     })
@@ -112,52 +89,32 @@ describe('SignUpForm', () => {
       )
       expect(mockRegister).not.toHaveBeenCalled()
     })
-
-    it('exige nombre de negocio para locatario', async () => {
-      const user = userEvent.setup()
-      renderForm()
-
-      await user.click(screen.getByRole('button', { name: /soy locatario/i }))
-      await user.type(screen.getByPlaceholderText('tu@email.com'), 'loc@emeet.com')
-      await user.type(screen.getByLabelText('Contraseña'), 'Abc123!!')
-      await user.type(screen.getByLabelText('Confirmar contraseña'), 'Abc123!!')
-      // fireEvent.submit bypasses HTML5 required-field validation so the JS handler runs
-      fireEvent.submit(screen.getByRole('button', { name: /crear cuenta/i }).closest('form')!)
-
-      await waitFor(() =>
-        expect(screen.getByText('Ingresa el nombre del negocio')).toBeInTheDocument(),
-      )
-    })
   })
 
   describe('registro exitoso', () => {
-    it('redirige a / para usuario regular sin needsEmailVerification', async () => {
+    it('llama a register con nombre, email y contraseña', async () => {
       const user = userEvent.setup()
       renderForm()
-      await fillAndSubmitUser(user)
+      await fillAndSubmit(user)
 
-      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/'))
+      await waitFor(() =>
+        expect(mockRegister).toHaveBeenCalledWith('Carlos Test', 'carlos@emeet.com', 'Abc123!!'),
+      )
     })
 
-    it('redirige a /locatario para locatario sin needsEmailVerification', async () => {
+    it('redirige a / sin needsEmailVerification', async () => {
       const user = userEvent.setup()
       renderForm()
+      await fillAndSubmit(user)
 
-      await user.click(screen.getByRole('button', { name: /soy locatario/i }))
-      await user.type(screen.getByPlaceholderText('Mi Restaurante'), 'Bar Central')
-      await user.type(screen.getByPlaceholderText('tu@email.com'), 'loc@emeet.com')
-      await user.type(screen.getByLabelText('Contraseña'), 'Abc123!!')
-      await user.type(screen.getByLabelText('Confirmar contraseña'), 'Abc123!!')
-      await user.click(screen.getByRole('button', { name: /crear cuenta/i }))
-
-      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/locatario'))
+      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/'))
     })
 
     it('redirige a verify-email si needsEmailVerification es true', async () => {
       mockRegister.mockResolvedValue({ needsEmailVerification: true, email: 'carlos@emeet.com' })
       const user = userEvent.setup()
       renderForm()
-      await fillAndSubmitUser(user)
+      await fillAndSubmit(user)
 
       await waitFor(() =>
         expect(mockPush).toHaveBeenCalledWith(
@@ -170,7 +127,7 @@ describe('SignUpForm', () => {
       mockGet.mockReturnValue('/mi-perfil')
       const user = userEvent.setup()
       renderForm()
-      await fillAndSubmitUser(user)
+      await fillAndSubmit(user)
 
       await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/mi-perfil'))
     })
@@ -196,7 +153,7 @@ describe('SignUpForm', () => {
       mockRegister.mockRejectedValue(new Error('Email ya registrado'))
       const user = userEvent.setup()
       renderForm()
-      await fillAndSubmitUser(user)
+      await fillAndSubmit(user)
 
       await waitFor(() => expect(screen.getByText('Email ya registrado')).toBeInTheDocument())
       expect(mockPush).not.toHaveBeenCalled()

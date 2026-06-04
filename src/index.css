@@ -208,3 +208,46 @@ html, body {
     color: color-mix(in srgb, var(--muted-foreground) 50%, transparent);
   }
 }
+
+/*
+ * Fix de legibilidad en inputs (tema oscuro).
+ *
+ * 1) El autocompletado de Chrome/Safari fuerza un fondo claro y su propio
+ *    color de texto, dejando el texto blanco invisible mientras escribes o
+ *    cuando el navegador rellena el campo. Forzamos el color de relleno y
+ *    pintamos el fondo oscuro con un box-shadow interior.
+ * 2) Aseguramos un caret y un color de selección visibles en todos los inputs.
+ *
+ * Va fuera de @layer a propósito: así gana a las utilidades de Tailwind y a
+ * los estilos del navegador sin necesitar !important en cada campo.
+ */
+input,
+textarea,
+select {
+  caret-color: #ffffff;
+  color-scheme: dark;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px var(--color-card) inset;
+  box-shadow: 0 0 0 1000px var(--color-card) inset;
+  /* Evita el flash del fondo amarillo de autofill */
+  transition: background-color 600000s 0s, color 600000s 0s;
+}
+
+input::selection,
+textarea::selection {
+  background-color: rgba(124, 58, 237, 0.55);
+  color: #ffffff;
+}

@@ -30,7 +30,7 @@ export default function LoginForm() {
         return
       }
 
-      router.push(role === 'locatario' ? '/locatario' : role === 'admin' ? '/admin' : '/')
+      router.push(role === 'admin' ? '/admin' : '/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido al iniciar sesión')
     } finally {
@@ -43,7 +43,7 @@ export default function LoginForm() {
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-white">Bienvenido de regreso</h2>
         <p className="text-sm text-slate-400">Ingresa tu correo y contraseña para continuar.</p>
-        <p className="text-xs text-slate-500">Use emails de prueba: user@emeet.com, admin@emeet.com o locatario@emeet.com.</p>
+        <p className="text-xs text-slate-500">Emails de prueba: user@emeet.com o admin@emeet.com.</p>
       </div>
 
       {error && (

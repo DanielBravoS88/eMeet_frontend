@@ -93,7 +93,7 @@ export default function AuthPage() {
             <div className="space-y-2.5">
               {[
                 'Descubre lugares en Santiago con recomendaciones personalizadas.',
-                'Regístrate como usuario o locatario y gestiona eventos desde el panel.',
+                'Regístrate y activa el modo creador para organizar tus propios eventos.',
                 'Accede rápido con cuentas demo para probar la app.',
               ].map((text, i) => (
                 <div key={i} className="flex items-start gap-3 rounded-xl border border-violet-500/12 bg-violet-500/6 px-4 py-3">

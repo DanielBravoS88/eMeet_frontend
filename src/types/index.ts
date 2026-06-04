@@ -44,8 +44,16 @@ export interface Event {
   audioPreviewUrl?: string | null  // URL de preview 30s de Deezer
 }
 
-/** Roles disponibles en la plataforma */
-export type UserRole = 'user' | 'admin' | 'locatario'
+/** Roles disponibles en la plataforma.
+ *  - 'user'  : usuario regular (todos por defecto). Puede convertirse en creador de eventos
+ *              activando el flag isEventCreator en el perfil.
+ *  - 'admin' : moderación, finanzas, gestión de usuarios.
+ *
+ *  Nota: el rol 'locatario' fue eliminado en favor de un flag `isEventCreator`
+ *  sobre `user`. Cualquier usuario puede ser creador sin necesidad de una cuenta
+ *  separada.
+ */
+export type UserRole = 'user' | 'admin'
 
 /**
  * Perfil del usuario autenticado.
@@ -55,6 +63,11 @@ export interface User {
   name: string
   email: string
   role: UserRole
+  /**
+   * Si está activo, el usuario puede crear y gestionar eventos desde /creator.
+   * Reemplaza al antiguo rol 'locatario'.
+   */
+  isEventCreator?: boolean
   avatarUrl?: string
   bio?: string
   interests: EventCategory[]
@@ -64,6 +77,7 @@ export interface User {
   createdAt?: string // ISO 8601
   isVerified?: boolean
   phone?: string
+  /** Solo presentes cuando isEventCreator === true */
   businessName?: string
   businessLocation?: string
 }

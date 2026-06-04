@@ -26,7 +26,9 @@ export async function PATCH(
   const body = (await request.json()) as { role?: string }
   const role = body.role
 
-  if (role !== 'user' && role !== 'locatario' && role !== 'admin') {
+  // Modelo unificado: solo 'user' y 'admin'. El rol 'locatario' fue eliminado
+  // (la capacidad de crear eventos ahora es la flag is_event_creator).
+  if (role !== 'user' && role !== 'admin') {
     return NextResponse.json({ error: 'Rol inválido' }, { status: 400 })
   }
 

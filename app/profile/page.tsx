@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Layout from '../../src/components/Layout'
+import CreatorModeSection from '../../src/components/CreatorModeSection'
 import { useAuth } from '../../src/context/AuthContext'
 import { useChatContext } from '../../src/context/ChatContext'
 import { getSupabaseBrowserClient, hasSupabaseEnv } from '../../src/lib/supabase'
@@ -64,6 +65,10 @@ function ProfilePageContent() {
   const { user, logout, updateUser, isAuthReady, authError, refreshAuth } = useAuth()
   const { rooms, totalUnread } = useChatContext()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  // Si vienen desde middleware al intentar acceder a /creator sin permiso,
+  // se abre automáticamente el modal de activación.
+  const autoOpenCreator = searchParams?.get('activate-creator') === '1'
 
   const [avatarError, setAvatarError] = useState(false)
   const [savedPreviews, setSavedPreviews] = useState<SavedEventPreview[]>([])
@@ -618,6 +623,9 @@ function ProfilePageContent() {
               })}
             </div>
           </motion.div>
+
+          {/* ── Modo creador ── */}
+          <CreatorModeSection autoOpen={autoOpenCreator} />
 
           {/* ── Cuenta ── */}
           <motion.div variants={itemVariants}>

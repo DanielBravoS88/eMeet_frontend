@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '../context/AuthContext'
 import {
   FiUser, FiUserPlus, FiMail, FiLock, FiEye, FiEyeOff,
-  FiBriefcase, FiMapPin, FiCheck, FiX,
+  FiCheck, FiX,
 } from 'react-icons/fi'
 
 function getPasswordStrength(password: string): { score: number; label: string; color: string } {
@@ -30,22 +30,18 @@ export default function SignUpForm() {
   const searchParams = useSearchParams()
   const { register } = useAuth()
 
-  const [role, setRole] = useState<'user' | 'locatario'>('user')
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    businessName: '',
-    location: '',
-    bio: '',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
@@ -67,19 +63,8 @@ export default function SignUpForm() {
       return
     }
 
-    if (role === 'locatario' && !formData.businessName) {
-      setError('Ingresa el nombre del negocio')
-      setIsLoading(false)
-      return
-    }
-
     try {
-      const name = role === 'locatario' ? formData.businessName : formData.name
-      const result = await register(name, formData.email, formData.password, {
-        role,
-        businessName: role === 'locatario' ? formData.businessName : undefined,
-        businessLocation: role === 'locatario' ? formData.location : undefined,
-      })
+      const result = await register(formData.name, formData.email, formData.password)
 
       if (result.needsEmailVerification) {
         router.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`)
@@ -92,7 +77,7 @@ export default function SignUpForm() {
         return
       }
 
-      router.push(role === 'locatario' ? '/locatario' : '/')
+      router.push('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrarte')
     } finally {
@@ -110,7 +95,9 @@ export default function SignUpForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold text-white">Crea tu cuenta</h2>
-        <p className="text-sm text-slate-400">Regístrate como usuario o locatario y comienza a explorar.</p>
+        <p className="text-sm text-slate-400">
+          Regístrate con tu correo. Después podrás activar el modo creador desde tu perfil si quieres organizar eventos.
+        </p>
       </div>
 
       {error && (
@@ -119,52 +106,19 @@ export default function SignUpForm() {
         </div>
       )}
 
-      {/* Selector de rol */}
+      {/* Nombre */}
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-3">Tipo de cuenta</label>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => setRole('user')}
-            className={`flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-sm font-medium transition-all ${
-              role === 'user'
-                ? 'bg-[hsl(262,80%,60%)] text-white shadow-lg'
-                : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
-            }`}
-          >
-            <FiUser size={18} />
-            Usuario Regular
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole('locatario')}
-            className={`flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-sm font-medium transition-all ${
-              role === 'locatario'
-                ? 'bg-violet-500/20 border border-violet-400/40 text-violet-200 shadow-lg'
-                : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
-            }`}
-          >
-            <FiBriefcase size={18} />
-            Soy Locatario
-          </button>
+        <label htmlFor="name" className="block text-sm font-medium text-white mb-2">Tu nombre</label>
+        <div className="relative">
+          <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            id="name" name="name" type="text"
+            value={formData.name} onChange={handleChange}
+            required placeholder="Juan Pérez"
+            className={`${inputBase} pl-10 pr-4`}
+          />
         </div>
       </div>
-
-      {/* Nombre (usuario regular) */}
-      {role === 'user' && (
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-white mb-2">Tu nombre</label>
-          <div className="relative">
-            <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              id="name" name="name" type="text"
-              value={formData.name} onChange={handleChange}
-              required placeholder="Juan Pérez"
-              className={`${inputBase} pl-10 pr-4`}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Email */}
       <div>
@@ -250,47 +204,6 @@ export default function SignUpForm() {
           <p className="mt-1 text-xs text-red-400">Las contraseñas no coinciden</p>
         )}
       </div>
-
-      {/* Campos de locatario */}
-      {role === 'locatario' && (
-        <>
-          <div>
-            <label htmlFor="businessName" className="block text-sm font-medium text-white mb-2">Nombre del negocio</label>
-            <div className="relative">
-              <FiBriefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                id="businessName" name="businessName" type="text"
-                value={formData.businessName} required onChange={handleChange}
-                placeholder="Mi Restaurante"
-                className={`${inputBase} pl-10 pr-4`}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="location" className="block text-sm font-medium text-white mb-2">Ubicación</label>
-            <div className="relative">
-              <FiMapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                id="location" name="location" type="text"
-                value={formData.location} onChange={handleChange}
-                placeholder="Santiago, Chile"
-                className={`${inputBase} pl-10 pr-4`}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="bio" className="block text-sm font-medium text-white mb-2">Sobre ti (opcional)</label>
-            <textarea
-              id="bio" name="bio"
-              value={formData.bio} onChange={handleChange}
-              rows={3} placeholder="Cuéntanos sobre tu negocio..."
-              className={`${inputBase} px-4 resize-none`}
-            />
-          </div>
-        </>
-      )}
 
       <button
         type="submit"
