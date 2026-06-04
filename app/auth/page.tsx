@@ -30,7 +30,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null)
   const [oauthError, setOauthError] = useState('')
-  const { loginWithGoogle, loginWithApple } = useAuth()
+  const { loginWithGoogle } = useAuth()
 
   const handleGoogle = async () => {
     setOauthError('')
@@ -39,17 +39,6 @@ export default function AuthPage() {
       await loginWithGoogle()
     } catch {
       setOauthError('No se pudo conectar con Google. Intenta de nuevo.')
-      setOauthLoading(null)
-    }
-  }
-
-  const handleApple = async () => {
-    setOauthError('')
-    setOauthLoading('apple')
-    try {
-      await loginWithApple()
-    } catch {
-      setOauthError('No se pudo conectar con Apple. Intenta de nuevo.')
       setOauthLoading(null)
     }
   }
