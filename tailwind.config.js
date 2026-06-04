@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,16 +9,54 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Paleta metálica morado-plata eMeet
+        // ── Tokens shadcn/ui (CSS variables) ────────────────────────────────────
+        background:  'var(--background)',
+        foreground:  'var(--foreground)',
+        border:      'var(--border)',
+        input:       'var(--input)',
+        ring:        'var(--ring)',
         primary: {
-          DEFAULT: '#7C3AED',   // violeta principal
-          light: '#C4B5FD',     // lavanda / plata-morada
-          dark: '#5B21B6',
+          DEFAULT:   'var(--primary)',
+          foreground:'var(--primary-foreground)',
         },
-        silver: '#D4C8F0',      // plata con tinte morado
-        surface: '#07040F',     // fondo base casi negro-púrpura
-        card: '#100A1F',        // superficies de tarjeta
-        muted: '#A5B4FC',       // texto secundario (azul-lavanda)
+        secondary: {
+          DEFAULT:   'var(--secondary)',
+          foreground:'var(--secondary-foreground)',
+        },
+        muted: {
+          DEFAULT:   'var(--muted)',
+          foreground:'var(--muted-foreground)',
+        },
+        accent: {
+          DEFAULT:   'var(--accent)',
+          foreground:'var(--accent-foreground)',
+        },
+        destructive: {
+          DEFAULT:   'var(--destructive)',
+        },
+        card: {
+          DEFAULT:   'var(--card)',
+          foreground:'var(--card-foreground)',
+        },
+        popover: {
+          DEFAULT:   'var(--popover)',
+          foreground:'var(--popover-foreground)',
+        },
+        sidebar: {
+          DEFAULT:              'var(--sidebar)',
+          foreground:           'var(--sidebar-foreground)',
+          primary:              'var(--sidebar-primary)',
+          'primary-foreground': 'var(--sidebar-primary-foreground)',
+          accent:               'var(--sidebar-accent)',
+          'accent-foreground':  'var(--sidebar-accent-foreground)',
+          border:               'var(--sidebar-border)',
+          ring:                 'var(--sidebar-ring)',
+        },
+        // ── Paleta estática eMeet (no duplicar tokens shadcn) ───────────────────
+        'primary-light': '#C4B5FD',  // lavanda (también disponible como CSS var)
+        'primary-dark':  '#5B21B6',
+        silver:  '#D4C8F0',      // plata con tinte morado
+        surface: '#07040F',      // fondo base casi negro-púrpura
         // ── Admin panel palette (enterprise dark) ────────
         em: {
           bg: '#0B0E11',
