@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { GoogleMap, OverlayView, useJsApiLoader } from '@react-google-maps/api'
 import type { Libraries } from '@react-google-maps/api'
-import { FiNavigation, FiLoader } from 'react-icons/fi'
+import { FiNavigation, FiLoader, FiSearch } from 'react-icons/fi'
 
 const LIBRARIES: Libraries = ['places']
 
@@ -44,10 +44,19 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 
 interface LocationPickerMapProps {
   value: { lat: number; lng: number } | null
+  /** Dirección actual resuelta (controla el texto del buscador). */
+  address?: string
   onLocationChange: (coords: { lat: number; lng: number }, address: string) => void
+  /** Se llama cuando el usuario escribe libremente sin elegir una sugerencia. */
+  onAddressChange?: (address: string) => void
 }
 
-export function LocationPickerMap({ value, onLocationChange }: LocationPickerMapProps) {
+export function LocationPickerMap({
+  value,
+  address = '',
+  onLocationChange,
+  onAddressChange,
+}: LocationPickerMapProps) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'script-loader',
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -57,6 +66,15 @@ export function LocationPickerMap({ value, onLocationChange }: LocationPickerMap
 
   const [gpsLoading, setGpsLoading] = useState(false)
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null)
+  const [inputValue, setInputValue] = useState(address)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
+
+  // Sincroniza el texto del buscador cuando la dirección resuelta cambia
+  // desde fuera (click en el mapa, GPS o estado del formulario).
+  useEffect(() => {
+    setInputValue(address)
+  }, [address])
 
   const onLoad = useCallback((map: google.maps.Map) => {
     setMapInstance(map)
@@ -69,12 +87,38 @@ export function LocationPickerMap({ value, onLocationChange }: LocationPickerMap
     }
   }, [value, mapInstance])
 
+  // Inicializa el autocompletado de Google Places sobre el input de búsqueda.
+  useEffect(() => {
+    if (!isLoaded || !inputRef.current || autocompleteRef.current) return
+    if (!window.google?.maps?.places) return
+
+    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+      fields: ['geometry', 'formatted_address', 'name'],
+      componentRestrictions: { country: 'cl' },
+    })
+    autocompleteRef.current = autocomplete
+
+    const listener = autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace()
+      const loc = place.geometry?.location
+      if (!loc) return
+      const lat = loc.lat()
+      const lng = loc.lng()
+      const resolved = place.formatted_address || place.name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+      setInputValue(resolved)
+      onLocationChange({ lat, lng }, resolved)
+    })
+
+    return () => listener.remove()
+  }, [isLoaded, onLocationChange])
+
   const handleMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng) return
     const lat = e.latLng.lat()
     const lng = e.latLng.lng()
-    const address = await reverseGeocode(lat, lng)
-    onLocationChange({ lat, lng }, address)
+    const resolved = await reverseGeocode(lat, lng)
+    setInputValue(resolved)
+    onLocationChange({ lat, lng }, resolved)
   }, [onLocationChange])
 
   const handleGPS = useCallback(async () => {
@@ -84,8 +128,9 @@ export function LocationPickerMap({ value, onLocationChange }: LocationPickerMap
       async ({ coords }) => {
         const lat = coords.latitude
         const lng = coords.longitude
-        const address = await reverseGeocode(lat, lng)
-        onLocationChange({ lat, lng }, address)
+        const resolved = await reverseGeocode(lat, lng)
+        setInputValue(resolved)
+        onLocationChange({ lat, lng }, resolved)
         setGpsLoading(false)
       },
       () => setGpsLoading(false),
@@ -93,35 +138,72 @@ export function LocationPickerMap({ value, onLocationChange }: LocationPickerMap
     )
   }, [onLocationChange])
 
+  // Buscador de dirección reutilizable (con o sin Google cargado).
+  const searchInput = (
+    <div className="relative">
+      <FiSearch
+        size={14}
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-violet-300/50"
+      />
+      <input
+        ref={inputRef}
+        type="text"
+        placeholder="Escribe una dirección (ej. Av. Providencia 1234)"
+        value={inputValue}
+        onChange={(e) => {
+          setInputValue(e.target.value)
+          onAddressChange?.(e.target.value)
+        }}
+        // Evita que Enter envíe el formulario al elegir una sugerencia.
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.preventDefault()
+        }}
+        className="w-full rounded-xl border border-violet-500/20 bg-violet-500/8 py-2.5 pl-9 pr-3 text-sm text-white placeholder-violet-300/30 outline-none transition-colors focus:border-violet-500/70"
+      />
+    </div>
+  )
+
   if (!GOOGLE_MAPS_API_KEY) {
+    // Sin API key: al menos permite escribir la dirección manualmente.
     return (
-      <div className="h-44 rounded-xl bg-surface border border-card flex flex-col items-center justify-center gap-2 text-center px-4">
-        <span className="text-2xl">🗺️</span>
-        <p className="text-muted text-xs">
-          Configura <code className="text-primary-light">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> para activar el selector de mapa.
-        </p>
+      <div className="space-y-2">
+        {searchInput}
+        <div className="h-40 rounded-xl bg-surface border border-card flex flex-col items-center justify-center gap-2 text-center px-4">
+          <span className="text-2xl">🗺️</span>
+          <p className="text-muted text-xs">
+            Configura <code className="text-primary-light">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> para activar el mapa y las sugerencias.
+          </p>
+        </div>
       </div>
     )
   }
 
   if (loadError) {
     return (
-      <div className="h-44 rounded-xl bg-surface border border-card flex items-center justify-center text-red-400 text-xs">
-        Error al cargar el mapa
+      <div className="space-y-2">
+        {searchInput}
+        <div className="h-40 rounded-xl bg-surface border border-card flex items-center justify-center text-red-400 text-xs">
+          Error al cargar el mapa
+        </div>
       </div>
     )
   }
 
   if (!isLoaded) {
     return (
-      <div className="h-44 rounded-xl bg-surface border border-card flex items-center justify-center gap-2 text-muted text-sm">
-        <FiLoader className="animate-spin" size={15} />
-        Cargando mapa...
+      <div className="space-y-2">
+        {searchInput}
+        <div className="h-40 rounded-xl bg-surface border border-card flex items-center justify-center gap-2 text-muted text-sm">
+          <FiLoader className="animate-spin" size={15} />
+          Cargando mapa...
+        </div>
       </div>
     )
   }
 
   return (
+    <div className="space-y-2">
+    {searchInput}
     <div className="relative rounded-xl overflow-hidden border border-card">
       <div style={{ height: '192px' }}>
         <GoogleMap
@@ -179,6 +261,7 @@ export function LocationPickerMap({ value, onLocationChange }: LocationPickerMap
         {gpsLoading ? <FiLoader className="animate-spin" size={11} /> : <FiNavigation size={11} />}
         Mi ubicación
       </button>
+    </div>
     </div>
   )
 }

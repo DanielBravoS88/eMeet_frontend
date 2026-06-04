@@ -75,6 +75,7 @@ export default function SwipeCard({
   const [audioBlocked, setAudioBlocked] = useState(false)
 
   const isActive = stackIndex === 0
+  const hasAudio = Boolean(event.audioPreviewUrl || event.audioTrackId)
 
   useEffect(() => {
     const video = videoRef.current
@@ -86,20 +87,53 @@ export default function SwipeCard({
     }
   }, [isActive])
 
+  /**
+   * Resuelve la URL de preview a usar. Las URLs guardadas en la base caducan
+   * (Deezer las firma con un `exp`), así que si el evento trae el ID estable
+   * del track pedimos un preview fresco a `/api/deezer/track`. La URL guardada
+   * queda solo como respaldo (eventos antiguos sin ID).
+   */
+  async function resolveAudioUrl(): Promise<string | null> {
+    if (event.audioTrackId) {
+      try {
+        const res = await fetch(`/api/deezer/track?id=${encodeURIComponent(event.audioTrackId)}`)
+        if (res.ok) {
+          const json = (await res.json()) as { preview?: string | null }
+          if (json.preview) return json.preview
+        }
+      } catch {
+        // cae al respaldo
+      }
+    }
+    return event.audioPreviewUrl ?? null
+  }
+
   // Reproducir/pausar audio preview de Deezer según carta activa
   useEffect(() => {
-    if (!event.audioPreviewUrl) return
+    if (!hasAudio) return
+
+    let cancelled = false
 
     if (isActive) {
-      if (!audioRef.current) {
-        const audio = new Audio(event.audioPreviewUrl)
-        audio.loop = true
-        audio.volume = 0.55
-        audioRef.current = audio
-      }
-      audioRef.current.play()
-        .then(() => { setIsAudioPlaying(true); setAudioBlocked(false) })
-        .catch(() => { setAudioBlocked(true); setIsAudioPlaying(false) })
+      ;(async () => {
+        if (!audioRef.current) {
+          const url = await resolveAudioUrl()
+          if (cancelled || !url) {
+            if (!url) setAudioBlocked(true)
+            return
+          }
+          if (!audioRef.current) {
+            const audio = new Audio(url)
+            audio.loop = true
+            audio.volume = 0.55
+            audioRef.current = audio
+          }
+        }
+        if (cancelled) return
+        audioRef.current.play()
+          .then(() => { setIsAudioPlaying(true); setAudioBlocked(false) })
+          .catch(() => { setAudioBlocked(true); setIsAudioPlaying(false) })
+      })()
     } else {
       if (audioRef.current) {
         audioRef.current.pause()
@@ -107,7 +141,10 @@ export default function SwipeCard({
         setIsAudioPlaying(false)
       }
     }
-  }, [isActive, event.audioPreviewUrl])
+
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, hasAudio, event.audioTrackId, event.audioPreviewUrl])
 
   // Limpiar audio al desmontar la carta
   useEffect(() => {
@@ -226,7 +263,7 @@ export default function SwipeCard({
         )}
 
         {/* Disco giratorio — se muestra cuando el evento tiene música */}
-        {event.audioPreviewUrl && isActive && (
+        {hasAudio && isActive && (
           <button
             onClick={(e) => {
               e.stopPropagation()

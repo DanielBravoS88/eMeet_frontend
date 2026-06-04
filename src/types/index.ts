@@ -41,7 +41,8 @@ export interface Event {
   isOpen?: boolean | null  // null = sin info
   lat?: number             // coordenada real del evento (si fue geolocado)
   lng?: number
-  audioPreviewUrl?: string | null  // URL de preview 30s de Deezer
+  audioPreviewUrl?: string | null  // URL de preview 30s de Deezer (efímera — caduca)
+  audioTrackId?: string | null     // ID estable de la canción en Deezer (para re-resolver el preview)
 }
 
 /** Roles disponibles en la plataforma.
