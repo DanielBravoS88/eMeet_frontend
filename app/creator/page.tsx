@@ -12,6 +12,7 @@ import { ImageUpload } from '@/src/components/ImageUpload'
 import { VideoUpload } from '@/src/components/VideoUpload'
 import { DateTimePicker } from '@/src/components/DateTimePicker'
 import { DeezerSearch } from '@/src/components/DeezerSearch'
+import { EventPreviewCard } from '@/src/components/EventPreviewCard'
 import dynamic from 'next/dynamic'
 const LocationPickerMap = dynamic(
   () => import('@/src/components/LocationPickerMap').then(m => m.LocationPickerMap),
@@ -1002,9 +1003,14 @@ export default function LocatarioPage() {
           onClick={(e) => { if (e.target === e.currentTarget) setShowCreateEvent(false) }}
         >
           <div
-            className="w-full max-w-lg overflow-y-auto rounded-t-2xl bg-card sm:rounded-2xl"
-            style={{ maxHeight: '92dvh', paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
+            className="flex w-full max-w-lg overflow-hidden rounded-t-2xl bg-card sm:rounded-2xl lg:max-w-4xl"
+            style={{ maxHeight: '92dvh' }}
           >
+            {/* Columna izquierda — formulario (scrollable) */}
+            <div
+              className="min-w-0 flex-1 overflow-y-auto"
+              style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}
+            >
             {/* Drag handle (solo móvil) */}
             <div className="mx-auto mt-3 mb-1 h-1.5 w-12 rounded-full bg-white/20 sm:hidden" />
 
@@ -1215,6 +1221,52 @@ export default function LocatarioPage() {
                 </button>
               </div>
             </div>
+            </div>
+
+            {/* Columna derecha — preview en vivo (solo desktop) */}
+            <aside className="hidden w-[380px] shrink-0 flex-col border-l border-white/10 bg-gradient-to-b from-violet-950/30 to-black/40 p-6 lg:flex">
+              <div className="mb-3 flex items-center justify-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted">Vista previa</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary-light">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary-light" />
+                  en vivo
+                </span>
+              </div>
+              <div className="relative mx-auto w-full max-w-[300px] flex-1" style={{ minHeight: 480 }}>
+                <div className="absolute inset-0">
+                  <EventPreviewCard
+                    event={{
+                      id: 'preview',
+                      title: eventForm.title || 'Nombre de tu evento',
+                      description: eventForm.description || 'La descripción de tu evento aparecerá aquí mientras escribes…',
+                      category: eventForm.category,
+                      date: eventForm.date,
+                      location: user?.businessName || user?.name || 'Tu negocio',
+                      address: eventForm.address || 'Santiago, Chile',
+                      distance: 0,
+                      price:
+                        eventForm.price.trim() === '' || Number.isNaN(Number(eventForm.price))
+                          ? null
+                          : Number(eventForm.price),
+                      imageUrl:
+                        eventForm.imageUrl ||
+                        'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=1200&q=80',
+                      videoUrl: eventForm.mediaType === 'video' ? eventForm.videoUrl || null : null,
+                      audioPreviewUrl: audioPreviewUrl,
+                      audioTrackId: audioTrackId,
+                      websiteUrl: null,
+                      organizerName: user?.businessName || user?.name || 'Tu negocio',
+                      organizerAvatar: user?.avatarUrl || 'https://i.pravatar.cc/150?img=32',
+                      attendees: 0,
+                      capacity: null,
+                      tags: [],
+                      isOpen: null,
+                    }}
+                  />
+                </div>
+              </div>
+              <p className="mt-3 text-center text-[11px] text-muted">Así se verá en el feed al deslizar</p>
+            </aside>
           </div>
         </div>
       )}
