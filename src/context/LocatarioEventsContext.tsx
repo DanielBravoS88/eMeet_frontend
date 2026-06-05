@@ -134,11 +134,11 @@ export function LocatarioEventsProvider({ children }: { children: ReactNode }) {
       const rows = await apiFetch<LocatarioEventRow[]>('/events/locatario')
       setLocatarioEvents(rows.map(dbRowToEvent))
     } catch (err) {
-      // 403 = el usuario no tiene rol locatario (ej: admin). No es un error real.
+      // 403 = usuario sin modo creador activo (o admin). No es un error real:
+      // simplemente no tiene eventos propios, así que devolvemos lista vacía.
       const msg = err instanceof Error ? err.message : ''
-      if (!msg.includes('permisos') && !msg.includes('403') && !msg.includes('permission')) {
-        throw err
-      }
+      const is403 = msg.includes('permisos') || msg.includes('403') || msg.includes('permission') || msg.includes('creador')
+      if (!is403) throw err
       setLocatarioEvents([])
     }
   }, [])
