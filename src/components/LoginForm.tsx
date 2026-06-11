@@ -1,12 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { motion, useAnimationControls, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
-import { FiMail, FiLock, FiEye, FiEyeOff, FiLogIn } from 'react-icons/fi'
+import { humanizeAuthError, type HumanAuthError } from '../lib/authErrors'
+import { FiMail, FiLock, FiEye, FiEyeOff, FiLogIn, FiAlertCircle } from 'react-icons/fi'
 
-export default function LoginForm() {
+interface LoginFormProps {
+  /** Llamado cuando el usuario quiere cambiar al panel de registro. */
+  onSwitchToSignup?: () => void
+}
+
+export default function LoginForm({ onSwitchToSignup }: LoginFormProps = {}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { login } = useAuth()
@@ -15,11 +22,25 @@ export default function LoginForm() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<HumanAuthError | null>(null)
+  // Bump se incrementa con cada error nuevo para re-disparar la animación shake
+  // incluso si el contenido del error es idéntico al anterior.
+  const [errorBump, setErrorBump] = useState(0)
+
+  const shakeControls = useAnimationControls()
+
+  useEffect(() => {
+    if (error) {
+      shakeControls.start({
+        x: [0, -10, 10, -8, 8, -4, 4, 0],
+        transition: { duration: 0.42, ease: 'easeInOut' },
+      })
+    }
+  }, [errorBump, shakeControls, error])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+    setError(null)
     setIsLoading(true)
 
     try {
@@ -29,40 +50,94 @@ export default function LoginForm() {
         router.push(next)
         return
       }
-
       router.push(role === 'admin' ? '/admin' : '/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido al iniciar sesión')
+      setError(humanizeAuthError(err))
+      setErrorBump((n) => n + 1)
     } finally {
       setIsLoading(false)
     }
   }
 
+  const emailHasError = error?.field === 'email'
+  const passwordHasError = error?.field === 'password'
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <motion.form animate={shakeControls} onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-white">Bienvenido de regreso</h2>
         <p className="text-sm text-slate-400">Ingresa tu correo y contraseña para continuar.</p>
         <p className="text-xs text-slate-500">Emails de prueba: user@emeet.com o admin@emeet.com.</p>
       </div>
 
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-300 text-sm">
-          {error}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {error && (
+          <motion.div
+            key={errorBump}
+            initial={{ opacity: 0, y: -4, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -4, height: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="overflow-hidden"
+            role="alert"
+            aria-live="assertive"
+          >
+            <div className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm">
+              <FiAlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-400" />
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="font-semibold text-red-200">{error.message}</p>
+                {error.hint && <p className="text-red-200/70">{error.hint}</p>}
+                {error.suggestion === 'forgot' && (
+                  <Link
+                    href="/auth/forgot-password"
+                    className="inline-block pt-1 text-xs font-semibold text-violet-300 underline-offset-2 hover:underline"
+                  >
+                    Recuperar contraseña →
+                  </Link>
+                )}
+                {error.suggestion === 'signup' && onSwitchToSignup && (
+                  <button
+                    type="button"
+                    onClick={onSwitchToSignup}
+                    className="inline-block pt-1 text-xs font-semibold text-violet-300 underline-offset-2 hover:underline"
+                  >
+                    Crear cuenta nueva →
+                  </button>
+                )}
+                {error.suggestion === 'verify' && (
+                  <Link
+                    href="/auth/verify-email"
+                    className="inline-block pt-1 text-xs font-semibold text-violet-300 underline-offset-2 hover:underline"
+                  >
+                    Reenviar correo de verificación →
+                  </Link>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Email */}
       <div>
         <label className="block text-sm font-medium text-white mb-2">Email</label>
         <div className="relative">
-          <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <FiMail
+            className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${
+              emailHasError ? 'text-red-400' : 'text-slate-400'
+            }`}
+          />
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="tu@email.com"
-            className="w-full bg-violet-500/8 border border-violet-500/20 hover:border-violet-500/40 focus:border-violet-500/70 outline-none py-3 pl-10 pr-4 rounded-xl text-white placeholder-violet-300/30 transition-colors"
+            aria-invalid={emailHasError || undefined}
+            className={`w-full bg-violet-500/8 outline-none py-3 pl-10 pr-4 rounded-xl text-white placeholder-violet-300/30 transition-colors ${
+              emailHasError
+                ? 'border border-red-500/60 focus:border-red-400'
+                : 'border border-violet-500/20 hover:border-violet-500/40 focus:border-violet-500/70'
+            }`}
             required
           />
         </div>
@@ -72,13 +147,22 @@ export default function LoginForm() {
       <div>
         <label className="block text-sm font-medium text-white mb-2">Contraseña</label>
         <div className="relative">
-          <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <FiLock
+            className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${
+              passwordHasError ? 'text-red-400' : 'text-slate-400'
+            }`}
+          />
           <input
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full bg-violet-500/8 border border-violet-500/20 hover:border-violet-500/40 focus:border-violet-500/70 outline-none py-3 pl-10 pr-12 rounded-xl text-white placeholder-violet-300/30 transition-colors"
+            aria-invalid={passwordHasError || undefined}
+            className={`w-full bg-violet-500/8 outline-none py-3 pl-10 pr-12 rounded-xl text-white placeholder-violet-300/30 transition-colors ${
+              passwordHasError
+                ? 'border border-red-500/60 focus:border-red-400'
+                : 'border border-violet-500/20 hover:border-violet-500/40 focus:border-violet-500/70'
+            }`}
             required
           />
           <button
@@ -111,6 +195,6 @@ export default function LoginForm() {
         <FiLogIn size={20} />
         {isLoading ? 'Iniciando sesión...' : 'Inicia Sesión'}
       </button>
-    </form>
+    </motion.form>
   )
 }

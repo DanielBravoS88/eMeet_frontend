@@ -147,7 +147,11 @@ export default function AuthPage() {
                   exit={{ opacity: 0, y: -16 }}
                   transition={{ duration: 0.22, ease: 'easeOut' }}
                 >
-                  {mode === 'login' ? <LoginForm /> : <SignUpForm />}
+                  {mode === 'login' ? (
+                    <LoginForm onSwitchToSignup={() => setMode('signup')} />
+                  ) : (
+                    <SignUpForm />
+                  )}
                 </motion.div>
               </AnimatePresence>
 
