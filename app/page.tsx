@@ -278,15 +278,27 @@ function CommunityEventsPanel({
         </div>
       ) : (
         <div className="flex-1 space-y-3 overflow-y-auto pr-0.5">
-          {events.map((event) => (
-            <CommunityEventCard
+          {events.map((event, index) => (
+            <motion.div
               key={event.id}
-              event={event}
-              isLiked={likedIds.has(event.id)}
-              isSaved={savedIds.has(event.id)}
-              onViewCard={() => onViewCard(event)}
-              onSave={() => onSave(event.id)}
-            />
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              // Stagger encadenado: cada card entra 60ms después de la anterior.
+              // Limitamos el delay máximo para que listas grandes no tarden eones.
+              transition={{
+                duration: 0.32,
+                delay: Math.min(index * 0.06, 0.6),
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
+              <CommunityEventCard
+                event={event}
+                isLiked={likedIds.has(event.id)}
+                isSaved={savedIds.has(event.id)}
+                onViewCard={() => onViewCard(event)}
+                onSave={() => onSave(event.id)}
+              />
+            </motion.div>
           ))}
         </div>
       )}
