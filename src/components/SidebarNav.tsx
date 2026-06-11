@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { motion, LayoutGroup } from 'framer-motion'
 import { HiHome, HiBookmark, HiUser } from 'react-icons/hi'
 import { HiMagnifyingGlass, HiChatBubbleLeftRight } from 'react-icons/hi2'
 import { HiBuildingStorefront, HiSparkles } from 'react-icons/hi2'
@@ -94,6 +95,7 @@ export default function SidebarNav() {
           Menú
         </p>
 
+        <LayoutGroup id="sidebar-active-pill">
         {NAV_ITEMS.map(({ href, label, description, icon: Icon }) => {
           const active = isRouteActive(href)
           return (
@@ -102,16 +104,28 @@ export default function SidebarNav() {
               href={href}
               className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                 active
-                  ? 'bg-violet-500/15 text-white shadow-[inset_0_1px_0_rgba(196,181,253,0.12)]'
+                  ? 'text-white shadow-[inset_0_1px_0_rgba(196,181,253,0.12)]'
                   : 'text-violet-300/60 hover:bg-violet-500/8 hover:text-white'
               }`}
             >
-              {/* Indicador activo */}
+              {/* Fondo del item activo — se desliza entre items con layoutId */}
               {active && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r-full bg-violet-400" />
+                <motion.span
+                  layoutId="sidebar-pill-bg"
+                  className="absolute inset-0 rounded-xl bg-violet-500/15"
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                />
+              )}
+              {/* Indicador vertical — se desliza con el mismo layoutId compartido */}
+              {active && (
+                <motion.span
+                  layoutId="sidebar-pill-bar"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r-full bg-violet-400"
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                />
               )}
 
-              <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
+              <div className={`relative flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
                 active
                   ? 'bg-violet-500/25 text-violet-300'
                   : 'bg-white/5 text-violet-400/50 group-hover:bg-violet-500/15 group-hover:text-violet-300'
@@ -119,7 +133,7 @@ export default function SidebarNav() {
                 <Icon className="h-[18px] w-[18px]" />
               </div>
 
-              <div className="flex-1 min-w-0">
+              <div className="relative flex-1 min-w-0">
                 <p className="leading-none">{label}</p>
                 {!active && (
                   <p className="mt-0.5 text-[11px] leading-none text-violet-400/35 group-hover:text-violet-400/60 truncate">
@@ -129,7 +143,7 @@ export default function SidebarNav() {
               </div>
 
               {href === '/chat' && totalUnread > 0 && (
-                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full
+                <span className="relative flex h-5 min-w-[20px] items-center justify-center rounded-full
                   bg-violet-500 px-1.5 text-[11px] font-bold text-white
                   shadow-[0_0_10px_rgba(124,58,237,0.5)]">
                   {totalUnread > 9 ? '9+' : totalUnread}
@@ -138,6 +152,7 @@ export default function SidebarNav() {
             </Link>
           )
         })}
+        </LayoutGroup>
       </nav>
 
       {/* Footer del sidebar */}

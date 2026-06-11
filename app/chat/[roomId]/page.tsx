@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChatContext } from '../../../src/context/ChatContext'
 import { useAuth } from '../../../src/context/AuthContext'
+import { getSupabaseBrowserClient, hasSupabaseEnv } from '../../../src/lib/supabase'
 import { HiArrowLeft, HiPaperAirplane, HiMapPin } from 'react-icons/hi2'
 import { HiDotsVertical } from 'react-icons/hi'
 
@@ -59,6 +60,106 @@ export default function ChatRoomRoutePage() {
     roomError?.toLowerCase().includes('miembro') ||
     roomError?.toLowerCase().includes('403') ||
     roomError?.toLowerCase().includes('no tienes')
+
+  // ── Presencia + typing en vivo (Supabase Realtime) ─────────────────────────
+  // Usa un canal por sala con dos features:
+  //   • presence: cuántos están conectados ahora mismo
+  //   • broadcast (event 'typing'): quién está escribiendo
+  // Ambos viven solo mientras el componente está montado.
+  type PresencePeer = { name: string }
+  type TypingPeer = { name: string; expiresAt: number }
+  const [onlinePeers, setOnlinePeers] = useState<Map<string, PresencePeer>>(new Map())
+  const [typingPeers, setTypingPeers] = useState<Map<string, TypingPeer>>(new Map())
+  const channelRef = useRef<ReturnType<ReturnType<typeof getSupabaseBrowserClient>['channel']> | null>(null)
+  const lastTypingSentRef = useRef<number>(0)
+
+  useEffect(() => {
+    if (!roomId || !user || !hasSupabaseEnv) return
+
+    const supabase = getSupabaseBrowserClient()
+    const channel = supabase.channel(`chat-room:${roomId}`, {
+      config: {
+        presence: { key: user.id },
+        broadcast: { self: false },
+      },
+    })
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState() as Record<string, Array<{ name?: string }>>
+        const next = new Map<string, PresencePeer>()
+        for (const [uid, metas] of Object.entries(state)) {
+          next.set(uid, { name: metas[0]?.name ?? 'Alguien' })
+        }
+        setOnlinePeers(next)
+      })
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        const data = payload.payload as { user_id?: string; name?: string }
+        if (!data?.user_id || data.user_id === user.id) return
+        setTypingPeers((prev) => {
+          const next = new Map(prev)
+          next.set(data.user_id!, {
+            name: data.name ?? 'Alguien',
+            expiresAt: Date.now() + 4000,
+          })
+          return next
+        })
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ name: user.name })
+        }
+      })
+
+    channelRef.current = channel
+
+    // Sweeper: borra typing peers cuyo TTL expiró (≥ 4s sin reenviar typing)
+    const sweeper = setInterval(() => {
+      setTypingPeers((prev) => {
+        const now = Date.now()
+        let mutated = false
+        const next = new Map(prev)
+        for (const [uid, p] of next) {
+          if (p.expiresAt <= now) {
+            next.delete(uid)
+            mutated = true
+          }
+        }
+        return mutated ? next : prev
+      })
+    }, 1500)
+
+    return () => {
+      clearInterval(sweeper)
+      supabase.removeChannel(channel)
+      channelRef.current = null
+      setOnlinePeers(new Map())
+      setTypingPeers(new Map())
+    }
+  }, [roomId, user])
+
+  const onlineCount = onlinePeers.size
+  const typingNames = useMemo(() => Array.from(typingPeers.values()).map((p) => p.name), [typingPeers])
+  const typingLabel = useMemo(() => {
+    if (typingNames.length === 0) return null
+    if (typingNames.length === 1) return `${typingNames[0]} está escribiendo`
+    if (typingNames.length === 2) return `${typingNames[0]} y ${typingNames[1]} están escribiendo`
+    return 'Varias personas están escribiendo'
+  }, [typingNames])
+
+  // Notifica typing por broadcast, throttled a 2s (evita spam)
+  function broadcastTyping() {
+    const channel = channelRef.current
+    if (!channel || !user) return
+    const now = Date.now()
+    if (now - lastTypingSentRef.current < 2000) return
+    lastTypingSentRef.current = now
+    channel.send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { user_id: user.id, name: user.name },
+    })
+  }
 
   useEffect(() => {
     if (roomId) {
@@ -184,7 +285,12 @@ export default function ChatRoomRoutePage() {
               alt={room.eventTitle}
               className="h-10 w-10 rounded-xl border border-white/10 object-cover"
             />
-            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface bg-green-400" />
+            <span
+              className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface ${
+                onlineCount > 0 ? 'bg-green-400' : 'bg-white/20'
+              }`}
+              aria-label={onlineCount > 0 ? `${onlineCount} en línea` : 'nadie en línea'}
+            />
           </div>
 
           <div className="min-w-0 flex-1">
@@ -198,7 +304,11 @@ export default function ChatRoomRoutePage() {
           <div className="flex shrink-0 items-center gap-2">
             <div className="flex flex-col items-end gap-0.5">
               <span className="text-xs font-semibold text-white">👥 {room.memberCount}</span>
-              <span className="text-[10px] text-green-400">en línea</span>
+              <span
+                className={`text-[10px] ${onlineCount > 0 ? 'text-green-400' : 'text-muted'}`}
+              >
+                {onlineCount > 0 ? `${onlineCount} en línea` : 'nadie en línea'}
+              </span>
             </div>
 
             {/* Menu de opciones */}
@@ -370,6 +480,27 @@ export default function ChatRoomRoutePage() {
           className="shrink-0 border-t border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 pt-3 backdrop-blur-md"
           style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
         >
+          {/* Indicador "X está escribiendo..." */}
+          <AnimatePresence>
+            {typingLabel && (
+              <motion.div
+                key="typing-indicator"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="mb-2 flex items-center gap-2 px-2 text-[11px] text-muted"
+              >
+                <span className="flex gap-0.5">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-light [animation-delay:-300ms]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-light [animation-delay:-150ms]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-light" />
+                </span>
+                <span className="italic">{typingLabel}…</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="relative flex items-center gap-2">
             <button
               type="button"
@@ -407,7 +538,7 @@ export default function ChatRoomRoutePage() {
               ref={inputRef}
               type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => { setInput(e.target.value); broadcastTyping() }}
               onKeyDown={handleKeyDown}
               placeholder="Escribe un mensaje..."
               className="flex-1 rounded-full border border-white/15 bg-surface px-4 py-2.5 text-sm text-white placeholder:text-muted transition-colors focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30"
