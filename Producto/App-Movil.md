@@ -55,12 +55,40 @@ npm run android:apk   # Compila el APK debug (android/app/build/outputs/apk/debu
   eventos cercanos (el WebView de Capacitor gestiona el prompt de permiso
   cuando la web llama a `navigator.geolocation`)
 
-## Publicación en Play Store (pendiente)
+## Publicación en Play Store
 
-1. Generar keystore de firma (`keytool -genkey ...`) — guardarlo fuera del repo.
-2. Configurar `signingConfigs` en `android/app/build.gradle`.
-3. Compilar bundle de release: `gradlew bundleRelease` (genera `.aab`).
-4. Subir a Google Play Console (requiere cuenta de desarrollador, USD 25 única vez).
+La firma de release **ya está configurada**. Los archivos sensibles viven solo
+en la máquina local (están en `.gitignore`, nunca en el repo):
+
+| Archivo local | Contenido |
+|---|---|
+| `android/app/emeet-release.jks` | Keystore de firma (validez ~27 años) |
+| `android/keystore.properties` | Contraseñas y alias del keystore |
+
+> ⚠️ **Respaldar ambos archivos en un lugar seguro** (gestor de contraseñas,
+> drive cifrado). Si se pierde el keystore antes de subir la app, basta
+> regenerarlo; si se pierde después de publicar, se puede recuperar solo si
+> la app usa *Play App Signing* (recomendado, opción por defecto al subirla).
+
+### Compilar el bundle para la tienda
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+cd android
+.\gradlew.bat bundleRelease
+# Salida: android/app/build/outputs/bundle/release/app-release.aab
+```
+
+### Subir a la tienda
+
+1. Crear cuenta en [Google Play Console](https://play.google.com/console) (USD 25, pago único).
+2. Crear la app → aceptar *Play App Signing*.
+3. Subir el `app-release.aab` a una pista (interna → cerrada → producción).
+4. Completar la ficha: descripción, capturas de pantalla, ícono 512×512,
+   clasificación de contenido y **URL de política de privacidad** (obligatoria
+   porque la app usa geolocalización).
+5. En cada release siguiente: incrementar `versionCode` (y `versionName`) en
+   `android/app/build.gradle` antes de compilar.
 
 ## iOS (futuro)
 
