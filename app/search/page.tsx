@@ -463,18 +463,28 @@ function SearchPageContent() {
             ))}
           </div>
         ) : !userLocation ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-            <span className="text-5xl">📍</span>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="flex flex-col items-center justify-center gap-4 py-24 text-center"
+          >
+            <span className="animate-float text-5xl">📍</span>
             <h2 className="text-lg font-bold text-white">Ubicación requerida</h2>
             <p className="max-w-xs text-sm text-muted">
               Activa la ubicación en el feed principal para ver lugares y eventos cercanos.
             </p>
-          </div>
+          </motion.div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-            <span className="text-4xl">🔎</span>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+            className="flex flex-col items-center justify-center gap-3 py-20 text-center"
+          >
+            <span className="animate-float text-4xl">🔎</span>
             <p className="text-sm text-muted">No hay resultados que coincidan con tu búsqueda.</p>
-          </div>
+          </motion.div>
         ) : (
           <>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -484,9 +494,14 @@ function SearchPageContent() {
               </p>
             </div>
             <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
-              {filtered.map((event) => (
+              {filtered.map((event, index) => (
                 <motion.button
                   key={event.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  // Cascada limitada a las primeras filas para no retrasar listas largas
+                  transition={{ duration: 0.3, ease: 'easeOut', delay: Math.min(index, 8) * 0.05 }}
+                  whileHover={{ y: -3 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setSelectedEvent(event)}
                   className="overflow-hidden rounded-2xl border border-white/10 bg-card text-left transition-colors hover:border-primary/50"

@@ -19,6 +19,8 @@ interface SwipeCardProps {
 
 // ─── Umbral de px para considerar un swipe válido ────────────────────────────
 const SWIPE_THRESHOLD = 120
+// Un flick rápido cuenta como swipe aunque no alcance el umbral de distancia
+const VELOCITY_THRESHOLD = 500
 
 function StarRating({ rating }: { rating: number }) {
   const filled = Math.round(rating)
@@ -158,21 +160,30 @@ export default function SwipeCard({
     setIsDragging(false)
     if (!isActive) return
 
-    if (info.offset.x > SWIPE_THRESHOLD) {
-      // Animar salida por la derecha
+    // Distancia o velocidad: un flick rápido vale como swipe completo
+    const swipeRight = info.offset.x > SWIPE_THRESHOLD || info.velocity.x > VELOCITY_THRESHOLD
+    const swipeLeft = info.offset.x < -SWIPE_THRESHOLD || info.velocity.x < -VELOCITY_THRESHOLD
+
+    if (swipeRight) {
+      // La carta sale conservando el impulso del gesto
       animate(x, 600, {
-        duration: 0.3,
+        type: 'spring',
+        stiffness: 220,
+        damping: 28,
+        velocity: info.velocity.x,
         onComplete: () => onSwipeRight(event.id),
       })
-    } else if (info.offset.x < -SWIPE_THRESHOLD) {
-      // Animar salida por la izquierda
+    } else if (swipeLeft) {
       animate(x, -600, {
-        duration: 0.3,
+        type: 'spring',
+        stiffness: 220,
+        damping: 28,
+        velocity: info.velocity.x,
         onComplete: () => onSwipeLeft(event.id),
       })
     } else {
-      // Volver al centro
-      animate(x, 0, { type: 'spring', stiffness: 400, damping: 25 })
+      // Retorno elástico al centro, hereda la velocidad para no "cortar" el gesto
+      animate(x, 0, { type: 'spring', stiffness: 420, damping: 28, velocity: info.velocity.x })
     }
   }
 
@@ -183,12 +194,13 @@ export default function SwipeCard({
       style={{
         x: isActive ? x : 0,
         rotate: isActive ? rotate : 0,
-        scale,
-        y: yOffset,
         zIndex: 10 - stackIndex,
         // Las cartas de fondo no reciben eventos de puntero
         pointerEvents: isActive ? 'auto' : 'none',
       }}
+      // scale/y animados: al salir la carta superior, las de abajo suben con spring
+      animate={{ scale, y: yOffset }}
+      transition={{ type: 'spring', stiffness: 300, damping: 26 }}
       drag={isActive ? 'x' : false}
       dragConstraints={{ left: 0, right: 0 }}
       onDragStart={() => {
@@ -201,7 +213,6 @@ export default function SwipeCard({
       }}
       onDragEnd={handleDragEnd}
       whileTap={{ scale: isActive ? 1.02 : scale }}
-      transition={{ duration: 0 }}
     >
       {/* Tarjeta contenido */}
       <div className="relative h-full w-full overflow-hidden rounded-[30px] bg-card shadow-2xl select-none lg:rounded-[36px]">
@@ -253,13 +264,23 @@ export default function SwipeCard({
 
         {/* Botón guardar (bookmark) */}
         {isActive && (
-          <button
+          <motion.button
             onClick={() => onSave(event.id)}
+            whileHover={{ scale: 1.12 }}
+            whileTap={{ scale: 0.8 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 18 }}
             className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60 lg:right-5 lg:top-5 lg:h-11 lg:w-11"
             aria-label="Guardar evento"
           >
-            <HiBookmark className={`w-5 h-5 ${event.isSaved ? 'text-primary fill-current' : ''}`} />
-          </button>
+            <motion.span
+              key={event.isSaved ? 'saved' : 'unsaved'}
+              initial={{ scale: 0.5 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 600, damping: 15 }}
+            >
+              <HiBookmark className={`w-5 h-5 ${event.isSaved ? 'text-primary fill-current' : ''}`} />
+            </motion.span>
+          </motion.button>
         )}
 
         {/* Disco giratorio — se muestra cuando el evento tiene música */}
@@ -390,21 +411,27 @@ export default function SwipeCard({
         {/* Botones de acción (solo en carta activa) */}
         {isActive && (
           <div className="absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-4 px-4 lg:bottom-5">
-            <button
+            <motion.button
               onClick={() => onSwipeLeft(event.id)}
-              className="flex h-14 w-14 items-center justify-center rounded-full border border-red-300/55 bg-red-500/30 text-red-100 shadow-lg shadow-red-900/35 backdrop-blur-md transition-all duration-200 hover:border-red-300/80 hover:bg-red-500/40 active:scale-90"
+              whileHover={{ scale: 1.1, rotate: -8 }}
+              whileTap={{ scale: 0.82 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+              className="flex h-14 w-14 items-center justify-center rounded-full border border-red-300/55 bg-red-500/30 text-red-100 shadow-lg shadow-red-900/35 backdrop-blur-md hover:border-red-300/80 hover:bg-red-500/40"
               aria-label="No me interesa"
             >
               <HiX className="h-7 w-7" />
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
               onClick={() => onSwipeRight(event.id)}
-              className="flex h-14 w-14 items-center justify-center rounded-full border border-green-300/55 bg-green-500/30 text-green-100 shadow-lg shadow-green-900/35 backdrop-blur-md transition-all duration-200 hover:border-green-300/80 hover:bg-green-500/40 active:scale-90"
+              whileHover={{ scale: 1.15 }}
+              whileTap={{ scale: 0.82 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+              className="flex h-14 w-14 items-center justify-center rounded-full border border-green-300/55 bg-green-500/30 text-green-100 shadow-lg shadow-green-900/35 backdrop-blur-md hover:border-green-300/80 hover:bg-green-500/40"
               aria-label="Me interesa"
             >
               <HiHeart className="h-7 w-7" />
-            </button>
+            </motion.button>
           </div>
         )}
       </div>
