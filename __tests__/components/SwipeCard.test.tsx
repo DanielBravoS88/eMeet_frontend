@@ -16,14 +16,27 @@ jest.mock('framer-motion', () => {
   const actual = jest.requireActual<typeof import('framer-motion')>('framer-motion')
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react')
+
+  // Crea un componente plano que descarta las props propias de framer-motion
+  // para que no lleguen al DOM como atributos inválidos.
+  const MOTION_PROPS = [
+    'initial', 'animate', 'exit', 'transition', 'variants',
+    'whileTap', 'whileHover', 'whileDrag', 'whileFocus', 'whileInView',
+    'drag', 'dragConstraints', 'onDragStart', 'onDragEnd', 'layoutId', 'layout',
+  ]
+  const plain = (Tag: string) =>
+    React.forwardRef((props: Record<string, unknown>, ref: React.Ref<unknown>) => {
+      const { children, ...rest } = props
+      for (const key of MOTION_PROPS) delete rest[key]
+      return React.createElement(Tag, { ref, ...rest }, children as React.ReactNode)
+    })
+
   return {
     ...actual,
     motion: {
-      div: React.forwardRef(
-        ({ children, style, ...rest }: React.HTMLAttributes<HTMLDivElement> & { style?: React.CSSProperties }, ref: React.Ref<HTMLDivElement>) => (
-          <div ref={ref} style={style} {...rest}>{children}</div>
-        ),
-      ),
+      div: plain('div'),
+      button: plain('button'),
+      span: plain('span'),
     },
     useMotionValue: () => ({ get: () => 0, set: jest.fn(), on: jest.fn() }),
     useTransform: () => ({ get: () => 0 }),

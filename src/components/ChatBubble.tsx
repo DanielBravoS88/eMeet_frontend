@@ -158,10 +158,19 @@ export default function ChatBubble() {
                     <p className="py-8 text-center text-xs text-muted">Sé el primero en escribir 👋</p>
                   )}
 
+                  {/* initial={false}: los mensajes ya existentes no animan al abrir el panel,
+                      solo los que llegan nuevos */}
+                  <AnimatePresence initial={false}>
                   {roomMessages.map((msg) => {
                     const isOwn = msg.senderId === user.id
                     return (
-                      <div key={msg.id} className={`flex gap-1.5 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                      <motion.div
+                        key={msg.id}
+                        initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+                        className={`flex gap-1.5 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
+                      >
                         <img
                           src={msg.senderAvatar}
                           alt={msg.senderName}
@@ -184,9 +193,10 @@ export default function ChatBubble() {
                           </div>
                           <span className="px-1 text-[10px] text-muted">{formatTime(msg.timestamp)}</span>
                         </div>
-                      </div>
+                      </motion.div>
                     )
                   })}
+                  </AnimatePresence>
                   <div ref={messagesEndRef} />
                 </div>
 
