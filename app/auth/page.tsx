@@ -26,6 +26,440 @@ function AppleIcon() {
   )
 }
 
+/**
+ * Mini-escena animada que reemplaza la ilustración estática del mapa.
+ *
+ * Cuenta una historia en bucle (~7s): dos amigos (zorro y perro) entran
+ * desde lados opuestos, se encuentran al centro, suben juntos al evento (📍)
+ * y celebran. Encaja con la propuesta de valor "encontrar a alguien para
+ * salir" sin necesitar imágenes externas ni librerías nuevas.
+ */
+function AnimatedFriendsScene() {
+  // Todas las animaciones comparten esta duración para que el loop sea limpio.
+  const LOOP = 7
+
+  // Timeline normalizado (0 → 1) con dos zonas de "baile":
+  //   0.00 - 0.30 → entran caminando desde fuera
+  //   0.30 - 0.50 → BAILAN EN EL CENTRO (saltos alternados, twist)
+  //   0.50 - 0.62 → suben juntos al pin
+  //   0.62 - 0.80 → BAILAN AL LLEGAR (giros, escalas explosivas)
+  //   0.80 - 1.00 → fade out + reinicio
+  const T = {
+    walkInEnd: 0.30,
+    dance1: 0.34,
+    dance2: 0.38,
+    greet: 0.42,
+    dance3: 0.46,
+    arrive: 0.62,
+    celebrate1: 0.68,
+    celebrate2: 0.74,
+    celebrate3: 0.80,
+    fadeOut: 0.90,
+  }
+
+  return (
+    <div className="relative aspect-[5/4] w-full max-w-[300px] overflow-hidden rounded-2xl border border-violet-500/15 bg-gradient-to-br from-violet-950/50 via-black/40 to-violet-950/20">
+      {/* Grid background simulando un mapa */}
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-25"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(167,139,250,0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(167,139,250,0.10) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+        }}
+      />
+
+      {/* Camino vertical que se ilumina cuando caminan al pin */}
+      <motion.div
+        aria-hidden
+        className="absolute left-1/2 top-[15%] bottom-[28%] w-px -translate-x-1/2 rounded-full bg-gradient-to-b from-violet-400/0 via-violet-400/40 to-violet-400/0"
+        animate={{ opacity: [0, 0, 0.9, 0.9, 0] }}
+        transition={{
+          duration: LOOP,
+          repeat: Infinity,
+          times: [0, T.dance3, T.arrive, T.celebrate3, 1],
+          ease: 'easeInOut',
+        }}
+      />
+
+      {/* Pin de evento (destino) — pulsa al ritmo del baile */}
+      <motion.div
+        className="absolute left-1/2 top-3 -translate-x-1/2"
+        animate={{
+          y: [0, -4, -6, -2, -6, -2, -8, -10, -8, 0],
+          scale: [1, 1, 1.05, 1.1, 1.05, 1.1, 1.25, 1.35, 1.25, 1],
+        }}
+        transition={{
+          duration: LOOP,
+          repeat: Infinity,
+          times: [0, T.walkInEnd, T.dance1, T.dance2, T.greet, T.dance3, T.celebrate1, T.celebrate2, T.celebrate3, 1],
+          ease: 'easeInOut',
+        }}
+      >
+        <span
+          className="block text-3xl"
+          style={{ filter: 'drop-shadow(0 0 10px rgba(167,139,250,0.55))' }}
+        >
+          📍
+        </span>
+      </motion.div>
+
+      {/* Sparkles que aparecen cuando los amigos llegan al pin */}
+      {['✨', '🎉', '✨'].map((emoji, i) => {
+        const xOffset = (i - 1) * 18 // -18, 0, 18
+        return (
+          <motion.span
+            key={i}
+            aria-hidden
+            className="absolute left-1/2 top-10 text-xl"
+            style={{ translateX: `calc(-50% + ${xOffset}px)` }}
+            animate={{
+              opacity: [0, 0, 0, 1, 0],
+              scale: [0.5, 0.5, 0.5, 1.4, 0.5],
+              y: [0, 0, 0, -10 - i * 3, -16 - i * 3],
+            }}
+            transition={{
+              duration: LOOP,
+              repeat: Infinity,
+              times: [0, T.arrive, T.celebrate1, T.celebrate2, T.fadeOut],
+              ease: 'easeOut',
+            }}
+          >
+            {emoji}
+          </motion.span>
+        )
+      })}
+
+      {/* Notas musicales 🎵🎶 que flotan mientras bailan en el centro */}
+      {[
+        { emoji: '🎵', side: -1, t: T.dance1 },
+        { emoji: '🎶', side: 1, t: T.dance2 },
+        { emoji: '🎵', side: -1, t: T.dance3 },
+      ].map(({ emoji, side, t }, i) => (
+        <motion.span
+          key={`note-${i}`}
+          aria-hidden
+          className="absolute text-sm"
+          style={{ left: `${50 + side * 18}%`, top: '50%' }}
+          animate={{
+            opacity: [0, 0, 1, 0, 0],
+            y: [0, 0, -20, -40, -40],
+            x: [0, 0, side * 6, side * 12, side * 12],
+            rotate: [0, 0, side * 15, side * 30, side * 30],
+          }}
+          transition={{
+            duration: LOOP,
+            repeat: Infinity,
+            times: [0, t - 0.02, t + 0.02, t + 0.12, 1],
+            ease: 'easeOut',
+          }}
+        >
+          {emoji}
+        </motion.span>
+      ))}
+
+      {/* Diálogo "💬" que aparece brevemente entre los amigos al saludarse */}
+      <motion.span
+        aria-hidden
+        className="absolute left-1/2 -translate-x-1/2 text-lg"
+        style={{ top: '46%' }}
+        animate={{
+          opacity: [0, 0, 1, 1, 0],
+          y: [0, 0, -6, -12, -14],
+          scale: [0.6, 0.6, 1, 1, 0.6],
+        }}
+        transition={{
+          duration: LOOP,
+          repeat: Infinity,
+          times: [0, T.walkInEnd, T.dance1, T.dance1 + 0.04, T.dance3 - 0.04],
+          ease: 'easeOut',
+        }}
+      >
+        💬
+      </motion.span>
+
+      {/* === Personajes === */}
+      {/* Posición base: bottom-center. Animamos x/y para teletransporte+caminata. */}
+
+      {/* Huellas 🐾 que aparecen en el suelo al ritmo de los pasos.
+          Cada una en una posición distinta de la trayectoria izquierda → centro,
+          con timing escalonado dentro de la fase walkInStart..walkInEnd. */}
+      {[
+        { left: '12%', t: 0.05 },
+        { left: '22%', t: 0.10 },
+        { left: '32%', t: 0.15 },
+        { left: '78%', t: 0.05 },
+        { left: '68%', t: 0.10 },
+        { left: '58%', t: 0.15 },
+      ].map(({ left, t }, i) => (
+        <motion.span
+          key={`paw-${i}`}
+          aria-hidden
+          className="absolute text-[10px] opacity-0"
+          style={{ left, bottom: '14%' }}
+          animate={{ opacity: [0, 0.6, 0.6, 0, 0] }}
+          transition={{
+            duration: LOOP,
+            repeat: Infinity,
+            times: [0, t, t + 0.12, t + 0.22, 1],
+            ease: 'easeOut',
+          }}
+        >
+          🐾
+        </motion.span>
+      ))}
+
+      {/*
+        === BAILE ALTERNADO ===
+        Cuando el zorro salta (y negativo) el perro está abajo (y=0), y viceversa.
+        Esto crea el efecto "high-low" típico de baile en pareja.
+        Igual con scale: cuando uno se infla, el otro se encoge.
+        Los 4 keyframes de dance (T.dance1..T.dance3) los usamos para 2 saltos.
+      */}
+
+      {/* Zorro 🦊 — viene desde la izquierda */}
+      <Character
+        emoji="🦊"
+        loop={LOOP}
+        //         start    walkInEnd  d1      d2       greet   d3      arrive  c1      c2      c3      fadeOut
+        x={      ['-180%', '-25%',    '-22%', '-28%',  '-25%', '-22%', '-25%', '-25%', '-25%', '-25%', '-180%']}
+        y={      ['0%',    '0%',      '-18%', '0%',    '-18%', '0%',   '-170%','-200%','-180%','-200%','-200%']}
+        scale={  [1,        1,         1.15,    0.9,     1.2,    0.95,    1,      1.2,    1.5,    1.1,    1]}
+        rotate={ [0,        0,         -10,     8,       -12,    6,       0,      -18,    -28,    -10,    0]}
+        times={  [0, T.walkInEnd, T.dance1, T.dance2, T.greet, T.dance3, T.arrive, T.celebrate1, T.celebrate2, T.celebrate3, T.fadeOut]}
+        baseLeft="50%"
+        baseBottom="22%"
+        swayDirection={1}
+      />
+
+      {/* Perro 🐶 — alterna saltos con el zorro */}
+      <Character
+        emoji="🐶"
+        loop={LOOP}
+        //         start    walkInEnd  d1      d2       greet   d3      arrive  c1      c2      c3      fadeOut
+        x={      ['180%',  '25%',     '28%',  '22%',   '25%',  '28%',  '25%',  '25%',  '25%',  '25%',  '180%']}
+        // y opuesto al zorro: cuando él salta, el perro está abajo (y=0) → baile alternado
+        y={      ['0%',    '0%',      '0%',   '-18%',  '0%',   '-18%', '-170%','-180%','-200%','-200%','-200%']}
+        // scale opuesto: cuando él se infla, el perro se encoge
+        scale={  [1,        1,         0.9,    1.15,    0.95,   1.2,     1,      1.2,    1.5,    1.1,    1]}
+        rotate={ [0,        0,         10,     -8,      12,     -6,      0,      18,     28,     10,     0]}
+        times={  [0, T.walkInEnd, T.dance1, T.dance2, T.greet, T.dance3, T.arrive, T.celebrate1, T.celebrate2, T.celebrate3, T.fadeOut]}
+        baseLeft="50%"
+        baseBottom="22%"
+        swayDirection={-1}
+      />
+    </div>
+  )
+}
+
+/**
+ * Un personaje emoji animado: combina dos motions anidadas.
+ *   • La externa controla la posición/coreografía macro (x, y, rotate).
+ *   • La interna mantiene un bounce vertical constante para simular "caminata".
+ *   • El bounce se atenúa cuando el actor está parado o ya llegó al pin
+ *     (lo hacemos vía duración corta y `repeat: Infinity`).
+ */
+function Character({
+  emoji,
+  loop,
+  x,
+  y,
+  scale,
+  rotate,
+  times,
+  baseLeft,
+  baseBottom,
+  swayDirection = 1,
+}: {
+  emoji: string
+  loop: number
+  x: string[]
+  y: string[]
+  /** Escala macro (para baile al llegar al pin) — array de keyframes alineados a `times`. */
+  scale?: number[]
+  /** Rotación macro (giro al llegar) — array de keyframes alineados a `times`. */
+  rotate?: number[]
+  times: number[]
+  baseLeft: string
+  baseBottom: string
+  /** 1 o -1: invierte la dirección del sway constante para que zorro y perro
+   *  no se mezan idénticos (rompe la simetría robotica). */
+  swayDirection?: number
+}) {
+  return (
+    // CAPA 1 — sway constante muy sutil (idle dance). Hace que aun "parados"
+    // los personajes se vean vivos. La dirección se invierte para cada uno.
+    <motion.div
+      className="absolute -translate-x-1/2"
+      style={{ left: baseLeft, bottom: baseBottom }}
+      animate={{ x: [0, 2 * swayDirection, 0, -2 * swayDirection, 0] }}
+      transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+    >
+      {/* CAPA 2 — coreografía macro (entrar, encontrarse, subir, salir).
+          Aquí también va el "baile" al llegar al pin: scale pulsante + rotate. */}
+      <motion.div
+        className="text-3xl"
+        animate={{ x, y, scale: scale ?? 1, rotate: rotate ?? 0 }}
+        transition={{
+          duration: loop,
+          repeat: Infinity,
+          times,
+          ease: 'easeInOut',
+        }}
+      >
+        {/* CAPA 3 — bounce de caminata: salto alto + squash & stretch + tilt.
+            Loop corto (0.5s) para que la pisada se sienta vibrante. */}
+        <motion.span
+          className="block origin-bottom"
+          animate={{
+            y: [0, -8, -2, -10, 0],
+            scaleY: [1, 0.92, 1.05, 0.88, 1],
+            scaleX: [1, 1.06, 0.96, 1.08, 1],
+            rotate: [-4 * swayDirection, 2 * swayDirection, -2 * swayDirection, 4 * swayDirection, -4 * swayDirection],
+          }}
+          transition={{ duration: 0.52, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))' }}
+        >
+          {emoji}
+        </motion.span>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+/**
+ * Panel izquierdo "hero" del auth — pura presentación visual con animaciones
+ * encadenadas. Todo se anima al montar con framer-motion (no necesita
+ * librerías extra como anime.js).
+ *
+ * Capas:
+ *   • Sparkle pulsante en el ✨ del logo (loop suave).
+ *   • "DESCUBRE • CONECTA" entra con fade-up.
+ *   • Título palabra por palabra (split reveal escalonado).
+ *   • Escena de dos amigos que se encuentran y van juntos a un evento (loop).
+ *   • Bullets entran desde la derecha con stagger.
+ */
+function PresentationPanel() {
+  const title = 'Tu acceso a eventos, bares y experiencias únicas.'
+  const words = title.split(' ')
+
+  const bullets = [
+    'Descubre lugares en Santiago con recomendaciones personalizadas.',
+    'Regístrate y activa el modo creador para organizar tus propios eventos.',
+    'Activa notificaciones para no perderte los planes que te interesan.',
+  ]
+
+  return (
+    <div className="hidden flex-col justify-between rounded-2xl border border-violet-500/15 bg-[rgba(14,8,28,0.80)] p-9 text-white shadow-2xl backdrop-blur-xl lg:flex">
+      <div className="space-y-5">
+        {/* Logo con sparkle pulsante */}
+        <motion.div
+          className="flex items-center gap-2.5"
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 shadow-lg shadow-violet-900/40">
+            <motion.span
+              className="text-lg"
+              animate={{ scale: [1, 1.18, 1], rotate: [0, 8, -6, 0] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              ✨
+            </motion.span>
+            {/* Halo expansivo */}
+            <motion.span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-xl bg-violet-400/40"
+              animate={{ scale: [1, 1.6], opacity: [0.5, 0] }}
+              transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
+            />
+          </div>
+          <span className="text-xl font-extrabold tracking-tight">
+            <span className="text-white">e</span>
+            <span className="bg-gradient-to-r from-violet-300 via-white to-violet-300 bg-clip-text text-transparent">Meet</span>
+          </span>
+        </motion.div>
+
+        <div>
+          <motion.p
+            className="mb-2 text-xs font-semibold uppercase tracking-widest text-violet-400/70"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+          >
+            Descubre • Conecta
+          </motion.p>
+
+          {/* Título: cada palabra entra escalonada con efecto stairstep */}
+          <h1
+            className="text-[2rem] font-bold leading-tight text-white"
+            aria-label={title}
+          >
+            {words.map((word, i) => (
+              <motion.span
+                key={`${word}-${i}`}
+                aria-hidden
+                className="mr-[0.25em] inline-block"
+                initial={{ opacity: 0, y: 20, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                transition={{
+                  duration: 0.55,
+                  delay: 0.3 + i * 0.06,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+              >
+                {word}
+              </motion.span>
+            ))}
+          </h1>
+        </div>
+      </div>
+
+      {/* Escena animada: dos amigos que se encuentran y van juntos a un evento */}
+      <motion.div
+        className="my-6 flex flex-grow items-center justify-center"
+        initial={{ opacity: 0, scale: 0.94 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.7, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <AnimatedFriendsScene />
+      </motion.div>
+
+      {/* Bullets con stagger desde la derecha */}
+      <motion.div
+        className="space-y-2.5"
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: { opacity: 1 },
+          show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.12, delayChildren: 0.9 },
+          },
+        }}
+      >
+        {bullets.map((text, i) => (
+          <motion.div
+            key={i}
+            className="flex items-start gap-3 rounded-xl border border-violet-500/12 bg-violet-500/6 px-4 py-3"
+            variants={{
+              hidden: { opacity: 0, x: 20 },
+              show: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+            }}
+          >
+            <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-violet-500/30 text-[10px] text-violet-300">
+              ✓
+            </span>
+            <p className="text-sm leading-relaxed text-violet-100/70">{text}</p>
+          </motion.div>
+        ))}
+      </motion.div>
+    </div>
+  )
+}
+
 export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null)
@@ -61,48 +495,12 @@ export default function AuthPage() {
         <div className="grid items-stretch gap-6 lg:grid-cols-[1fr_1fr]">
 
           {/* Panel izquierdo — presentación */}
-          <div className="hidden flex-col justify-between rounded-2xl border border-violet-500/15 bg-[rgba(14,8,28,0.80)] p-9 text-white shadow-2xl backdrop-blur-xl lg:flex">
-            <div className="space-y-5">
-              {/* Logo */}
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 shadow-lg shadow-violet-900/40">
-                  <span className="text-lg">✨</span>
-                </div>
-                <span className="text-xl font-extrabold tracking-tight">
-                  <span className="text-white">e</span>
-                  <span className="bg-gradient-to-r from-violet-300 via-white to-violet-300 bg-clip-text text-transparent">Meet</span>
-                </span>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-violet-400/70">Descubre • Conecta</p>
-                <h1 className="text-[2rem] font-bold leading-tight text-white">
-                  Tu acceso a eventos, bares y experiencias únicas.
-                </h1>
-              </div>
-            </div>
-
-            <div className="my-6 flex flex-grow items-center justify-center">
-              <img
-                src="/auth-map-illustration.svg"
-                alt="Ilustración de mapa de eventos"
-                className="h-auto w-full max-w-xs object-contain opacity-60"
-              />
-            </div>
-
-            <div className="space-y-2.5">
-              {[
-                'Descubre lugares en Santiago con recomendaciones personalizadas.',
-                'Regístrate y activa el modo creador para organizar tus propios eventos.',
-                'Accede rápido con cuentas demo para probar la app.',
-              ].map((text, i) => (
-                <div key={i} className="flex items-start gap-3 rounded-xl border border-violet-500/12 bg-violet-500/6 px-4 py-3">
-                  <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-violet-500/30 text-[10px] text-violet-300">✓</span>
-                  <p className="text-sm leading-relaxed text-violet-100/70">{text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <PresentationPanel />
+          {/*
+            Lo separamos en componente para mantener limpio el árbol del
+            AuthPage y para que las animaciones (reveal palabra por palabra,
+            float continuo, stagger de bullets) se autocontengan.
+          */}
 
           {/* Panel derecho — formulario */}
           <div className="rounded-2xl border border-violet-500/15 bg-[rgba(14,8,28,0.85)] p-6 shadow-2xl backdrop-blur-xl">
@@ -110,7 +508,7 @@ export default function AuthPage() {
               <div className="text-center lg:text-left">
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-violet-400/60">Accede a eMeet</p>
                 <h2 className="text-2xl font-bold text-white">Inicia sesión o crea tu cuenta</h2>
-                <p className="mt-2 text-sm text-violet-200/50">Usa tu cuenta demo para explorar eventos y paneles.</p>
+                <p className="mt-2 text-sm text-violet-200/50">Descubre eventos cerca tuyo y conecta con quienes van a los mismos planes.</p>
               </div>
 
               {/* Tab selector */}

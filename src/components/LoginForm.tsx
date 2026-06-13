@@ -67,7 +67,6 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps = {}) {
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-white">Bienvenido de regreso</h2>
         <p className="text-sm text-slate-400">Ingresa tu correo y contraseña para continuar.</p>
-        <p className="text-xs text-slate-500">Emails de prueba: user@emeet.com o admin@emeet.com.</p>
       </div>
 
       <AnimatePresence initial={false}>
