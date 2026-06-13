@@ -4,9 +4,10 @@ import { useAuth } from '@/src/context/AuthContext'
 import { useLocatarioEvents } from '@/src/context/LocatarioEventsContext'
 import { hasSupabaseEnv } from '@/src/lib/supabase'
 import { fetchApi } from '@/src/lib/fetchApi'
+import { motion, useMotionValue, useTransform } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { FiLogOut, FiPlus, FiBarChart2, FiCalendar, FiAlertCircle, FiLoader, FiTrash2, FiHome, FiMapPin, FiX, FiInfo, FiImage, FiTag } from 'react-icons/fi'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { EventCategory } from '@/src/types'
 import { ImageUpload } from '@/src/components/ImageUpload'
@@ -158,6 +159,35 @@ export default function LocatarioPage() {
   const [stats, setStats] = useState<CreatorStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(false)
   const eventCount = locatarioEvents.length
+
+  // Header ligado al scroll (motion value + useTransform). En los primeros 80px
+  // de scroll el header se compacta: menos padding, sombra elevada, el título se
+  // encoge un poco y el subtítulo se desvanece. Da el efecto "app nativa".
+  //
+  // OJO: el CSS global hace que el <body> sea el scroller (html,body height:100%).
+  // Esta página usa su propio contenedor scrollable y alimentamos un motionValue
+  // con su scrollTop vía un callback-ref (robusto frente a los early-returns del
+  // componente: el listener se engancha justo cuando el nodo se monta).
+  const scrollY = useMotionValue(0)
+  const setScrollContainer = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node) return
+      const update = () => scrollY.set(node.scrollTop)
+      update()
+      node.addEventListener('scroll', update, { passive: true })
+      // No removemos el listener manualmente: el nodo se destruye con la página.
+    },
+    [scrollY],
+  )
+  const headerPadY = useTransform(scrollY, [0, 80], [12, 6])
+  const headerShadow = useTransform(
+    scrollY,
+    [0, 80],
+    ['0 0 0 rgba(0,0,0,0)', '0 10px 30px -8px rgba(0,0,0,0.55)'],
+  )
+  const titleScale = useTransform(scrollY, [0, 80], [1, 0.9])
+  const subtitleOpacity = useTransform(scrollY, [0, 50], [1, 0])
+  const subtitleHeight = useTransform(scrollY, [0, 50], [16, 0])
 
   useEffect(() => {
     if (!user || !accessToken) return
@@ -467,14 +497,25 @@ export default function LocatarioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface">
-      {/* Header */}
-      <header className="bg-card border-b border-card sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
+    <div ref={setScrollContainer} className="h-screen overflow-y-auto bg-surface">
+      {/* Header — se compacta al hacer scroll (useScroll) */}
+      <motion.header
+        className="bg-card/90 border-b border-card sticky top-0 z-50 backdrop-blur-md"
+        style={{ boxShadow: headerShadow }}
+      >
+        <motion.div
+          className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-3"
+          style={{ paddingTop: headerPadY, paddingBottom: headerPadY }}
+        >
+          <motion.div className="min-w-0 origin-left" style={{ scale: titleScale }}>
             <h1 className="text-lg font-bold text-white sm:text-2xl truncate">Panel de Creador</h1>
-            <p className="text-xs text-muted sm:text-sm truncate">{user.businessName}</p>
-          </div>
+            <motion.p
+              className="text-xs text-muted sm:text-sm truncate overflow-hidden"
+              style={{ opacity: subtitleOpacity, height: subtitleHeight }}
+            >
+              {user.businessName}
+            </motion.p>
+          </motion.div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => router.push('/')}
@@ -500,8 +541,8 @@ export default function LocatarioPage() {
               <span className="hidden sm:inline text-sm">Cerrar sesión</span>
             </button>
           </div>
-        </div>
-      </header>
+        </motion.div>
+      </motion.header>
 
       {/* Contenido principal */}
       <main className="max-w-7xl mx-auto px-4 py-5 sm:py-8">
