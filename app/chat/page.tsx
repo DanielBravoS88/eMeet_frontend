@@ -149,22 +149,9 @@ export default function ChatRoutePage() {
   const { user, isAuthReady } = useAuth()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
-  const [isCleaning, setIsCleaning] = useState(false)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isLeavingSelected, setIsLeavingSelected] = useState(false)
-
-  const unusedRooms = rooms.filter((r) => r.lastMessage === null)
-
-  async function clearUnusedRooms() {
-    if (unusedRooms.length === 0 || isCleaning) return
-    setIsCleaning(true)
-    try {
-      await Promise.all(unusedRooms.map((r) => leaveRoom(r.id)))
-    } finally {
-      setIsCleaning(false)
-    }
-  }
 
   function toggleSelection(id: string) {
     setSelectedIds((prev) => {
@@ -292,15 +279,6 @@ export default function ChatRoutePage() {
               </AnimatePresence>
 
               <div className="flex items-center gap-2">
-                {!selectionMode && unusedRooms.length > 0 && (
-                  <button
-                    onClick={() => void clearUnusedRooms()}
-                    disabled={isCleaning}
-                    className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-semibold text-muted transition-colors hover:border-red-500/40 hover:text-red-400 disabled:opacity-50"
-                  >
-                    {isCleaning ? 'Limpiando...' : `Limpiar sin uso (${unusedRooms.length})`}
-                  </button>
-                )}
                 <button
                   onClick={() => (selectionMode ? exitSelectionMode() : setSelectionMode(true))}
                   className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
