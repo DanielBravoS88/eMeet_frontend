@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { FiArrowRight } from 'react-icons/fi'
 import LoginForm from '../../src/components/LoginForm'
 import SignUpForm from '../../src/components/SignUpForm'
@@ -35,6 +35,34 @@ function AppleIcon() {
  * salir" sin necesitar imágenes externas ni librerías nuevas.
  */
 function AnimatedFriendsScene() {
+  // Accesibilidad: si el usuario pidió reducir movimiento, renderizamos una
+  // versión calmada y ESTÁTICA (los amigos ya juntos junto al pin, sin loops
+  // ni parpadeos). MotionConfig frena los transform pero no las opacidades de
+  // los sparkles/notas; aquí evitamos toda animación de la escena.
+  const shouldReduce = useReducedMotion()
+  if (shouldReduce) {
+    return (
+      <div className="relative flex aspect-[5/4] w-full max-w-[300px] flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border border-violet-500/15 bg-gradient-to-br from-violet-950/50 via-black/40 to-violet-950/20">
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-25"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(167,139,250,0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(167,139,250,0.10) 1px, transparent 1px)',
+            backgroundSize: '28px 28px',
+          }}
+        />
+        <span className="relative text-4xl" style={{ filter: 'drop-shadow(0 0 10px rgba(167,139,250,0.55))' }}>📍</span>
+        <div className="relative flex items-end gap-1 text-3xl">
+          <span>🦊</span>
+          <span className="text-base">💜</span>
+          <span>🐶</span>
+        </div>
+        <p className="relative text-[11px] text-violet-200/50">Encuentra con quién salir</p>
+      </div>
+    )
+  }
+
   // Todas las animaciones comparten esta duración para que el loop sea limpio.
   const LOOP = 7
 
