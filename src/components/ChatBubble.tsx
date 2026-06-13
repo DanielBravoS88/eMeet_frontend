@@ -90,7 +90,7 @@ export default function ChatBubble() {
   const isChatView = !!selectedRoomId && !!selectedRoom
 
   return (
-    <div ref={panelRef} className="fixed bottom-24 left-6 z-50 hidden lg:block">
+    <div ref={panelRef} className="absolute bottom-6 left-6 z-50 hidden lg:block">
 
       {/* ── Panel ──────────────────────────────────────────────────────────────── */}
       <AnimatePresence>

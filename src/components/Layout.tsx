@@ -84,9 +84,12 @@ export default function Layout({
           </main>
 
           <BottomNavBar />
-        </section>
 
-        <ChatBubble />
+          {/* Burbuja de chat anclada al área de contenido (no al viewport),
+              así nunca pisa el sidebar (rail o expandido) ni flota en el
+              espacio muerto de pantallas anchas. */}
+          <ChatBubble />
+        </section>
 
         {showDesktopMap && (
           <aside className="hidden w-[380px] shrink-0
