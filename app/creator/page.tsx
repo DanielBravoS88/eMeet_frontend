@@ -3,6 +3,7 @@
 import { useAuth } from '@/src/context/AuthContext'
 import { useLocatarioEvents } from '@/src/context/LocatarioEventsContext'
 import { hasSupabaseEnv } from '@/src/lib/supabase'
+import { fetchApi } from '@/src/lib/fetchApi'
 import { useRouter } from 'next/navigation'
 import { FiLogOut, FiPlus, FiBarChart2, FiCalendar, FiAlertCircle, FiLoader, FiTrash2, FiHome, FiMapPin, FiX, FiInfo, FiImage, FiTag } from 'react-icons/fi'
 import { useEffect, useRef, useState } from 'react'
@@ -48,6 +49,14 @@ const EMPTY_FORM = {
 }
 
 const COUPON_COST_PER_DAY = 25
+
+interface CreatorStats {
+  likesByEvent: Record<string, number>
+  chatMembersByEvent: Record<string, number>
+  totalLikes: number
+  totalChatMembers: number
+  topEventId: string | null
+}
 
 /** Bloque de sección del formulario de crear evento: cabecera con ícono + campos. */
 function FormSection({
@@ -144,6 +153,29 @@ export default function LocatarioPage() {
     address: user?.businessLocation ?? user?.location ?? '',
   })
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Estadísticas agregadas (likes y miembros de chat por evento).
+  const [stats, setStats] = useState<CreatorStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+  const eventCount = locatarioEvents.length
+
+  useEffect(() => {
+    if (!user || !accessToken) return
+    let cancelled = false
+    setStatsLoading(true)
+    fetchApi<CreatorStats>('/events/locatario/stats')
+      .then((data) => {
+        if (!cancelled) setStats(data)
+      })
+      .catch(() => {
+        if (!cancelled) setStats(null)
+      })
+      .finally(() => {
+        if (!cancelled) setStatsLoading(false)
+      })
+    return () => { cancelled = true }
+    // Recargamos cuando cambia la cantidad de eventos (crear/eliminar) o el usuario.
+  }, [user, accessToken, eventCount])
 
   // Limpiar feedback automáticamente después de 4s
   useEffect(() => {
@@ -440,7 +472,7 @@ export default function LocatarioPage() {
       <header className="bg-card border-b border-card sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-lg font-bold text-white sm:text-2xl truncate">Panel de Locatario</h1>
+            <h1 className="text-lg font-bold text-white sm:text-2xl truncate">Panel de Creador</h1>
             <p className="text-xs text-muted sm:text-sm truncate">{user.businessName}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -519,12 +551,22 @@ export default function LocatarioPage() {
                 </div>
                 <p className="text-xs text-muted mt-2">Publicados desde tu panel</p>
               </div>
-              <div className="bg-card border border-card rounded-lg p-4">
-                <p className="text-muted text-sm mb-2">Con Ubicación GPS</p>
-                <div className="text-3xl font-bold text-primary">
-                  {isLoading ? <FiLoader className="animate-spin" size={28} /> : withGps}
+              <div className="bg-card border border-card rounded-lg p-4 relative overflow-hidden">
+                {/* Glow rosa de fondo para destacar este KPI nuevo */}
+                <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-pink-500/15 blur-2xl" />
+                <p className="text-muted text-sm mb-2 flex items-center gap-1.5">
+                  <span>❤️</span> Total de Interesados
+                </p>
+                <div className="text-3xl font-bold text-pink-400 relative">
+                  {statsLoading && !stats
+                    ? <FiLoader className="animate-spin" size={28} />
+                    : (stats?.totalLikes ?? 0).toLocaleString('es-CL')}
                 </div>
-                <p className="text-xs text-muted mt-2">Aparecen en el mapa del feed</p>
+                <p className="text-xs text-muted mt-2">
+                  {stats?.totalChatMembers
+                    ? `${stats.totalChatMembers} se unieron al chat`
+                    : `${withGps} con ubicación GPS`}
+                </p>
               </div>
               <div className="bg-card border border-card rounded-lg p-4">
                 <p className="text-muted text-sm mb-2">Eventos Gratuitos</p>
@@ -643,10 +685,21 @@ export default function LocatarioPage() {
           {/* Cards — móvil (sm y menor) */}
           {!isLoading && locatarioEvents.length > 0 && (
             <div className="divide-y divide-card/50 sm:hidden">
-              {locatarioEvents.map((event) => (
+              {locatarioEvents.map((event) => {
+                const likes = stats?.likesByEvent[event.id] ?? 0
+                const chatN = stats?.chatMembersByEvent[event.id] ?? 0
+                const isTop = stats?.topEventId === event.id && likes > 0
+                return (
                 <div key={event.id} className="px-4 py-4 space-y-2">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-semibold text-white leading-snug">{event.title}</p>
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <p className="text-sm font-semibold text-white leading-snug">{event.title}</p>
+                      {isTop && (
+                        <span className="self-start rounded-full bg-yellow-500/15 px-2 py-0.5 text-[10px] font-semibold text-yellow-300 border border-yellow-500/25">
+                          ⭐ Tu plan más popular
+                        </span>
+                      )}
+                    </div>
                     {event.lat != null && event.lng != null && (
                       <span className="flex items-center gap-1 text-[11px] text-green-400 shrink-0">
                         <FiMapPin size={11} /> GPS
@@ -658,6 +711,10 @@ export default function LocatarioPage() {
                     {event.price == null
                       ? <span className="text-green-400 font-semibold">Gratis</span>
                       : <span className="text-primary-light font-semibold">${event.price.toLocaleString('es-CL')}</span>}
+                    <span className={`font-semibold ${likes > 0 ? 'text-pink-400' : 'text-muted'}`}>
+                      ❤️ {likes}
+                    </span>
+                    {chatN > 0 && <span className="text-violet-300 font-semibold">💬 {chatN}</span>}
                   </div>
                   <div className="flex items-center gap-3 pt-1">
                     <button
@@ -677,7 +734,7 @@ export default function LocatarioPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
 
@@ -690,14 +747,28 @@ export default function LocatarioPage() {
                     <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Evento</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Fecha</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Precio</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Interés</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-muted">GPS</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-muted">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {locatarioEvents.map((event) => (
+                  {locatarioEvents.map((event) => {
+                    const likes = stats?.likesByEvent[event.id] ?? 0
+                    const chatN = stats?.chatMembersByEvent[event.id] ?? 0
+                    const isTop = stats?.topEventId === event.id && likes > 0
+                    return (
                     <tr key={event.id} className="border-b border-card/50 hover:bg-surface/50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-white font-medium">{event.title}</td>
+                      <td className="px-6 py-4 text-sm text-white font-medium">
+                        <div className="flex items-center gap-2">
+                          <span>{event.title}</span>
+                          {isTop && (
+                            <span className="rounded-full bg-yellow-500/15 px-2 py-0.5 text-[10px] font-semibold text-yellow-300 border border-yellow-500/25">
+                              ⭐ Top
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 text-sm text-muted">
                         {new Date(event.date).toLocaleString('es-CL')}
                       </td>
@@ -705,6 +776,24 @@ export default function LocatarioPage() {
                         {event.price == null
                           ? <span className="text-green-400">Gratis</span>
                           : <span className="text-primary-light">${event.price.toLocaleString('es-CL')}</span>}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`flex items-center gap-1 font-semibold ${likes > 0 ? 'text-pink-400' : 'text-muted'}`}
+                            title={`${likes} usuarios marcaron este plan como 'Voy'`}
+                          >
+                            <span>❤️</span> {likes}
+                          </span>
+                          {chatN > 0 && (
+                            <span
+                              className="flex items-center gap-1 text-violet-300"
+                              title={`${chatN} usuarios en el chat`}
+                            >
+                              <span>💬</span> {chatN}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {event.lat != null && event.lng != null
@@ -733,7 +822,7 @@ export default function LocatarioPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>

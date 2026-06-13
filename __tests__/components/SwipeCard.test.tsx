@@ -157,8 +157,8 @@ describe('SwipeCard', () => {
 
     it('muestra los botones de like y nope', () => {
       renderCard()
-      expect(screen.getByRole('button', { name: 'Me interesa' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'No me interesa' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Me tinca, voy' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Paso, fome' })).toBeInTheDocument()
     })
 
     it('llama onSave al hacer click en guardar', async () => {
@@ -171,14 +171,14 @@ describe('SwipeCard', () => {
     it('llama onSwipeRight al hacer click en me interesa', async () => {
       const user = userEvent.setup()
       renderCard()
-      await user.click(screen.getByRole('button', { name: 'Me interesa' }))
+      await user.click(screen.getByRole('button', { name: 'Me tinca, voy' }))
       expect(onSwipeRight).toHaveBeenCalledWith('e1')
     })
 
     it('llama onSwipeLeft al hacer click en no me interesa', async () => {
       const user = userEvent.setup()
       renderCard()
-      await user.click(screen.getByRole('button', { name: 'No me interesa' }))
+      await user.click(screen.getByRole('button', { name: 'Paso, fome' }))
       expect(onSwipeLeft).toHaveBeenCalledWith('e1')
     })
   })
