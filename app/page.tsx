@@ -16,6 +16,10 @@ const BellavistaMapMobile = dynamic(() => import('../src/components/BellavistaMa
 })
 import DistanceFilter from '../src/components/DistanceFilter'
 import PlaceTypeFilters from '../src/components/PlaceTypeFilters'
+import PriceFilter from '../src/components/PriceFilter'
+import DateRangeFilter from '../src/components/DateRangeFilter'
+import EventCategoryFilter from '../src/components/EventCategoryFilter'
+import { matchesPrice, matchesDateRange, type PriceMode, type DateRangeMode } from '../src/lib/feedFilters'
 import { placeToEvent } from '../src/data/placeFeedAdapter'
 import { NearbyPlacesProvider, useNearbyPlacesContext } from '../src/context/NearbyPlacesContext'
 import { useChatContext } from '../src/context/ChatContext'
@@ -25,7 +29,7 @@ import { hasSupabaseEnv, getSupabaseBrowserClient } from '../src/lib/supabase'
 import { fetchApi } from '../src/lib/fetchApi'
 import { HiMapPin, HiClock } from 'react-icons/hi2'
 import { HiHeart, HiBookmark } from 'react-icons/hi'
-import type { Event, PlaceType } from '../src/types'
+import type { Event, EventCategory, PlaceType } from '../src/types'
 import { formatEventDate, formatPrice, CATEGORY_EMOJI } from '../src/lib/eventUtils'
 
 const DEFAULT_FEED_TYPES: PlaceType[] = ['restaurant', 'bar', 'night_club', 'cafe']
@@ -226,7 +230,7 @@ function CommunityEventCard({
             }`}
           >
             <HiHeart className="h-3.5 w-3.5" />
-            {isLiked ? 'Interesado' : 'Me interesa'}
+            {isLiked ? '¡Voy!' : 'Me tinca'}
           </button>
           <button
             onClick={onSave}
@@ -333,6 +337,17 @@ function HomePageContent() {
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+  // Filtros extra (locales al feed): precio, fecha, categorías de evento.
+  // Mantenemos los del contexto (distancia, tipos de Google Places) intactos.
+  const [priceMode, setPriceMode] = useState<PriceMode>('any')
+  const [dateMode, setDateMode] = useState<DateRangeMode>('any')
+  const [selectedCategories, setSelectedCategories] = useState<EventCategory[]>([])
+
+  const toggleCategory = useCallback((cat: EventCategory) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
+    )
+  }, [])
   const [toast, setToast] = useState<{ message: string; type: 'like' | 'nope' | 'save' } | null>(null)
   const [routeVisible, setRouteVisible] = useState(false)
   const [featuredEvent, setFeaturedEvent] = useState<Event | null>(null)
@@ -375,8 +390,16 @@ function HomePageContent() {
         ? event.distance * INTEREST_WEIGHT
         : event.distance
 
+    // Filtros extra: precio, fecha y categorías de evento.
+    // Si no hay categorías seleccionadas, pasa cualquier categoría.
+    const categorySet = new Set(selectedCategories)
+    const now = new Date()
+
     return [...placeEvents, ...locatarioMapped]
       .filter((event) => event.distance <= selectedDistanceKm)
+      .filter((event) => matchesPrice(event, priceMode))
+      .filter((event) => matchesDateRange(event, dateMode, now))
+      .filter((event) => categorySet.size === 0 || categorySet.has(event.category))
       .sort((a, b) => rankScore(a) - rankScore(b))
       .filter((event) => !dismissedIds.has(event.id))
       .map((event) => ({
@@ -384,7 +407,7 @@ function HomePageContent() {
         isLiked: likedIds.has(event.id),
         isSaved: savedIds.has(event.id),
       }))
-  }, [dismissedIds, likedIds, places, publicLocatarioEvents, savedIds, selectedDistanceKm, selectedPlaceTypes, user?.interests, userLocation])
+  }, [dateMode, dismissedIds, likedIds, places, priceMode, publicLocatarioEvents, savedIds, selectedCategories, selectedDistanceKm, selectedPlaceTypes, user?.interests, userLocation])
 
   function showToast(message: string, type: 'like' | 'nope' | 'save') {
     setToast({ message, type })
@@ -408,7 +431,7 @@ function HomePageContent() {
     setLikedIds((prev) => new Set(prev).add(id))
     setDismissedIds((prev) => new Set(prev).add(id))
     excludePlace(id)
-    showToast('¡Te interesa! Ruta en el mapa 🗺️', 'like')
+    showToast('¡Armaste panorama! Aquí está tu ruta 🗺️', 'like')
 
     // Activar ruta en el mapa: Google Maps place tiene placeId, locatario usa coordenadas
     const likedPlace = places.find((p) => p.placeId === likedEvent.id)
@@ -461,7 +484,7 @@ function HomePageContent() {
     if (featuredEvent?.id === id) setFeaturedEvent(null)
     setDismissedIds((prev) => new Set(prev).add(id))
     excludePlace(id)
-    showToast('No es para ti', 'nope')
+    showToast('Fome, paso 👋', 'nope')
   }, [excludePlace, featuredEvent])
 
   const handleSave = useCallback(async (id: string) => {
@@ -521,7 +544,7 @@ function HomePageContent() {
       await updateUser({ savedEvents: Array.from(nextSaved) })
     } catch { /* fallo silencioso */ }
 
-    showToast(!isCurrentlySaved ? 'Evento guardado 🔖' : 'Quitado de guardados', 'save')
+    showToast(!isCurrentlySaved ? 'Panorama guardado para después 🔖' : 'Lo sacaste de guardados', 'save')
   }, [events, publicLocatarioEvents, savedIds, updateUser, user])
 
   const visibleEvents = useMemo(() => {
@@ -549,7 +572,10 @@ function HomePageContent() {
 
   const activeFilterCount =
     (selectedDistanceKm !== 3 ? 1 : 0) +
-    (selectedPlaceTypes.length !== DEFAULT_FEED_TYPES.length ? 1 : 0)
+    (selectedPlaceTypes.length !== DEFAULT_FEED_TYPES.length ? 1 : 0) +
+    (priceMode !== 'any' ? 1 : 0) +
+    (dateMode !== 'any' ? 1 : 0) +
+    (selectedCategories.length > 0 ? 1 : 0)
 
   function restoreDefaultFilters() {
     setDistanceKm(3)
@@ -557,6 +583,9 @@ function HomePageContent() {
     const defaultSet = new Set(DEFAULT_FEED_TYPES)
     selectedPlaceTypes.forEach((type) => { if (!defaultSet.has(type)) togglePlaceType(type) })
     DEFAULT_FEED_TYPES.forEach((type) => { if (!selectedSet.has(type)) togglePlaceType(type) })
+    setPriceMode('any')
+    setDateMode('any')
+    setSelectedCategories([])
   }
 
   return (
@@ -605,12 +634,12 @@ function HomePageContent() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.98 }}
                   transition={{ duration: 0.16 }}
-                  className="mt-3 w-[320px] rounded-2xl border border-white/10 bg-card/95 p-3 shadow-2xl backdrop-blur-lg"
+                  className="mt-3 max-h-[70vh] w-[360px] overflow-y-auto rounded-2xl border border-white/10 bg-card/95 p-3 shadow-2xl backdrop-blur-lg"
                 >
                   <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-300">Opciones de filtro</p>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div>
-                      <p className="mb-1 text-[11px] font-semibold text-muted">Distancia</p>
+                      <p className="mb-1.5 text-[11px] font-semibold text-muted">📍 Distancia</p>
                       <DistanceFilter
                         selectedKm={selectedDistanceKm}
                         onChange={setDistanceKm}
@@ -618,7 +647,31 @@ function HomePageContent() {
                       />
                     </div>
                     <div>
-                      <p className="mb-1 text-[11px] font-semibold text-muted">Tipos de lugar</p>
+                      <p className="mb-1.5 text-[11px] font-semibold text-muted">📅 Cuándo</p>
+                      <DateRangeFilter
+                        selected={dateMode}
+                        onChange={setDateMode}
+                        className="flex flex-wrap gap-2"
+                      />
+                    </div>
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-semibold text-muted">💰 Precio</p>
+                      <PriceFilter
+                        selected={priceMode}
+                        onChange={setPriceMode}
+                        className="flex flex-wrap gap-2"
+                      />
+                    </div>
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-semibold text-muted">🎯 Categorías de evento</p>
+                      <EventCategoryFilter
+                        selected={selectedCategories}
+                        onToggle={toggleCategory}
+                        className="flex flex-wrap gap-2"
+                      />
+                    </div>
+                    <div className="border-t border-white/10 pt-3">
+                      <p className="mb-1.5 text-[11px] font-semibold text-muted">🏠 Tipos de lugar (Google)</p>
                       <PlaceTypeFilters
                         selectedTypes={selectedPlaceTypes}
                         onToggleType={togglePlaceType}

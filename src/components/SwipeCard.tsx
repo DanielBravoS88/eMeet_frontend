@@ -314,20 +314,20 @@ export default function SwipeCard({
         {/* ── Indicadores de swipe ────────────────────────────────────────── */}
         {isActive && (
           <>
-            {/* LIKE indicator */}
+            {/* Indicador "VOY" cuando arrastra a la derecha */}
             <motion.div
               style={{ opacity: likeOpacity }}
               className="absolute left-5 top-1/4 rounded-xl border-4 border-green-400 px-4 py-2 -rotate-12 lg:left-6"
             >
-              <span className="text-2xl font-extrabold tracking-widest text-green-400 lg:text-3xl">LIKE</span>
+              <span className="text-2xl font-extrabold tracking-widest text-green-400 lg:text-3xl">VOY</span>
             </motion.div>
 
-            {/* NOPE indicator */}
+            {/* Indicador "PASO" cuando arrastra a la izquierda */}
             <motion.div
               style={{ opacity: nopeOpacity }}
               className="absolute right-5 top-1/4 rounded-xl border-4 border-red-400 px-4 py-2 rotate-12 lg:right-6"
             >
-              <span className="text-2xl font-extrabold tracking-widest text-red-400 lg:text-3xl">NOPE</span>
+              <span className="text-2xl font-extrabold tracking-widest text-red-400 lg:text-3xl">PASO</span>
             </motion.div>
           </>
         )}
@@ -417,7 +417,8 @@ export default function SwipeCard({
               whileTap={{ scale: 0.82 }}
               transition={{ type: 'spring', stiffness: 500, damping: 18 }}
               className="flex h-14 w-14 items-center justify-center rounded-full border border-red-300/55 bg-red-500/30 text-red-100 shadow-lg shadow-red-900/35 backdrop-blur-md hover:border-red-300/80 hover:bg-red-500/40"
-              aria-label="No me interesa"
+              aria-label="Paso, fome"
+              title="Paso"
             >
               <HiX className="h-7 w-7" />
             </motion.button>
@@ -428,7 +429,8 @@ export default function SwipeCard({
               whileTap={{ scale: 0.82 }}
               transition={{ type: 'spring', stiffness: 500, damping: 18 }}
               className="flex h-14 w-14 items-center justify-center rounded-full border border-green-300/55 bg-green-500/30 text-green-100 shadow-lg shadow-green-900/35 backdrop-blur-md hover:border-green-300/80 hover:bg-green-500/40"
-              aria-label="Me interesa"
+              aria-label="Me tinca, voy"
+              title="Voy"
             >
               <HiHeart className="h-7 w-7" />
             </motion.button>
