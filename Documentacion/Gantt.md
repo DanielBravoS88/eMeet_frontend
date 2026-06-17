@@ -18,6 +18,7 @@
 | 8 | Pruebas y QA | Pruebas funcionales, revisión de seguridad, correcciones |
 | 9 | Documentación | Informe académico, arquitectura, UML, MER, wireframes, Gantt |
 | 10 | Entrega final | Revisión final, PR a `main`, preparación de entrega académica |
+| 11 | Iteración EP3 (mejoras junio) | Modo Creador, app móvil Android (Capacitor), filtros de feed, presencia/typing real, animaciones, auth humanizado, onboarding y suite de tests |
 
 ---
 
@@ -73,9 +74,9 @@ gantt
     Conexión con eMeet_Backend_Supabase :done,    bff3, 2026-05-03, 7d
 
     section QA y Pruebas
-    Pruebas funcionales manuales      :active,  qa1, 2026-05-05, 5d
-    Revisión de seguridad             :active,  qa2, 2026-05-08, 3d
-    Correcciones detectadas           :active,  qa3, 2026-05-10, 4d
+    Pruebas funcionales manuales      :done,    qa1, 2026-05-05, 5d
+    Revisión de seguridad             :done,    qa2, 2026-05-08, 3d
+    Correcciones detectadas           :done,    qa3, 2026-05-10, 4d
 
     section Documentación
     Informe académico                 :done,    doc1, 2026-05-05, 4d
@@ -85,9 +86,20 @@ gantt
     Gestión y estructura de entrega   :done,    doc5, 2026-05-07, 2d
 
     section Entrega Final
-    Revisión final del PR             :         ent1, 2026-05-12, 2d
-    PR hacia main/dev                 :         ent2, 2026-05-13, 1d
+    Revisión final del PR             :done,    ent1, 2026-05-12, 2d
+    PR hacia main/dev                 :done,    ent2, 2026-05-13, 1d
     Entrega académica                 :milestone, ent3, 2026-05-14, 0d
+
+    section Iteración EP3 (Mejoras Junio)
+    Chat: presencia y typing real     :done,    ep3_1, 2026-06-01, 3d
+    Animaciones y micro-interacciones :done,    ep3_2, 2026-06-03, 3d
+    Sidebar colapsable tipo rail      :done,    ep3_3, 2026-06-05, 2d
+    App móvil Android (Capacitor)     :done,    ep3_4, 2026-06-06, 4d
+    Filtros de feed (fecha/precio/cat):done,    ep3_5, 2026-06-09, 2d
+    Modo Creador + stats interesados  :done,    ep3_6, 2026-06-10, 3d
+    Auth humanizado + onboarding      :done,    ep3_7, 2026-06-11, 2d
+    Suite de tests (Jest)             :done,    ep3_8, 2026-06-12, 2d
+    Merge a main (PR #41–#45)         :milestone, ep3_9, 2026-06-13, 0d
 ```
 
 ---
@@ -110,10 +122,16 @@ gantt
 | Paneles | Panel de administrador completo | Francisco Levipil | 20/04/2026 | 25/04/2026 | ✅ Completado |
 | Paneles | Panel de locatario + formulario de evento | Antonio Vivar | 26/04/2026 | 30/04/2026 | ✅ Completado |
 | Backend | Integración con eMeet_Backend_Supabase | Equipo | 30/04/2026 | 06/05/2026 | ✅ Completado |
-| QA | Pruebas funcionales manuales | Equipo | 05/05/2026 | 09/05/2026 | 🔄 En progreso |
-| QA | Revisión de seguridad y correcciones | Equipo | 08/05/2026 | 13/05/2026 | 🔄 En progreso |
+| QA | Pruebas funcionales manuales | Equipo | 05/05/2026 | 09/05/2026 | ✅ Completado |
+| QA | Revisión de seguridad y correcciones | Equipo | 08/05/2026 | 13/05/2026 | ✅ Completado |
 | Documentación | Estructura académica completa | Equipo | 05/05/2026 | 08/05/2026 | ✅ Completado |
 | Entrega | PR hacia `main`/`dev` + entrega académica | Equipo | 12/05/2026 | 16/05/2026 | ✅ Completado |
+| EP3 | Chat: presencia y typing real (Supabase Realtime) | Daniel Bravo | 01/06/2026 | 03/06/2026 | ✅ Completado |
+| EP3 | Animaciones y micro-interacciones de navegación | Francisco Levipil | 03/06/2026 | 06/06/2026 | ✅ Completado |
+| EP3 | App móvil Android con Capacitor | Antonio Vivar | 06/06/2026 | 10/06/2026 | ✅ Completado |
+| EP3 | Filtros de feed (fecha, precio, categoría) | Daniel Bravo | 09/06/2026 | 11/06/2026 | ✅ Completado |
+| EP3 | Modo Creador (`/creator`) + stats de interesados | Antonio Vivar | 10/06/2026 | 13/06/2026 | ✅ Completado |
+| EP3 | Auth humanizado + onboarding + accesibilidad reduce-motion | Equipo | 11/06/2026 | 13/06/2026 | ✅ Completado |
 
 ---
 
