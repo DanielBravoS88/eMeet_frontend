@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>eMeet · Frontend (Next.js + React) — Evidencia de pruebas unitarias</title>
+<style>
+  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f5f6f8;color:#1b1f24;margin:0;padding:32px;}
+  .wrap{max-width:900px;margin:0 auto;}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px;}
+  h1{font-size:20px;font-weight:600;margin:0;}
+  .sub{font-size:13px;color:#57606a;margin-top:4px;}
+  .ok-badge{background:#e6f4ea;color:#1e7e34;font-size:13px;font-weight:600;padding:5px 14px;border-radius:8px;}
+  .meta{font-size:12px;color:#8a929b;margin-top:6px;text-align:right;}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+  .card{background:#fff;border:1px solid #e1e4e8;border-radius:8px;padding:14px;}
+  .card .lbl{font-size:12px;color:#57606a;}
+  .card .val{font-size:24px;font-weight:600;margin-top:2px;}
+  .term{background:#0d1117;color:#c9d1d9;font-family:Consolas,Menlo,monospace;font-size:12.5px;line-height:1.7;border-radius:8px;padding:14px 16px;margin-bottom:24px;overflow-x:auto;}
+  .term .pass{color:#3fb950;font-weight:600;}
+  .term .dim{color:#8b949e;}
+  .suite{background:#fff;border:1px solid #e1e4e8;border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .suite-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .file{font-family:Consolas,monospace;font-size:12.5px;}
+  .badge{background:#e6f4ea;color:#1e7e34;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:7px;}
+  .test{display:flex;gap:7px;font-size:12.5px;color:#444c56;line-height:1.5;margin:2px 0;}
+  .chk{color:#2da44e;font-weight:700;flex-shrink:0;}
+  h2{font-size:15px;font-weight:600;margin:24px 0 8px;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{text-align:left;color:#57606a;font-weight:500;padding:6px 8px;border-bottom:1px solid #d0d7de;}
+  td{padding:5px 8px;}
+  td:not(.mono){text-align:right;}
+  th:not(:first-child){text-align:right;}
+  .mono{font-family:Consolas,monospace;}
+  tr.total td{font-weight:600;border-top:1px solid #d0d7de;}
+</style></head><body><div class="wrap">
+  <div class="header">
+    <div><h1>eMeet · Frontend (Next.js + React)</h1><div class="sub">Evidencia de ejecucion de pruebas unitarias — Jest + Testing Library</div></div>
+    <div><span class="ok-badge">✓ 171 / 171 aprobadas</span><div class="meta">Ejecutado: 17-06-2026 · TPY1101 EP3</div></div>
+  </div>
+  <div class="cards">
+    <div class="card"><div class="lbl">Suites</div><div class="val">20 / 20</div></div>
+    <div class="card"><div class="lbl">Pruebas</div><div class="val">171</div></div>
+    <div class="card"><div class="lbl">Fallos</div><div class="val" style="color:#1e7e34">0</div></div>
+    <div class="card"><div class="lbl">Cobertura líneas</div><div class="val">38.27%</div></div>
+  </div>
+  <div class="term">
+    <div class="dim">$ npx jest --coverage</div>
+    <div><span class="pass">PASS</span> users.test.ts</div><div><span class="pass">PASS</span> Topbar.test.tsx</div><div><span class="pass">PASS</span> PlaceTypeFilters.test.tsx</div><div><span class="pass">PASS</span> DateRangeFilter.test.tsx</div><div><span class="pass">PASS</span> PriceFilter.test.tsx</div><div><span class="pass">PASS</span> EventCategoryFilter.test.tsx</div><div><span class="pass">PASS</span> EventPreviewCard.test.tsx</div><div><span class="pass">PASS</span> authErrors.test.ts</div><div><span class="pass">PASS</span> feedFilters.test.ts</div><div><span class="pass">PASS</span> eventUtils.test.ts</div><div><span class="pass">PASS</span> KpiCard.test.tsx</div><div><span class="pass">PASS</span> LocatarioEventsContext.test.tsx</div><div><span class="pass">PASS</span> events.test.ts</div><div><span class="pass">PASS</span> DistanceFilter.test.tsx</div><div><span class="pass">PASS</span> SwipeCard.test.tsx</div><div><span class="pass">PASS</span> EventsTable.test.tsx</div><div><span class="pass">PASS</span> ChatBubble.test.tsx</div><div><span class="pass">PASS</span> OnboardingOverlay.test.tsx</div><div><span class="pass">PASS</span> LoginForm.test.tsx</div><div><span class="pass">PASS</span> SignUpForm.test.tsx</div>
+    <div style="margin-top:8px">Test Suites: <span class="pass">20 passed</span>, 20 total</div>
+    <div>Tests:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="pass">171 passed</span>, 171 total</div>
+  </div>
+  <h2>Detalle de casos de prueba por suite</h2>
+  
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 users.test.ts</span>
+      <span class="badge">10/10</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>GET /api/admin/users devuelve 401 sin token de autorización</span></div><div class="test"><span class="chk">✓</span><span>GET /api/admin/users devuelve 401 con token inválido</span></div><div class="test"><span class="chk">✓</span><span>GET /api/admin/users devuelve 403 si el usuario no es admin</span></div><div class="test"><span class="chk">✓</span><span>GET /api/admin/users devuelve la lista de usuarios cuando el caller es admin</span></div><div class="test"><span class="chk">✓</span><span>DELETE /api/admin/users/[id] devuelve 401 sin token</span></div><div class="test"><span class="chk">✓</span><span>DELETE /api/admin/users/[id] devuelve 400 si el admin intenta eliminarse a sí mismo</span></div><div class="test"><span class="chk">✓</span><span>DELETE /api/admin/users/[id] devuelve 204 al eliminar un usuario correctamente</span></div><div class="test"><span class="chk">✓</span><span>PATCH /api/admin/users/[id]/role devuelve 400 con un rol inválido</span></div><div class="test"><span class="chk">✓</span><span>PATCH /api/admin/users/[id]/role rechaza el rol legacy locatario (ya no es válido)</span></div><div class="test"><span class="chk">✓</span><span>PATCH /api/admin/users/[id]/role acepta los roles válidos: user, admin</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 Topbar.test.tsx</span>
+      <span class="badge">4/4</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>Topbar (admin) muestra las iniciales y el nombre del usuario</span></div><div class="test"><span class="chk">✓</span><span>Topbar (admin) usa "A" y "Admin" como fallback cuando no hay usuario</span></div><div class="test"><span class="chk">✓</span><span>Topbar (admin) toma sólo las dos primeras iniciales de un nombre largo</span></div><div class="test"><span class="chk">✓</span><span>Topbar (admin) renderiza el campo de búsqueda</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 PlaceTypeFilters.test.tsx</span>
+      <span class="badge">3/3</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>PlaceTypeFilters renderiza los tipos de lugar con su etiqueta</span></div><div class="test"><span class="chk">✓</span><span>PlaceTypeFilters llama onToggleType con el tipo al hacer click</span></div><div class="test"><span class="chk">✓</span><span>PlaceTypeFilters aplica color de fondo al tipo seleccionado</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 DateRangeFilter.test.tsx</span>
+      <span class="badge">3/3</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>DateRangeFilter renderiza las 4 opciones de rango</span></div><div class="test"><span class="chk">✓</span><span>DateRangeFilter llama onChange con el modo elegido al hacer click</span></div><div class="test"><span class="chk">✓</span><span>DateRangeFilter marca visualmente la opción seleccionada</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 PriceFilter.test.tsx</span>
+      <span class="badge">3/3</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>PriceFilter renderiza las 3 opciones de precio</span></div><div class="test"><span class="chk">✓</span><span>PriceFilter llama onChange con el modo elegido</span></div><div class="test"><span class="chk">✓</span><span>PriceFilter marca la opción seleccionada</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 EventCategoryFilter.test.tsx</span>
+      <span class="badge">3/3</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>EventCategoryFilter renderiza las 8 categorías</span></div><div class="test"><span class="chk">✓</span><span>EventCategoryFilter llama onToggle con la categoría al hacer click</span></div><div class="test"><span class="chk">✓</span><span>EventCategoryFilter resalta las categorías seleccionadas</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 EventPreviewCard.test.tsx</span>
+      <span class="badge">6/6</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>EventPreviewCard muestra título, descripción y organizador</span></div><div class="test"><span class="chk">✓</span><span>EventPreviewCard renderiza imagen cuando no hay video</span></div><div class="test"><span class="chk">✓</span><span>EventPreviewCard renderiza video cuando hay videoUrl</span></div><div class="test"><span class="chk">✓</span><span>EventPreviewCard muestra "Gratis" cuando el precio es null</span></div><div class="test"><span class="chk">✓</span><span>EventPreviewCard muestra el contador de asistentes cuando hay capacidad</span></div><div class="test"><span class="chk">✓</span><span>EventPreviewCard muestra "Fecha por definir" cuando no hay fecha</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 authErrors.test.ts</span>
+      <span class="badge">12/12</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>humanizeAuthError devuelve fallback cuando el error es vacío</span></div><div class="test"><span class="chk">✓</span><span>humanizeAuthError detecta credenciales inválidas y sugiere recuperar contraseña</span></div><div class="test"><span class="chk">✓</span><span>humanizeAuthError detecta email no confirmado y sugiere verificar</span></div><div class="test"><span class="chk">✓</span><span>humanizeAuthError detecta usuario inexistente y sugiere registro</span></div><div class="test"><span class="chk">✓</span><span>humanizeAuthError detecta rate limit</span></div><div class="test"><span class="chk">✓</span><span>humanizeAuthError detecta cuenta deshabilitada</span></div><div class="test"><span class="chk">✓</span><span>humanizeAuthError detecta email mal formado</span></div><div class="test"><span class="chk">✓</span><span>humanizeAuthError detecta contraseña que no cumple requisitos</span></div><div class="test"><span class="chk">✓</span><span>humanizeAuthError detecta error de red</span></div><div class="test"><span class="chk">✓</span><span>humanizeAuthError usa el mensaje original para un Error no reconocido</span></div><div class="test"><span class="chk">✓</span><span>humanizeAuthError devuelve fallback para un valor no-Error no reconocido</span></div><div class="test"><span class="chk">✓</span><span>humanizeAuthError maneja null sin lanzar</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 feedFilters.test.ts</span>
+      <span class="badge">14/14</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>matchesPrice mode "any" siempre pasa</span></div><div class="test"><span class="chk">✓</span><span>matchesPrice mode "free" sólo eventos gratis (price null o 0)</span></div><div class="test"><span class="chk">✓</span><span>matchesPrice mode "paid" sólo eventos con precio &gt; 0</span></div><div class="test"><span class="chk">✓</span><span>dateRangeBounds mode "any" devuelve null</span></div><div class="test"><span class="chk">✓</span><span>dateRangeBounds mode "today" devuelve el rango del día actual</span></div><div class="test"><span class="chk">✓</span><span>dateRangeBounds mode "week" abarca aproximadamente una semana</span></div><div class="test"><span class="chk">✓</span><span>dateRangeBounds mode "weekend" en día de semana apunta al próximo sábado y domingo</span></div><div class="test"><span class="chk">✓</span><span>dateRangeBounds mode "weekend" un sábado abarca hoy y mañana</span></div><div class="test"><span class="chk">✓</span><span>dateRangeBounds mode "weekend" un domingo abarca sólo hoy</span></div><div class="test"><span class="chk">✓</span><span>matchesDateRange mode "any" siempre pasa</span></div><div class="test"><span class="chk">✓</span><span>matchesDateRange descarta eventos sin fecha cuando hay filtro activo</span></div><div class="test"><span class="chk">✓</span><span>matchesDateRange descarta eventos con fecha inválida</span></div><div class="test"><span class="chk">✓</span><span>matchesDateRange acepta un evento dentro del rango</span></div><div class="test"><span class="chk">✓</span><span>matchesDateRange rechaza un evento fuera del rango</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 eventUtils.test.ts</span>
+      <span class="badge">6/6</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>formatEventDate formatea una fecha ISO con día y hora</span></div><div class="test"><span class="chk">✓</span><span>formatPrice devuelve "Gratis" cuando el precio es null</span></div><div class="test"><span class="chk">✓</span><span>formatPrice formatea un precio en pesos chilenos sin decimales</span></div><div class="test"><span class="chk">✓</span><span>formatPrice formatea el precio 0 como moneda</span></div><div class="test"><span class="chk">✓</span><span>mapas de categoría todas las categorías con color tienen también emoji</span></div><div class="test"><span class="chk">✓</span><span>mapas de categoría cada color es una clase de tailwind</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 KpiCard.test.tsx</span>
+      <span class="badge">6/6</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>KpiCard muestra label y valor</span></div><div class="test"><span class="chk">✓</span><span>KpiCard muestra el skeleton cuando loading=true</span></div><div class="test"><span class="chk">✓</span><span>KpiCard muestra cambio positivo con su porcentaje</span></div><div class="test"><span class="chk">✓</span><span>KpiCard muestra cambio negativo en valor absoluto</span></div><div class="test"><span class="chk">✓</span><span>KpiCard muestra cambio neutro (0%)</span></div><div class="test"><span class="chk">✓</span><span>KpiCard KpiCardSkeleton renderiza placeholders animados</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 LocatarioEventsContext.test.tsx</span>
+      <span class="badge">6/6</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>LocatarioEventsContext useLocatarioEvents fuera del provider lanza error si se usa fuera del provider</span></div><div class="test"><span class="chk">✓</span><span>LocatarioEventsContext carga inicial sin sesión termina en estado listo con listas vacías si no hay sesión</span></div><div class="test"><span class="chk">✓</span><span>LocatarioEventsContext carga inicial con sesión carga eventos públicos cuando fetch devuelve filas</span></div><div class="test"><span class="chk">✓</span><span>LocatarioEventsContext createLocatarioEvent añade el nuevo evento a locatarioEvents</span></div><div class="test"><span class="chk">✓</span><span>LocatarioEventsContext createLocatarioEvent lanza error "Debes iniciar sesión" si no hay sesión activa</span></div><div class="test"><span class="chk">✓</span><span>LocatarioEventsContext removeLocatarioEvent elimina el evento del estado local antes de que el fetch termine</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 events.test.ts</span>
+      <span class="badge">8/8</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>GET /api/admin/events devuelve 401 sin token</span></div><div class="test"><span class="chk">✓</span><span>GET /api/admin/events devuelve 401 con token inválido</span></div><div class="test"><span class="chk">✓</span><span>GET /api/admin/events devuelve 403 si el usuario no es admin</span></div><div class="test"><span class="chk">✓</span><span>GET /api/admin/events devuelve la lista de eventos cuando el caller es admin</span></div><div class="test"><span class="chk">✓</span><span>DELETE /api/admin/events/[id] devuelve 401 sin token</span></div><div class="test"><span class="chk">✓</span><span>DELETE /api/admin/events/[id] devuelve 403 si el usuario no es admin</span></div><div class="test"><span class="chk">✓</span><span>DELETE /api/admin/events/[id] devuelve 204 al eliminar el evento correctamente</span></div><div class="test"><span class="chk">✓</span><span>DELETE /api/admin/events/[id] devuelve 500 si Supabase falla al eliminar</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 DistanceFilter.test.tsx</span>
+      <span class="badge">3/3</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>DistanceFilter renderiza las opciones de distancia</span></div><div class="test"><span class="chk">✓</span><span>DistanceFilter llama onChange con los km elegidos</span></div><div class="test"><span class="chk">✓</span><span>DistanceFilter marca la distancia seleccionada</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 SwipeCard.test.tsx</span>
+      <span class="badge">20/20</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>SwipeCard renderizado básico muestra el título del evento</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard renderizado básico muestra la descripción del evento</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard renderizado básico muestra la categoría del evento</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard renderizado básico muestra badge Abierto cuando isOpen es true</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard renderizado básico muestra badge Cerrado cuando isOpen es false</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard renderizado básico no muestra badge de estado si isOpen es null</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard renderizado básico muestra el nombre del organizador</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard renderizado básico muestra el precio formateado</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard renderizado básico muestra Gratis cuando price es null</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard carta activa (stackIndex 0) muestra el botón de guardar</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard carta activa (stackIndex 0) muestra los botones de like y nope</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard carta activa (stackIndex 0) llama onSave al hacer click en guardar</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard carta activa (stackIndex 0) llama onSwipeRight al hacer click en me interesa</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard carta activa (stackIndex 0) llama onSwipeLeft al hacer click en no me interesa</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard carta de fondo (stackIndex &gt; 0) no muestra el botón de guardar en cartas de fondo</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard carta de fondo (stackIndex &gt; 0) no muestra botones de like/nope en cartas de fondo</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard media renderiza imagen cuando no hay videoUrl</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard media renderiza video cuando hay videoUrl</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard sitio web muestra enlace al sitio web si existe websiteUrl</span></div><div class="test"><span class="chk">✓</span><span>SwipeCard sitio web no muestra enlace si websiteUrl es null</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 EventsTable.test.tsx</span>
+      <span class="badge">13/13</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>EventsTable renderizado muestra mensaje vacío cuando no hay eventos</span></div><div class="test"><span class="chk">✓</span><span>EventsTable renderizado muestra el skeleton cuando loading=true</span></div><div class="test"><span class="chk">✓</span><span>EventsTable renderizado renderiza la lista de eventos correctamente</span></div><div class="test"><span class="chk">✓</span><span>EventsTable renderizado muestra el nombre del organizador</span></div><div class="test"><span class="chk">✓</span><span>EventsTable renderizado muestra la categoría traducida</span></div><div class="test"><span class="chk">✓</span><span>EventsTable renderizado muestra los badges de estado correctamente</span></div><div class="test"><span class="chk">✓</span><span>EventsTable renderizado no muestra columna Acciones si no se pasa onDelete</span></div><div class="test"><span class="chk">✓</span><span>EventsTable renderizado muestra columna Acciones cuando se pasa onDelete</span></div><div class="test"><span class="chk">✓</span><span>EventsTable flujo de eliminación muestra botones de confirmación al hacer clic en Eliminar</span></div><div class="test"><span class="chk">✓</span><span>EventsTable flujo de eliminación cancela la eliminación al hacer clic en No</span></div><div class="test"><span class="chk">✓</span><span>EventsTable flujo de eliminación llama a onDelete con el id correcto al confirmar</span></div><div class="test"><span class="chk">✓</span><span>EventsTable flujo de eliminación no llama onDelete al cancelar</span></div><div class="test"><span class="chk">✓</span><span>EventsTable EventsTableSkeleton renderiza elementos de skeleton</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 ChatBubble.test.tsx</span>
+      <span class="badge">15/15</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>ChatBubble visibilidad no renderiza nada si el usuario no está autenticado</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble visibilidad no renderiza en la página /chat</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble visibilidad no renderiza en /chat/[roomId]</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble visibilidad renderiza el botón cuando el usuario está autenticado</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble badge de mensajes no leídos no muestra badge cuando totalUnread es 0</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble badge de mensajes no leídos muestra el conteo exacto cuando hay menos de 10 no leídos</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble badge de mensajes no leídos muestra "9+" cuando hay más de 9 no leídos</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble panel de chat el panel no es visible inicialmente</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble panel de chat abre el panel al hacer clic en el botón</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble panel de chat muestra spinner cuando está cargando rooms</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble panel de chat muestra mensaje vacío cuando no hay rooms</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble panel de chat muestra las rooms con su título y último mensaje</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble panel de chat muestra badge de no leídos por sala</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble panel de chat cierra el panel al hacer clic en el botón de nuevo</span></div><div class="test"><span class="chk">✓</span><span>ChatBubble panel de chat tiene el link "Ver todo" apuntando a /chat</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 OnboardingOverlay.test.tsx</span>
+      <span class="badge">14/14</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>OnboardingOverlay visibilidad se muestra en la primera visita</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay visibilidad no se muestra si ya fue visto</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay visibilidad no se muestra en /auth</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay visibilidad no se muestra en /admin</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay navegación entre pasos empieza en el paso 1</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay navegación entre pasos avanza al paso 2 al hacer clic en Siguiente</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay navegación entre pasos avanza al paso 3 desde el paso 2</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay navegación entre pasos retrocede al paso 1 desde el paso 2 con Atrás</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay navegación entre pasos muestra "Saltar" solo en el paso 1</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay navegación entre pasos muestra "¡Empezar!" en el último paso</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay navegación entre pasos los dots son clicables y navegan al paso correcto</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay cierre y persistencia Saltar cierra el overlay</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay cierre y persistencia Saltar guarda la clave en localStorage</span></div><div class="test"><span class="chk">✓</span><span>OnboardingOverlay cierre y persistencia ¡Empezar! cierra el overlay y guarda localStorage</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 LoginForm.test.tsx</span>
+      <span class="badge">11/11</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>LoginForm renderizado muestra el título y campos del formulario</span></div><div class="test"><span class="chk">✓</span><span>LoginForm renderizado el campo de contraseña empieza oculto</span></div><div class="test"><span class="chk">✓</span><span>LoginForm renderizado muestra la contraseña al hacer click en el ojo</span></div><div class="test"><span class="chk">✓</span><span>LoginForm login exitoso redirige a / cuando el rol es user</span></div><div class="test"><span class="chk">✓</span><span>LoginForm login exitoso redirige a / para roles no-admin (incluye legacy locatario)</span></div><div class="test"><span class="chk">✓</span><span>LoginForm login exitoso redirige a /admin cuando el rol es admin</span></div><div class="test"><span class="chk">✓</span><span>LoginForm login exitoso respeta el parámetro next si empieza con /</span></div><div class="test"><span class="chk">✓</span><span>LoginForm login exitoso ignora next si no empieza con /</span></div><div class="test"><span class="chk">✓</span><span>LoginForm login fallido muestra el mensaje humanizado cuando login falla por credenciales</span></div><div class="test"><span class="chk">✓</span><span>LoginForm login fallido muestra mensaje genérico (fallback) si el error no es un Error</span></div><div class="test"><span class="chk">✓</span><span>LoginForm login fallido deshabilita el botón mientras carga</span></div>
+  </div>
+  <div class="suite">
+    <div class="suite-head">
+      <span class="file">📄 SignUpForm.test.tsx</span>
+      <span class="badge">11/11</span>
+    </div>
+    <div class="test"><span class="chk">✓</span><span>SignUpForm renderizado inicial muestra el título y la descripción de registro único</span></div><div class="test"><span class="chk">✓</span><span>SignUpForm renderizado inicial no muestra selector de tipo de cuenta ni campos de negocio</span></div><div class="test"><span class="chk">✓</span><span>SignUpForm validaciones muestra error si las contraseñas no coinciden</span></div><div class="test"><span class="chk">✓</span><span>SignUpForm validaciones muestra error si la contraseña tiene menos de 6 caracteres</span></div><div class="test"><span class="chk">✓</span><span>SignUpForm registro exitoso llama a register con nombre, email y contraseña</span></div><div class="test"><span class="chk">✓</span><span>SignUpForm registro exitoso redirige a / sin needsEmailVerification</span></div><div class="test"><span class="chk">✓</span><span>SignUpForm registro exitoso redirige a verify-email si needsEmailVerification es true</span></div><div class="test"><span class="chk">✓</span><span>SignUpForm registro exitoso respeta el parámetro next al terminar el registro</span></div><div class="test"><span class="chk">✓</span><span>SignUpForm barra de fortaleza de contraseña no muestra la barra cuando el campo está vacío</span></div><div class="test"><span class="chk">✓</span><span>SignUpForm barra de fortaleza de contraseña muestra Fuerte para una contraseña con todos los criterios</span></div><div class="test"><span class="chk">✓</span><span>SignUpForm error de registro muestra el error si register rechaza la promesa</span></div>
+  </div>
+  <h2>Cobertura de código (Istanbul)</h2>
+  <table>
+      <thead><tr><th>Archivo</th><th>Stmts</th><th>Branch</th><th>Funcs</th><th>Lines</th></tr></thead>
+      <tbody><tr>
+        <td class="mono">events/route.ts</td>
+        <td style="color:#1e7e34">95.45%</td>
+        <td style="color:#1e7e34">91.66%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">[id]/route.ts</td>
+        <td style="color:#1e7e34">95.45%</td>
+        <td style="color:#1e7e34">91.66%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">role/route.ts</td>
+        <td style="color:#1e7e34">81.48%</td>
+        <td style="color:#9a6700">68.75%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">components/DateRangeFilter.tsx</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">components/DistanceFilter.tsx</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">components/EventCategoryFilter.tsx</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">components/EventPreviewCard.tsx</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">90%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">components/LoginForm.tsx</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">87.87%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">components/OnboardingOverlay.tsx</td>
+        <td style="color:#1e7e34">94.73%</td>
+        <td style="color:#1e7e34">91.3%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">components/PlaceTypeFilters.tsx</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">components/PriceFilter.tsx</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">admin/KpiCard.tsx</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">admin/Topbar.tsx</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">100%</td>
+      </tr><tr>
+        <td class="mono">components/SignUpForm.tsx</td>
+        <td style="color:#1e7e34">96.72%</td>
+        <td style="color:#1e7e34">90.19%</td>
+        <td style="color:#9a6700">75%</td>
+        <td style="color:#1e7e34">96.36%</td>
+      </tr><tr>
+        <td class="mono">users/route.ts</td>
+        <td style="color:#1e7e34">96.15%</td>
+        <td style="color:#1e7e34">81.25%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">95%</td>
+      </tr><tr>
+        <td class="mono">admin/EventsTable.tsx</td>
+        <td style="color:#1e7e34">88.88%</td>
+        <td style="color:#1e7e34">85.71%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">93.54%</td>
+      </tr><tr>
+        <td class="mono">[id]/route.ts</td>
+        <td style="color:#1e7e34">85.71%</td>
+        <td style="color:#9a6700">75%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#1e7e34">91.66%</td>
+      </tr><tr>
+        <td class="mono">components/ChatBubble.tsx</td>
+        <td style="color:#9a6700">66.15%</td>
+        <td style="color:#9a6700">51.35%</td>
+        <td style="color:#9a6700">48%</td>
+        <td style="color:#9a6700">62.5%</td>
+      </tr><tr>
+        <td class="mono">components/SwipeCard.tsx</td>
+        <td style="color:#9a6700">40%</td>
+        <td style="color:#9a6700">41.66%</td>
+        <td style="color:#b02a37">38.46%</td>
+        <td style="color:#9a6700">43.18%</td>
+      </tr><tr>
+        <td class="mono">deezer/route.ts</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">track/route.ts</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">keepalive/route.ts</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/BellavistaMap.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/BottomNavBar.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/CreatorModeSection.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/DateTimePicker.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/DeezerSearch.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/ImageUpload.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/Layout.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/LocationPickerMap.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/NavBar.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/ProtectedRoute.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/SidebarNav.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">components/VideoUpload.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">admin/AdminShell.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#1e7e34">100%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">admin/CategoryDonut.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">admin/Sidebar.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr><tr>
+        <td class="mono">admin/TicketAreaChart.tsx</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+        <td style="color:#b02a37">0%</td>
+      </tr>
+      <tr class="total"><td class="mono">TOTAL (todos los archivos)</td>
+        <td>37.28%</td><td>33.11%</td>
+        <td>31.69%</td><td>38.27%</td></tr>
+      </tbody></table>
+</div></body></html>
