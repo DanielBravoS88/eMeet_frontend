@@ -1,3 +1,5 @@
+/// <reference types="node" />
+/// <reference types="jest" />
 import '@testing-library/jest-dom/jest-globals'
 
 // Evita que los clientes de Supabase intenten conectarse en tests
