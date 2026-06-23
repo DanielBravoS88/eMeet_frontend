@@ -121,7 +121,8 @@ describe('LoginForm', () => {
   })
 
   describe('login fallido', () => {
-    it('muestra el mensaje de error cuando login falla', async () => {
+    it('muestra el mensaje humanizado cuando login falla por credenciales', async () => {
+      // humanizeAuthError() traduce 'Credenciales inválidas' al mensaje amigable.
       mockLogin.mockRejectedValue(new Error('Credenciales inválidas'))
       const user = userEvent.setup()
       renderForm()
@@ -134,7 +135,8 @@ describe('LoginForm', () => {
       expect(mockPush).not.toHaveBeenCalled()
     })
 
-    it('muestra mensaje genérico si el error no es un Error', async () => {
+    it('muestra mensaje genérico (fallback) si el error no es un Error', async () => {
+      // Un rechazo que no es Error cae al mensaje fallback de humanizeAuthError().
       mockLogin.mockRejectedValue('algo raro')
       const user = userEvent.setup()
       renderForm()
@@ -144,7 +146,9 @@ describe('LoginForm', () => {
       await user.click(screen.getByRole('button', { name: /inicia sesión/i }))
 
       await waitFor(() =>
-        expect(screen.getByText('No pudimos iniciar sesión. Intenta nuevamente en unos segundos.')).toBeInTheDocument(),
+        expect(
+          screen.getByText('No pudimos iniciar sesión. Intenta nuevamente en unos segundos.'),
+        ).toBeInTheDocument(),
       )
     })
 

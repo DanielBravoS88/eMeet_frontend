@@ -22,6 +22,21 @@
 | Persistencia de sesión | `AuthContext.tsx`, `@supabase/ssr` | Cookie-based sessions; sesión persiste entre recargas |
 | Modo fallback sin Supabase | `AuthContext.tsx` | Si `hasSupabaseEnv=false`, usa `localStorage` con usuario simulado |
 | Sincronización de perfil post-login | `AuthContext.syncUserData()` | Carga perfil, likes y guardados desde el backend en paralelo |
+| Mensajes de error humanizados | `authErrors.ts`, `LoginForm.tsx` | `humanizeAuthError()` traduce errores de Supabase a mensajes claros con sugerencia (recuperar contraseña, crear cuenta, verificar correo, reintentar) y resalta el campo afectado |
+| Escena animada en el hero de login | `app/auth/page.tsx` | Ilustración de "amigos" animada; shake en el formulario ante credenciales inválidas |
+
+---
+
+### Experiencia de Usuario (UX) e Interfaz
+
+| Funcionalidad | Componente / Archivo | Detalles |
+|---|---|---|
+| Sidebar colapsable tipo "rail" | `SidebarNav.tsx`, `Layout.tsx` | Se contrae a una barra de iconos; el estado se persiste entre sesiones |
+| Onboarding de bienvenida | `OnboardingOverlay.tsx` | Overlay guiado la primera vez que el usuario entra |
+| Header scroll-aware en Modo Creador | `app/creator/page.tsx` | El encabezado reacciona al scroll (se oculta/compacta) |
+| Micro-interacciones y animaciones de navegación | `template.tsx`, `index.css`, Framer Motion | Transiciones de página y entrada al feed potenciadas |
+| Accesibilidad: respeto a `reduce-motion` | `index.css`, `app/creator/page.tsx` | Desactiva animaciones cuando el sistema lo solicita (`prefers-reduced-motion`) |
+| Imagen Open Graph dinámica | `app/opengraph-image.tsx` | Genera la previsualización social del sitio |
 
 ---
 
@@ -34,6 +49,9 @@
 | Carga de lugares desde Google Places | `useNearbyPlaces.ts`, `placesService.ts` | `google.maps.places.PlacesService.nearbySearch()` |
 | Filtro por tipo de lugar | `PlaceTypeFilters.tsx`, `NearbyPlacesContext.tsx` | Chips seleccionables (restaurant, bar, café, etc.) |
 | Filtro por distancia | `DistanceFilter.tsx`, `NearbyPlacesContext.tsx` | Slider de distancia en km |
+| Filtro por fecha del evento | `DateRangeFilter.tsx`, `feedFilters.ts` | Hoy / fin de semana / próxima semana; descarta lugares sin fecha |
+| Filtro por precio | `PriceFilter.tsx`, `feedFilters.ts` | Todos / gratis / pagado (`matchesPrice`) |
+| Filtro por categoría de evento | `EventCategoryFilter.tsx`, `feedFilters.ts` | Chips por categoría (fiesta, música, etc.) |
 | Swipe right (like) | `SwipeCard.tsx`, `app/page.tsx` | Persiste like en backend/localStorage |
 | Swipe left (descartar) | `SwipeCard.tsx`, `app/page.tsx` | Excluye el lugar del feed local |
 | Botón bookmark (guardar) | `SwipeCard.tsx` | Guarda el lugar en `/saved` |
@@ -63,6 +81,8 @@
 | Sala de chat individual | `app/chat/[roomId]/page.tsx` | Historial de mensajes de la sala |
 | Enviar mensajes | `ChatContext.sendMessage()` | Con actualización optimista; se reemplaza con ID real del servidor |
 | Recibir mensajes en tiempo real | `ChatContext.tsx` | Suscripción a Supabase Realtime (INSERT en `chat_messages`) |
+| Presencia (usuarios en línea) | `app/chat/[roomId]/page.tsx`, `ChatBubble.tsx` | Canal de presencia de Supabase Realtime; muestra quién está conectado en la sala |
+| Indicador "escribiendo…" (typing) | `app/chat/[roomId]/page.tsx` | Broadcast de typing por Realtime; burbuja de chat anclada al contenido |
 | Unirse a una sala | `ChatContext.joinRoom()` | `POST /api/chat/rooms/:id/join` |
 | Marcar sala como leída | `ChatContext.markRoomRead()` | `POST /api/chat/rooms/:id/read` |
 | Contador de no leídos | `ChatContext.tsx` | Calculado desde `rooms[].unreadCount` |
@@ -97,15 +117,20 @@
 
 ---
 
-### Panel de Locatario
+### Modo Creador (antes "Panel de Locatario")
+
+> El antiguo panel de locatario se reorganizó como **Modo Creador** en la ruta `app/creator/page.tsx`. La ruta `/locatario` ahora **redirige a `/creator`** para no romper enlaces antiguos (`app/locatario/page.tsx`).
 
 | Funcionalidad | Componente / Archivo | Detalles |
 |---|---|---|
-| Crear evento propio | `app/locatario/page.tsx`, `LocatarioEventsContext.createLocatarioEvent()` | `POST /events/locatario` |
+| Crear evento propio | `app/creator/page.tsx`, `LocatarioEventsContext.createLocatarioEvent()` | `POST /events/locatario`; se publica directo en estado `live` |
 | Eliminar evento propio | `LocatarioEventsContext.removeLocatarioEvent()` | `DELETE /events/locatario/:id` |
-| Lista de eventos propios | `app/locatario/page.tsx` | Carga desde `/events/locatario` |
+| Lista de eventos propios | `app/creator/page.tsx` | Carga desde `/events/locatario` |
+| Stats de interesados por evento | `app/creator/page.tsx`, `CreatorModeSection.tsx` | `GET /events/locatario/stats`: likes recibidos y miembros del chat por evento, total e identificación del evento top |
+| Vista previa del evento | `EventPreviewCard.tsx` | Tarjeta de previsualización mientras se crea el evento |
 | Subida de imagen de evento | `ImageUpload.tsx`, `useImageUpload.ts` | Supabase Storage |
 | Subida de video de evento | `VideoUpload.tsx`, `useVideoUpload.ts` | Supabase Storage |
+| Música del evento (Deezer) | `DeezerSearch.tsx` | Búsqueda de pista vía proxy Deezer |
 | Selector de ubicación en mapa | `LocationPickerMap.tsx` | Mapa interactivo para seleccionar lat/lng del evento |
 | Selector de fecha y hora | `DateTimePicker.tsx` | Calendario para fecha del evento |
 
@@ -123,6 +148,16 @@
 | Cupones QR | Backend `/monetization` | Generación de cupones con código único y validación QR |
 | Proxy musical Deezer | `app/api/deezer/route.ts` | Route Handler que proxea Deezer API para el feed |
 | Recuperación de contraseña | `AuthContext.tsx` | `supabase.auth.resetPasswordForEmail()` |
+
+---
+
+### App Móvil (Android — Capacitor)
+
+| Funcionalidad | Componente / Archivo | Detalles |
+|---|---|---|
+| App nativa Android | `capacitor.config.ts`, `android/` | Shell Capacitor cuyo WebView carga la web de producción; un solo código y deploy (ver `App-Movil.md`) |
+| Geolocalización nativa | `AndroidManifest.xml` | Permisos `ACCESS_FINE/COARSE_LOCATION` para feed de lugares cercanos |
+| Scripts de build móvil | `package.json` | `cap:sync`, `cap:open`, `android:apk` |
 
 ---
 
@@ -156,8 +191,9 @@
 | Notificaciones push | Media | Mencionadas en roadmap del README original |
 | PWA (Progressive Web App) | Baja | Sin `manifest.json` ni service worker |
 | Modo oscuro / claro | Baja | Solo modo oscuro disponible actualmente |
-| Pruebas automatizadas | Alta | Sin suite de tests implementada |
-| Perfil expandido de locatario (analítica) | Media | Panel básico existe; analítica avanzada pendiente |
+| Publicación de la app móvil en Play Store | Media | App Android con Capacitor ya compila (APK debug); falta firmar y subir bundle de release (ver `App-Movil.md`) |
+| Cobertura de tests más amplia | Media | Ya existe suite con **Jest** (`npm test`); falta ampliar cobertura y agregar E2E |
+| Perfil expandido de creador (analítica avanzada) | Media | El Modo Creador ya muestra stats de interesados; analítica avanzada pendiente |
 
 ---
 

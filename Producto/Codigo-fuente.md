@@ -11,12 +11,17 @@ eMeet_frontend/
 ├── app/                    ← Rutas del App Router de Next.js (páginas y layouts)
 ├── src/                    ← Código fuente principal (componentes, contextos, hooks, lib)
 ├── public/                 ← Archivos estáticos públicos (favicon, SVGs)
+├── android/                ← Proyecto Android nativo (Capacitor) — app móvil
+├── capacitor-www/          ← Placeholder web requerido por Capacitor
 ├── docs/                   ← Documentos técnicos internos del equipo
 ├── Documentacion/          ← Documentación académica (creada en esta entrega)
 ├── Producto/               ← Antecedentes técnicos del producto
 ├── Gestion/                ← Gestión del proyecto
 ├── middleware.ts            ← Middleware de protección de rutas (Next.js)
 ├── next.config.mjs          ← Configuración de Next.js
+├── capacitor.config.ts      ← Configuración de la app móvil (appId, server.url)
+├── jest.config.ts           ← Configuración de la suite de tests (Jest)
+├── jest.setup.ts            ← Setup global de Jest
 ├── package.json             ← Dependencias y scripts
 ├── tailwind.config.js       ← Configuración de Tailwind CSS
 ├── tsconfig.json            ← Configuración de TypeScript
@@ -36,9 +41,11 @@ app/
 ├── template.tsx            ← Template global para animaciones de página
 ├── loading.tsx             ← Componente de carga global
 ├── auth/
-│   ├── page.tsx            ← Página de login y registro
+│   ├── page.tsx            ← Página de login y registro (hero animado + errores humanizados)
 │   ├── callback/route.ts   ← Route Handler para callback OAuth de Supabase
 │   ├── verify-email/page.tsx ← Página de verificación de email
+│   ├── forgot-password/page.tsx ← Solicitud de recuperación de contraseña
+│   ├── reset-password/page.tsx  ← Definición de nueva contraseña
 │   └── auth-map-illustration.svg
 ├── chat/
 │   ├── page.tsx            ← Lista de salas de chat
@@ -60,17 +67,21 @@ app/
 │   ├── users/page.tsx      ← Gestión de usuarios
 │   ├── moderation/page.tsx ← Moderación de contenido
 │   └── finance/page.tsx    ← Estadísticas financieras
+├── creator/
+│   └── page.tsx            ← Modo Creador: crear/gestionar eventos + stats de interesados
 ├── locatario/
-│   └── page.tsx            ← Panel de locatario
+│   └── page.tsx            ← Ruta legacy: redirige a /creator (compatibilidad)
+├── opengraph-image.tsx     ← Imagen Open Graph dinámica para previsualización social
 └── api/
     ├── admin/
-    │   ├── stats/route.ts  ← Route Handler: GET /admin/stats
-    │   ├── reports/route.ts ← Route Handler: GET/POST /admin/reports
-    │   ├── reports/[id]/route.ts ← Route Handler: PATCH /admin/reports/:id
-    │   └── finance/route.ts ← Route Handler: GET /admin/finance
-    ├── deezer/route.ts     ← Route Handler: proxy musical Deezer API
-    ├── keepalive/route.ts  ← Route Handler: ping al backend Render (evita cold start)
-    └── auth/callback/route.ts ← Callback OAuth
+    │   ├── events/route.ts          ← Route Handler: listar/gestionar eventos
+    │   ├── events/[id]/route.ts     ← Route Handler: editar/eliminar evento
+    │   ├── users/route.ts           ← Route Handler: listar usuarios
+    │   ├── users/[id]/route.ts      ← Route Handler: editar/eliminar usuario
+    │   └── users/[id]/role/route.ts ← Route Handler: cambiar rol de usuario
+    ├── deezer/route.ts        ← Route Handler: proxy musical Deezer API
+    ├── deezer/track/route.ts  ← Route Handler: proxy de pista individual Deezer
+    └── keepalive/route.ts     ← Route Handler: ping al backend Render (evita cold start)
 ```
 
 ### `src/` — Código fuente principal
@@ -92,6 +103,14 @@ src/
 │   ├── ProtectedRoute.tsx  ← Componente de protección de ruta (client)
 │   ├── DistanceFilter.tsx  ← Slider de filtro de distancia
 │   ├── PlaceTypeFilters.tsx ← Chips de filtro por tipo de lugar
+│   ├── DateRangeFilter.tsx ← Filtro de feed por fecha (hoy/finde/semana)
+│   ├── PriceFilter.tsx     ← Filtro de feed por precio (gratis/pagado)
+│   ├── EventCategoryFilter.tsx ← Filtro de feed por categoría de evento
+│   ├── ChatBubble.tsx      ← Burbuja de chat con presencia/typing en tiempo real
+│   ├── CreatorModeSection.tsx ← Sección de stats e interesados del Modo Creador
+│   ├── EventPreviewCard.tsx ← Vista previa del evento al crearlo
+│   ├── OnboardingOverlay.tsx ← Overlay de bienvenida (primer ingreso)
+│   ├── DeezerSearch.tsx    ← Buscador de música Deezer para eventos
 │   ├── ImageUpload.tsx     ← Subida de imágenes a Supabase Storage
 │   ├── VideoUpload.tsx     ← Subida de videos a Supabase Storage
 │   ├── DateTimePicker.tsx  ← Selector de fecha y hora
@@ -116,7 +135,11 @@ src/
 │   ├── supabase.ts         ← Clientes Supabase (browser/server) + tipo Database
 │   ├── cn.ts               ← Helper de composición de clases CSS (classnames)
 │   ├── fetchApi.ts         ← Fetch helper con autenticación automática
-│   └── authSession.ts      ← Helpers de sesión Supabase
+│   ├── backend.ts          ← URL base y helpers del backend Render
+│   ├── authSession.ts      ← Helpers de sesión Supabase
+│   ├── authErrors.ts       ← humanizeAuthError(): traduce errores de Supabase a mensajes amigables
+│   ├── eventUtils.ts       ← Utilidades de formato/normalización de eventos
+│   └── feedFilters.ts      ← Lógica de filtros del feed (precio, fecha) — matchesPrice/matchesDateRange
 ├── providers/              ← Wrappers de providers
 │   ├── AppProviders.tsx    ← Provider raíz (Auth + Chat + Locatario)
 │   └── GoogleMapsProvider.tsx ← Provider de Google Maps
@@ -151,11 +174,17 @@ Según el archivo `package.json` del proyecto:
 
 | Script | Comando | Descripción |
 |---|---|---|
-| **Desarrollo** | `npm run dev` | Inicia el servidor de desarrollo con Turbopack (HMR ultra rápido) en `http://localhost:3000` |
+| **Desarrollo** | `npm run dev` | Inicia el servidor de desarrollo con Turbopack (HMR ultra rápido) en `http://localhost:3000` (un `predev` libera el puerto 3000 si está ocupado) |
 | **Build** | `npm run build` | Compila TypeScript y genera el build de producción en `.next/` |
 | **Producción** | `npm start` | Inicia el servidor Next.js con el build de producción |
+| **Tests** | `npm test` | Ejecuta la suite de pruebas con **Jest** |
+| **Tests (watch)** | `npm run test:watch` | Jest en modo observación |
+| **Cobertura** | `npm run test:coverage` | Reporte de cobertura de Jest |
+| **Móvil — sync** | `npm run cap:sync` | Sincroniza config/plugins con el proyecto Android (Capacitor) |
+| **Móvil — abrir** | `npm run cap:open` | Abre el proyecto en Android Studio |
+| **Móvil — APK** | `npm run android:apk` | Compila el APK debug (`android/app/build/outputs/apk/debug/`) |
 
-> ⚠️ No existen scripts de test, lint ni preview definidos en `package.json`. Se recomienda agregarlos en futuras iteraciones.
+> ℹ️ El proyecto ya cuenta con suite de tests (**Jest**) y scripts de empaquetado móvil (**Capacitor**). Aún no hay script de `lint` definido en `package.json`. Ver `App-Movil.md` para el detalle de la app Android.
 
 ---
 
