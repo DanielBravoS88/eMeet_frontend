@@ -130,7 +130,7 @@ describe('LoginForm', () => {
       await user.type(screen.getByPlaceholderText('••••••••'), 'wrongpass')
       await user.click(screen.getByRole('button', { name: /inicia sesión/i }))
 
-      await waitFor(() => expect(screen.getByText('Credenciales inválidas')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByText('Correo o contraseña incorrectos.')).toBeInTheDocument())
       expect(mockPush).not.toHaveBeenCalled()
     })
 
@@ -144,7 +144,7 @@ describe('LoginForm', () => {
       await user.click(screen.getByRole('button', { name: /inicia sesión/i }))
 
       await waitFor(() =>
-        expect(screen.getByText('Error desconocido al iniciar sesión')).toBeInTheDocument(),
+        expect(screen.getByText('No pudimos iniciar sesión. Intenta nuevamente en unos segundos.')).toBeInTheDocument(),
       )
     })
 
