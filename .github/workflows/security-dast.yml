@@ -1,0 +1,59 @@
+name: DAST Security Scan - Frontend
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  zap-passive-baseline:
+    name: OWASP ZAP passive baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias bloqueadas
+        run: npm ci
+
+      - name: Iniciar frontend local aislado
+        run: |
+          nohup ./node_modules/.bin/next dev --hostname 0.0.0.0 --port 3000 > /tmp/emeet-frontend.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/auth > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/emeet-frontend.log
+          exit 1
+
+      - name: Ejecutar baseline pasivo de ZAP
+        shell: pwsh
+        continue-on-error: true
+        run: ./dast/run-baseline.ps1
+
+      - name: Guardar reportes ZAP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-frontend-passive-baseline
+          path: dast/reports/
+          if-no-files-found: warn
+
+      - name: Guardar log del frontend
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dast-server-log
+          path: /tmp/emeet-frontend.log
+          if-no-files-found: ignore

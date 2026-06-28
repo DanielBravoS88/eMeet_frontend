@@ -35,3 +35,6 @@ coverage
 
 # Vercel
 .vercel
+
+# Reportes DAST generados localmente
+dast/reports/
