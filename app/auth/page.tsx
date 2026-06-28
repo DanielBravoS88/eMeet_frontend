@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { FiArrowRight } from 'react-icons/fi'
 import LoginForm from '../../src/components/LoginForm'
@@ -40,7 +40,17 @@ function AnimatedFriendsScene() {
   // ni parpadeos). MotionConfig frena los transform pero no las opacidades de
   // los sparkles/notas; aquí evitamos toda animación de la escena.
   const shouldReduce = useReducedMotion()
-  if (shouldReduce) {
+  // mounted: evita el desajuste de hidratación. useReducedMotion() devuelve null
+  // en SSR y el valor real en el cliente; si ramificáramos directo, el DOM del
+  // servidor (versión animada) no coincidiría con el del cliente (versión
+  // estática) cuando el usuario tiene "reducir movimiento" activo. Renderizamos
+  // la versión animada en SSR y primer render del cliente, y solo tras montar
+  // aplicamos la versión estática accesible.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+  if (mounted && shouldReduce) {
     return (
       <div className="relative flex aspect-[5/4] w-full max-w-[300px] flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border border-violet-500/15 bg-gradient-to-br from-violet-950/50 via-black/40 to-violet-950/20">
         <div
