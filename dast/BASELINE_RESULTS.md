@@ -20,18 +20,24 @@ fueron:
 
 | Regla | Riesgo | Resultado |
 |---|---|---|
-| 10038 - CSP Header Not Set | Medio | Corregida |
-| 10020 - Missing Anti-clickjacking Header | Medio | Corregida |
-| 10037 - X-Powered-By | Bajo | Corregida |
-| 10021 - X-Content-Type-Options Missing | Bajo | Corregida |
+| 10038 - CSP Header Not Set | Medio | Abierta; no cambia runtime |
+| 10020 - Missing Anti-clickjacking Header | Medio | Abierta; no cambia runtime |
+| 10037 - X-Powered-By | Bajo | Abierta; no cambia runtime |
+| 10021 - X-Content-Type-Options Missing | Bajo | Abierta; no cambia runtime |
 
-La correccion agrega CSP, `X-Frame-Options: DENY`,
-`X-Content-Type-Options: nosniff`, Referrer Policy, Permissions Policy y elimina
-el header `X-Powered-By`.
+## Validacion de mitigacion sin incorporacion
 
-## Reescaneo posterior
+Se probo temporalmente una configuracion con CSP, `X-Frame-Options: DENY`,
+`X-Content-Type-Options: nosniff`, Referrer Policy, Permissions Policy y sin
+`X-Powered-By`. El reescaneo confirmo que las reglas 10038, 10020, 10037 y
+10021 desaparecian.
 
-Las reglas 10038, 10020, 10037 y 10021 ya no aparecen. Permanecen:
+Ese cambio fue revertido deliberadamente para que la integracion DAST no altere
+el comportamiento normal de la aplicacion ni de produccion. Los cuatro
+hallazgos permanecen abiertos como recomendaciones para un cambio de hardening
+separado, sujeto a pruebas funcionales y aprobacion explicita.
+
+Durante la prueba temporal permanecieron:
 
 - 10055 CSP `script-src unsafe-inline`;
 - 10055 CSP `style-src unsafe-inline`;
@@ -40,7 +46,7 @@ Las reglas 10038, 10020, 10037 y 10021 ya no aparecen. Permanecen:
 - comentarios sospechosos de baja confianza en bundles minificados;
 - deteccion informativa de aplicacion web moderna.
 
-Los casos 10055 no se silencian. Retirar `unsafe-inline` correctamente requiere
+Los casos 10055 tampoco se silencian. Retirar `unsafe-inline` correctamente requiere
 una estrategia CSP con nonces compatible con hidratacion Next.js y validar los
 estilos inline. Restringir los recursos HTTPS dinamicos requiere inventariar o
 proxificar imagenes y audio. Ambas tareas quedan para una fase de hardening con
