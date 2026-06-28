@@ -116,6 +116,24 @@ html, body {
   animation: float 2.8s ease-in-out infinite;
 }
 
+/* ── Transición de entrada de página (app/template.tsx) ─────────────────────── */
+/* Se hace por CSS en vez de Framer Motion para evitar desajustes de hidratación
+   SSR/cliente: el HTML servido es idéntico (solo la clase) y la animación corre
+   en el navegador, terminando siempre en el estado final visible. */
+@keyframes pageTransitionIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.page-transition {
+  animation: pageTransitionIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* ── Accesibilidad: respetar preferencia de movimiento reducido ─────────────── */
 /* Desactiva animaciones decorativas; Framer Motion lo respeta vía MotionConfig */
 @media (prefers-reduced-motion: reduce) {
@@ -123,6 +141,10 @@ html, body {
   .shimmer,
   .eq-bar-1, .eq-bar-2, .eq-bar-3, .eq-bar-4 {
     animation: none;
+  }
+  /* La transición de página degrada a un fade simple (sin desplazamiento). */
+  .page-transition {
+    animation: pageFadeIn 0.2s ease both;
   }
 }
 
