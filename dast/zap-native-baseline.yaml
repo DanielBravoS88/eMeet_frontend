@@ -1,0 +1,51 @@
+env:
+  contexts:
+    - name: frontend-local
+      urls:
+        - ${DAST_TARGET}
+      includePaths:
+        - ${DAST_TARGET}.*
+      excludePaths:
+        - ${DAST_TARGET}/api/deezer.*
+        - ${DAST_TARGET}/api/keepalive.*
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    continueOnFailure: false
+    progressToStdout: true
+
+jobs:
+  - type: spider
+    parameters:
+      context: frontend-local
+      url: ${DAST_TARGET}/auth
+      maxDuration: 1
+      maxDepth: 5
+      parseComments: false
+      parseGit: false
+      parseDsStore: false
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+
+  - type: report
+    parameters:
+      template: traditional-html
+      reportDir: ${DAST_REPORT_DIR}
+      reportFile: frontend-baseline.html
+      reportTitle: eMeet Frontend - ZAP Passive Baseline
+
+  - type: report
+    parameters:
+      template: traditional-json
+      reportDir: ${DAST_REPORT_DIR}
+      reportFile: frontend-baseline.json
+      reportTitle: eMeet Frontend - ZAP Passive Baseline
+
+  - type: report
+    parameters:
+      template: traditional-md
+      reportDir: ${DAST_REPORT_DIR}
+      reportFile: frontend-baseline.md
+      reportTitle: eMeet Frontend - ZAP Passive Baseline

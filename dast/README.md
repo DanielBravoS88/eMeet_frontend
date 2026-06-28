@@ -29,6 +29,11 @@ servicios externos durante esta fase.
    ./dast/run-baseline.ps1
    ```
 
+El script usa Docker cuando esta disponible. En Windows tambien admite ZAP
+portable mediante `ZAP_HOME`; si la variable no existe busca por defecto en
+`C:\tmp\ZAP_2.17.0`. El plan nativo esta en `zap-native-baseline.yaml` y
+mantiene fuera de alcance los proxies Deezer y keepalive.
+
 El workflow `.github/workflows/security-dast.yml` hace lo mismo en GitHub
 Actions y solo se puede iniciar manualmente. Los hallazgos son informativos en
 esta fase y se guardan como artifact; no bloquean la rama.
