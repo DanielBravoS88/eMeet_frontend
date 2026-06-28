@@ -37,3 +37,6 @@ mantiene fuera de alcance los proxies Deezer y keepalive.
 El workflow `.github/workflows/security-dast.yml` hace lo mismo en GitHub
 Actions y solo se puede iniciar manualmente. Los hallazgos son informativos en
 esta fase y se guardan como artifact; no bloquean la rama.
+
+El resultado local verificado y los riesgos residuales se documentan en
+[`BASELINE_RESULTS.md`](./BASELINE_RESULTS.md).
