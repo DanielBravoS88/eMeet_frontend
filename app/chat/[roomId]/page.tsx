@@ -36,6 +36,7 @@ export default function ChatRoomRoutePage() {
     markRoomRead,
     loadMessagesForRoom,
     leaveRoom,
+    reloadRooms,
     messageErrors,
     isLoadingRooms,
     loadingMessages,
@@ -136,6 +137,14 @@ export default function ChatRoomRoutePage() {
       setOnlinePeers(new Map())
       setTypingPeers(new Map())
     }
+  }, [roomId, user])
+
+  // Contador de miembros al día: al entrar a la sala recarga la lista de chats
+  // para que `room.memberCount` refleje el número real de integrantes (antes
+  // quedaba con un valor viejo cacheado de la lista /chat).
+  useEffect(() => {
+    if (roomId && user) reloadRooms()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, user])
 
   const onlineCount = onlinePeers.size
@@ -480,9 +489,12 @@ export default function ChatRoomRoutePage() {
       </div>
 
       {/* Input bar — hidden when membership error */}
+      {/* relative z-50: el backdrop-blur del pie crea un contexto de apilamiento;
+          sin z-index posicionado, el overlay de cierre del picker de emojis
+          (fixed z-40) tapaba el selector e interceptaba el clic en cada emoji. */}
       {!isMembershipError && (
         <div
-          className="shrink-0 border-t border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 pt-3 backdrop-blur-md"
+          className="relative z-50 shrink-0 border-t border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 pt-3 backdrop-blur-md"
           style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
         >
           {/* Indicador "X está escribiendo..." */}
