@@ -38,3 +38,6 @@ coverage
 
 # Reportes DAST generados localmente
 dast/reports/
+
+# Contexto privado local de Codex (nunca se sube)
+.codex/
