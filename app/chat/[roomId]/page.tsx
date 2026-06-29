@@ -270,7 +270,12 @@ export default function ChatRoomRoutePage() {
   return (
     <div className="flex h-[100dvh] flex-col bg-surface">
       {/* Header */}
-      <div className="z-10 shrink-0 border-b border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 py-3 backdrop-blur-md">
+      {/* relative z-50: el backdrop-blur crea un contexto de apilamiento; sin un
+          z-index posicionado, el overlay de cierre del menú (fixed z-40) queda
+          por encima del encabezado e intercepta el clic en "Salir del grupo".
+          Posicionar el encabezado por encima del overlay deja el menú clicable;
+          el modal de confirmación (z-50, renderizado después) lo sigue tapando. */}
+      <div className="relative z-50 shrink-0 border-b border-white/10 bg-gradient-to-r from-card/95 to-surface/95 px-3 py-3 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/chat')}
@@ -328,7 +333,7 @@ export default function ChatRoomRoutePage() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -4 }}
                     transition={{ duration: 0.12 }}
-                    className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-white/10 bg-card/95 py-1 shadow-xl backdrop-blur-lg"
+                    className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border border-white/10 bg-card/95 py-1 shadow-xl backdrop-blur-lg"
                   >
                     <button
                       onClick={() => { setMenuOpen(false); setLeaveConfirm(true) }}
