@@ -13,7 +13,6 @@ Esta carpeta contiene los antecedentes técnicos del producto eMeet, incluyendo 
 | [Funcionalidades.md](./Funcionalidades.md) | Inventario completo de funcionalidades (implementadas, mock, pendientes) |
 | [Datos-y-script.md](./Datos-y-script.md) | Documentación de datos mock, scripts sugeridos y relación con Supabase |
 | [Ambiente-local.md](./Ambiente-local.md) | Guía paso a paso para levantar el proyecto en ambiente local |
-| [App-Movil.md](./App-Movil.md) | App Android con Capacitor: arquitectura, comandos y publicación |
 
 ---
 

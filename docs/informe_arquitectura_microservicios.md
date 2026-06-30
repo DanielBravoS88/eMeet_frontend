@@ -4,6 +4,12 @@
 **Fecha:** Abril 2026  
 **Tipo de documento:** Informe técnico de arquitectura
 
+> ⚠️ **Documento de propuesta / diseño a futuro.** Describe una posible evolución
+> hacia microservicios; **no refleja la arquitectura implementada actualmente.**
+> El backend real (`eMeet_Backend_SupaBase`) es un **monolito Express** con rutas
+> modulares (`auth`, `profile`, `events`, `chat`, `places`, `admin`, `monetization`)
+> sobre Supabase/PostgreSQL. Léase como hoja de ruta, no como estado actual.
+
 ---
 
 ## 1. Selección de patrones de arquitectura según el caso presentado

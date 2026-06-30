@@ -85,7 +85,7 @@ Desarrollar una plataforma web móvil-first que permita a los usuarios descubrir
 - Notificaciones push nativas.
 - PWA instalable.
 - Recuperación de contraseña (pendiente).
-- Pruebas automatizadas (pendiente).
+- Pruebas end-to-end (pendiente; ya existe suite unitaria/de componentes con Jest).
 
 ---
 
@@ -120,7 +120,7 @@ Desarrollar una plataforma web móvil-first que permita a los usuarios descubrir
 | Cuota de Google Maps API agotada | Media | Alto | Implementar caché en backend Express (/places), limitar llamadas |
 | Pérdida de datos en Supabase | Baja | Alto | Configurar backups automáticos |
 | Conflictos en ramas de Git | Media | Medio | Estrategia de ramas clara (ver Estrategia-de-ramas.md) |
-| Sin pruebas automatizadas | Alta | Medio | Pruebas manuales documentadas antes de entrega |
+| Cobertura de pruebas insuficiente | Media | Medio | Suite unitaria/de componentes con Jest ya implementada; ampliar cobertura y agregar E2E |
 
 ---
 

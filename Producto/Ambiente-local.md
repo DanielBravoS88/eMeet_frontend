@@ -142,7 +142,7 @@ El proyecto detecta automáticamente si las variables de Supabase están configu
 | **Modo completo** | `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` configurados | Auth real, chat persistente, guardados en DB |
 | **Modo local** | Sin variables de Supabase | Auth simulada con localStorage, chat local, sin persistencia entre dispositivos |
 
-> En **modo local**, puede iniciar sesión con cualquier email y contraseña. El rol se infiere del email: `admin@` → admin, `locatario@` → locatario, cualquier otro → user.
+> En **modo local**, puede iniciar sesión con cualquier email y contraseña. El rol se infiere del email: `admin@` → admin; cualquier otro → user. Si el email contiene `locatario`, la cuenta queda como **user con modo creador activado** (`isEventCreator`), ya que el rol "locatario" fue unificado en "user" (ver migración `010_unify_user_role_remove_locatario`).
 
 ---
 
