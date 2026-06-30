@@ -142,6 +142,6 @@ Desarrollar una plataforma web móvil-first que permita a los usuarios descubrir
 | Repositorio `eMeet_frontend` | Código fuente completo del frontend | ✅ En producción |
 | Repositorio `eMeet_Backend_Supabase` | Backend completo | ✅ Completado |
 | Proyecto Supabase configurado | Base de datos, auth y realtime operativos | ✅ Completado |
-| Documentación académica | `/Documentacion`, `/Producto`, `/Gestion` | ✅ Entregada en este PR |
+| Documentación académica | `academico/`, `producto/`, `gestion/` | ✅ Entregada en este PR |
 | Pull Request hacia `main`/`dev` | PR con toda la documentación | ✅ Completado |
 | Informe académico impreso o digital | Archivo `Informe.md` exportado a PDF | ✅ Completado |

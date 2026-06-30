@@ -33,8 +33,8 @@ Esta carpeta contiene la documentación académica completa del proyecto **eMeet
 
 ## 📎 Relación con otras carpetas
 
-- 📁 [**`/Producto`**](../Producto/README.md): documentación técnica del producto (código fuente, dependencias, funcionalidades, ambiente local).
-- 📁 [**`/Gestion`**](../Gestion/README.md): documentación de gestión del proyecto (definición, integrantes, ramas, infraestructura, backups).
+- 📁 [**`producto/`**](../producto/README.md): documentación técnica del producto (código fuente, dependencias, funcionalidades, ambiente local).
+- 📁 [**`gestion/`**](../gestion/README.md): documentación de gestión del proyecto (definición, integrantes, ramas, infraestructura, backups).
 
 ---
 

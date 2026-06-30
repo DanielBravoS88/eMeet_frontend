@@ -18,8 +18,8 @@ Esta carpeta contiene los antecedentes técnicos del producto eMeet, incluyendo 
 
 ## 🔗 Relación con otras carpetas
 
-- 📁 [**`/Documentacion`**](../Documentacion/README.md): informe académico, arquitectura, UML, MER, wireframes y QA.
-- 📁 [**`/Gestion`**](../Gestion/README.md): gestión del proyecto, integrantes, estrategia de ramas e infraestructura.
+- 📁 [**`academico/`**](../academico/README.md): informe académico, arquitectura, UML, MER, wireframes y QA.
+- 📁 [**`gestion/`**](../gestion/README.md): gestión del proyecto, integrantes, estrategia de ramas e infraestructura.
 
 ---
 
