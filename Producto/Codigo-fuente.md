@@ -11,15 +11,12 @@ eMeet_frontend/
 ├── app/                    ← Rutas del App Router de Next.js (páginas y layouts)
 ├── src/                    ← Código fuente principal (componentes, contextos, hooks, lib)
 ├── public/                 ← Archivos estáticos públicos (favicon, SVGs)
-├── android/                ← Proyecto Android nativo (Capacitor) — app móvil
-├── capacitor-www/          ← Placeholder web requerido por Capacitor
 ├── docs/                   ← Documentos técnicos internos del equipo
 ├── Documentacion/          ← Documentación académica (creada en esta entrega)
 ├── Producto/               ← Antecedentes técnicos del producto
 ├── Gestion/                ← Gestión del proyecto
 ├── middleware.ts            ← Middleware de protección de rutas (Next.js)
 ├── next.config.mjs          ← Configuración de Next.js
-├── capacitor.config.ts      ← Configuración de la app móvil (appId, server.url)
 ├── jest.config.ts           ← Configuración de la suite de tests (Jest)
 ├── jest.setup.ts            ← Setup global de Jest
 ├── package.json             ← Dependencias y scripts
@@ -180,11 +177,8 @@ Según el archivo `package.json` del proyecto:
 | **Tests** | `npm test` | Ejecuta la suite de pruebas con **Jest** |
 | **Tests (watch)** | `npm run test:watch` | Jest en modo observación |
 | **Cobertura** | `npm run test:coverage` | Reporte de cobertura de Jest |
-| **Móvil — sync** | `npm run cap:sync` | Sincroniza config/plugins con el proyecto Android (Capacitor) |
-| **Móvil — abrir** | `npm run cap:open` | Abre el proyecto en Android Studio |
-| **Móvil — APK** | `npm run android:apk` | Compila el APK debug (`android/app/build/outputs/apk/debug/`) |
 
-> ℹ️ El proyecto ya cuenta con suite de tests (**Jest**) y scripts de empaquetado móvil (**Capacitor**). Aún no hay script de `lint` definido en `package.json`. Ver `App-Movil.md` para el detalle de la app Android.
+> ℹ️ El proyecto ya cuenta con suite de tests (**Jest**). Aún no hay script de `lint` definido en `package.json`.
 
 ---
 

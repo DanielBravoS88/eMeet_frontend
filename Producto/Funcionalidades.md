@@ -151,16 +151,6 @@
 
 ---
 
-### App Móvil (Android — Capacitor)
-
-| Funcionalidad | Componente / Archivo | Detalles |
-|---|---|---|
-| App nativa Android | `capacitor.config.ts`, `android/` | Shell Capacitor cuyo WebView carga la web de producción; un solo código y deploy (ver `App-Movil.md`) |
-| Geolocalización nativa | `AndroidManifest.xml` | Permisos `ACCESS_FINE/COARSE_LOCATION` para feed de lugares cercanos |
-| Scripts de build móvil | `package.json` | `cap:sync`, `cap:open`, `android:apk` |
-
----
-
 ## 2. Funcionalidades Parcialmente Implementadas 🔄
 
 | Funcionalidad | Estado | Detalle |
@@ -191,7 +181,6 @@
 | Notificaciones push | Media | Mencionadas en roadmap del README original |
 | PWA (Progressive Web App) | Baja | Sin `manifest.json` ni service worker |
 | Modo oscuro / claro | Baja | Solo modo oscuro disponible actualmente |
-| Publicación de la app móvil en Play Store | Media | App Android con Capacitor ya compila (APK debug); falta firmar y subir bundle de release (ver `App-Movil.md`) |
 | Cobertura de tests más amplia | Media | Ya existe suite con **Jest** (`npm test`); falta ampliar cobertura y agregar E2E |
 | Perfil expandido de creador (analítica avanzada) | Media | El Modo Creador ya muestra stats de interesados; analítica avanzada pendiente |
 
