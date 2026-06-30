@@ -223,7 +223,7 @@ URL del proyecto Supabase: https://supabase.com/dashboard/project/ksghpwonmnxmbh
 | PWA instalable | Baja | Sin `manifest.json` ni service worker |
 | Modo oscuro / claro toggle | Baja | Solo modo oscuro disponible |
 | Detalle expandido de evento | Media | Sin página dedicada de detalle por evento |
-| Pruebas automatizadas | Alta | Sin suite de tests (Jest/Vitest/Playwright) |
+| Pruebas end-to-end | Media | Ya existe suite unitaria/de componentes (Jest + React Testing Library); falta E2E (Playwright/Cypress) |
 
 ---
 
@@ -263,7 +263,7 @@ URL del proyecto Supabase: https://supabase.com/dashboard/project/ksghpwonmnxmbh
 | @supabase/supabase-js | 2.103.0 | Cliente Supabase general |
 | @react-google-maps/api | 2.20.8 | Google Maps + Places API |
 | Recharts | 3.8.1 | Gráficos para panel admin |
-| Lucide React | 1.8.0 | Iconos SVG |
+| Lucide React | 1.17.0 | Iconos SVG |
 | React Icons | 5.3.0 | Set de iconos adicionales |
 | nextjs-toploader | 3.9.17 | Indicador de carga de página |
 
@@ -353,4 +353,4 @@ El proyecto demuestra una integración coherente entre frontend y backend, un ma
 | **Plataforma backend** | Render (auto-deploy desde main) |
 | **Plataforma frontend** | Vercel (auto-deploy desde main) |
 | **Pagos integrados** | Mercado Pago SDK (Checkout + Webhook) + Transbank WebPay Plus |
-| **Pruebas automatizadas** | No implementadas (pendiente — Vitest / Playwright recomendado) |
+| **Pruebas automatizadas** | Suite unitaria/de componentes con Jest + React Testing Library; E2E (Playwright/Cypress) pendiente |

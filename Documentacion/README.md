@@ -15,6 +15,8 @@ Esta carpeta contiene la documentación académica completa del proyecto **eMeet
 | [Wireframes.md](./Wireframes.md) | Wireframes textuales de las pantallas principales detectadas en el frontend |
 | [Gantt.md](./Gantt.md) | Planificación tipo Gantt del proyecto con etapas, actividades y fechas estimadas |
 | [Plan_QA.md](./Plan_QA.md) | Plan de aseguramiento de calidad (QA): pruebas, criterios, casos y recomendaciones |
+| [Pruebas-Unitarias.md](./Pruebas-Unitarias.md) | Detalle de las pruebas unitarias/de componentes (Jest + React Testing Library) |
+| [Evidencia-Pruebas-Unitarias.html](./Evidencia-Pruebas-Unitarias.html) | Evidencia de ejecución de la suite de pruebas (reporte HTML) |
 
 ---
 

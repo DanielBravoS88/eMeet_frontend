@@ -24,9 +24,15 @@ Next.js 14 con App Router permite adoptar un modelo server-first donde los compo
 | **tailwindcss** | ^3.4.14 | Framework de utilidades CSS, mobile-first, sin CSS custom |
 | **autoprefixer** | ^10.4.20 | Plugin PostCSS para añadir prefijos de navegador automáticamente |
 | **postcss** | ^8.4.47 | Procesador de CSS (requerido por Tailwind) |
+| **@base-ui/react** | ^1.5.0 | Primitivas de componentes accesibles sin estilos (base para shadcn) |
+| **shadcn** | ^4.8.2 | Generador/colección de componentes UI sobre Tailwind + Base UI |
+| **class-variance-authority** | ^0.7.1 | Define variantes de clases Tailwind por componente (CVA) |
+| **clsx** | ^2.1.1 | Composición condicional de nombres de clase |
+| **tailwind-merge** | ^3.6.0 | Resuelve conflictos de utilidades Tailwind al combinar clases |
+| **tw-animate-css** | ^1.4.0 | Utilidades de animación adicionales para Tailwind |
 
 ### Uso en el proyecto
-Tailwind es el único sistema de estilos del proyecto. No se usan CSS Modules ni archivos `.css` adicionales fuera de `src/index.css` (directivas Tailwind + estilos globales mínimos). El archivo `tailwind.config.js` extiende la paleta de colores con tokens del diseño de eMeet (primary, surface, card, accent, muted).
+Tailwind es el único sistema de estilos del proyecto. No se usan CSS Modules ni archivos `.css` adicionales fuera de `src/index.css` (directivas Tailwind + estilos globales mínimos). El archivo `tailwind.config.js` extiende la paleta de colores con tokens del diseño de eMeet (primary, surface, card, accent, muted). La función `cn()` en `src/lib/cn.ts` combina `clsx` + `tailwind-merge`, y `class-variance-authority` define las variantes de los componentes basados en `shadcn` / `@base-ui/react`.
 
 ---
 
@@ -49,7 +55,7 @@ Se usa principalmente en:
 | Librería | Versión | Rol |
 |---|---|---|
 | **react-icons** | ^5.3.0 | Set amplio de iconos SVG (se usan íconos de la familia HeroIcons v2 — `hi2`) |
-| **lucide-react** | ^1.8.0 | Iconos SVG modernos usados principalmente en el panel de administración |
+| **lucide-react** | ^1.17.0 | Iconos SVG modernos usados principalmente en el panel de administración |
 
 ---
 
@@ -136,6 +142,26 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 | **@types/node** | 25.5.2 | Tipos TypeScript para Node.js |
 | **@types/react** | ^18.3.12 | Tipos TypeScript para React |
 | **@types/react-dom** | ^18.3.1 | Tipos TypeScript para ReactDOM |
+| **jest** | ^30.4.2 | Framework de pruebas unitarias/componentes |
+| **jest-environment-jsdom** | ^30.4.1 | Entorno DOM simulado para tests de componentes |
+| **@types/jest** | ^30.0.0 | Tipos TypeScript para Jest |
+| **@testing-library/react** | ^16.3.2 | Renderizado y queries de componentes en tests |
+| **@testing-library/jest-dom** | ^6.9.1 | Matchers de Jest para aserciones sobre el DOM |
+| **@testing-library/user-event** | ^14.6.1 | Simulación de interacciones de usuario en tests |
+
+---
+
+## 10.1 Testing
+
+El proyecto cuenta con una suite de pruebas con **Jest** + **React Testing Library** (entorno `jsdom`). Scripts disponibles en `package.json`:
+
+| Script | Comando | Rol |
+|---|---|---|
+| `npm test` | `jest` | Ejecuta toda la suite |
+| `npm run test:watch` | `jest --watch` | Modo observación |
+| `npm run test:coverage` | `jest --coverage` | Reporte de cobertura |
+
+Los tests viven en `__tests__/` (componentes, librerías y filtros del feed).
 
 ---
 
@@ -150,8 +176,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 | **Mapas** | @react-google-maps/api |
 | **Autenticación / Backend** | @supabase/supabase-js, @supabase/ssr |
 | **Gráficos** | recharts |
-| **Utilidades UI** | nextjs-toploader |
+| **Utilidades UI** | nextjs-toploader, clsx, tailwind-merge, class-variance-authority, @base-ui/react, shadcn, tw-animate-css |
 | **Tipado** | typescript, @types/node, @types/react, @types/react-dom |
+| **Testing** | jest, jest-environment-jsdom, @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, @types/jest |
 
 ---
 
@@ -160,7 +187,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 | Riesgo / Observación | Descripción |
 |---|---|
 | Google Maps API key expuesta en cliente | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` es accesible desde el navegador; se recomienda mover las consultas a un Route Handler |
-| Sin librería de testing | No se detecta Jest, Vitest, Playwright ni ninguna librería de pruebas en `package.json` |
+| Sin pruebas E2E | Hay suite unitaria/de componentes con **Jest** + **React Testing Library**, pero aún no se integran pruebas end-to-end (Playwright/Cypress) |
 | Sin librería de validación de formularios | No se usa Zod, Yup ni React Hook Form; la validación es manual en los componentes |
 | Sin manejador de formularios | Se usa `useState` directamente para formularios sin librería dedicada |
 | Versión fijada de @types/node (25.5.2) | Sin `^` ni `~`, lo que puede causar conflictos en futuras instalaciones |

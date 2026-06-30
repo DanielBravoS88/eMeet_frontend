@@ -60,7 +60,7 @@ El sistema soporta tres roles: **usuario regular**, **locatario** (publica event
 | **@react-google-maps/api** | 2.20.8 | Google Maps + Places API |
 | **Recharts** | 3.8.1 | Gráficos para panel de administración |
 | **react-icons** | 5.3.0 | Set de iconos SVG |
-| **lucide-react** | 1.8.0 | Iconos SVG modernos |
+| **lucide-react** | 1.17.0 | Iconos SVG modernos |
 
 ### Backend y Servicios
 
@@ -188,7 +188,7 @@ La documentación completa del proyecto se encuentra en las siguientes carpetas:
 | Panel de administrador | ✅ Implementado |
 | Panel de locatario | ✅ Implementado |
 | Integración con `eMeet_Backend_Supabase` | 🔄 En progreso |
-| Pruebas automatizadas | ⏳ Pendiente |
+| Pruebas automatizadas | ✅ Suite unitaria/de componentes (Jest + React Testing Library) |
 | Documentación académica | ✅ Entregada en PR `documentation-and-delivery-structure` |
 
 ---
@@ -199,7 +199,7 @@ La documentación completa del proyecto se encuentra en las siguientes carpetas:
 |---|---|
 | 🔴 Alta | Completar integración con `eMeet_Backend_Supabase` |
 | 🔴 Alta | Mover consultas a Google Places al BFF (Route Handlers) |
-| 🔴 Alta | Implementar pruebas automatizadas (Vitest / Playwright) |
+| 🟡 Media | Ampliar pruebas: agregar end-to-end (Playwright/Cypress) sobre la suite Jest existente |
 | 🟡 Media | Recuperación de contraseña |
 | 🟡 Media | Detalle expandido de evento (página individual) |
 | 🟡 Media | Sistema de notificaciones push |
