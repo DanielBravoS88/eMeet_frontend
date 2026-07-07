@@ -19,8 +19,8 @@ Esta carpeta contiene los documentos de gestión del proyecto eMeet, incluyendo 
 
 ## 🔗 Relación con otras carpetas
 
-- 📁 [**`/Documentacion`**](../Documentacion/README.md): informe académico, arquitectura, UML, MER, wireframes y QA.
-- 📁 [**`/Producto`**](../Producto/README.md): documentación técnica del producto (código fuente, dependencias, funcionalidades, ambiente local).
+- 📁 [**`academico/`**](../academico/README.md): informe académico, arquitectura, UML, MER, wireframes y QA.
+- 📁 [**`producto/`**](../producto/README.md): documentación técnica del producto (código fuente, dependencias, funcionalidades, ambiente local).
 
 ---
 

@@ -148,32 +148,34 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 ```
 
 > El archivo `.env.local` **nunca debe subirse al repositorio** (está en `.gitignore`).
-> Ver [`Producto/Ambiente-local.md`](./Producto/Ambiente-local.md) para más detalles.
+> Ver [`docs/producto/Ambiente-local.md`](./docs/producto/Ambiente-local.md) para más detalles.
 
 ---
 
-## Documentación Académica
+## Documentación
 
-La documentación completa del proyecto se encuentra en las siguientes carpetas:
+Toda la documentación está centralizada en la carpeta [**`docs/`**](./docs/README.md):
 
 | Carpeta | Contenido |
 |---|---|
-| 📚 [`/Documentacion`](./Documentacion/README.md) | Informe, Arquitectura, UML, MER, Wireframes, Gantt, Plan QA |
-| 📦 [`/Producto`](./Producto/README.md) | Código fuente, dependencias, funcionalidades, datos, ambiente local |
-| 📋 [`/Gestion`](./Gestion/README.md) | Definición del proyecto, integrantes, ramas, infraestructura, backup, commits |
+| 📚 [`docs/academico/`](./docs/academico/README.md) | Informe, Arquitectura, UML, MER, Wireframes, Gantt, Plan QA |
+| 📦 [`docs/producto/`](./docs/producto/README.md) | Código fuente, dependencias, funcionalidades, datos, ambiente local |
+| 📋 [`docs/gestion/`](./docs/gestion/README.md) | Definición del proyecto, integrantes, ramas, infraestructura, backup, commits |
+| 🏗️ [`docs/arquitectura/`](./docs/arquitectura/) | Documentos de diseño y planificación |
+| 📖 [`docs/guias/`](./docs/guias/) | Guías operativas: autenticación y testing |
 
 ### Accesos directos a documentos clave:
 
-- [Informe académico completo](./Documentacion/Informe.md)
-- [Arquitectura del sistema](./Documentacion/Arquitectura.md)
-- [Diagramas UML](./Documentacion/UML.md)
-- [Modelo Entidad-Relación](./Documentacion/MER.md)
-- [Wireframes de pantallas](./Documentacion/Wireframes.md)
-- [Plan Gantt](./Documentacion/Gantt.md)
-- [Plan de QA](./Documentacion/Plan_QA.md)
-- [Integrantes del equipo](./Gestion/Integrantes.txt)
-- [Estrategia de ramas Git](./Gestion/Estrategia-de-ramas.md)
-- [Infraestructura cloud](./Gestion/Infraestructura-Cloud.md)
+- [Informe académico completo](./docs/academico/Informe.md)
+- [Arquitectura del sistema](./docs/academico/Arquitectura.md)
+- [Diagramas UML](./docs/academico/UML.md)
+- [Modelo Entidad-Relación](./docs/academico/MER.md)
+- [Wireframes de pantallas](./docs/academico/Wireframes.md)
+- [Plan Gantt](./docs/academico/Gantt.md)
+- [Plan de QA](./docs/academico/Plan_QA.md)
+- [Integrantes del equipo](./docs/gestion/Integrantes.txt)
+- [Estrategia de ramas Git](./docs/gestion/Estrategia-de-ramas.md)
+- [Infraestructura cloud](./docs/gestion/Infraestructura-Cloud.md)
 
 ---
 

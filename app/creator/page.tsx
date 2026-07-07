@@ -1228,8 +1228,13 @@ export default function LocatarioPage() {
                     <div className="space-y-2">
                       <LocationPickerMap
                         value={gpsCoords}
+                        address={eventForm.address}
                         onLocationChange={(coords, address) => {
                           setGpsCoords(coords)
+                          setEventForm((prev) => ({ ...prev, address }))
+                        }}
+                        onAddressChange={(address) => {
+                          setGpsCoords(null)
                           setEventForm((prev) => ({ ...prev, address }))
                         }}
                       />
@@ -1241,16 +1246,6 @@ export default function LocatarioPage() {
                           </span>
                         </div>
                       )}
-                      <input
-                        type="text"
-                        placeholder="Dirección (se auto-completa al fijar en el mapa)"
-                        value={eventForm.address}
-                        onChange={(e) => {
-                          setEventForm((prev) => ({ ...prev, address: e.target.value }))
-                          setGpsCoords(null)
-                        }}
-                        className="w-full rounded-lg border border-card bg-surface px-4 py-2.5 text-sm text-white placeholder-muted outline-none transition-colors focus:border-primary"
-                      />
                     </div>
                   </div>
                 </FormSection>
