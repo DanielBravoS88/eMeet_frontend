@@ -42,6 +42,17 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
   }
 }
 
+async function geocodeAddress(address: string): Promise<google.maps.GeocoderResult | null> {
+  if (!window.google?.maps?.Geocoder) return null
+  const geocoder = new window.google.maps.Geocoder()
+  try {
+    const response = await geocoder.geocode({ address, region: 'cl' })
+    return response.results[0] ?? null
+  } catch {
+    return null
+  }
+}
+
 interface LocationPickerMapProps {
   value: { lat: number; lng: number } | null
   /** Dirección actual resuelta (controla el texto del buscador). */
@@ -112,6 +123,21 @@ export function LocationPickerMap({
     return () => listener.remove()
   }, [isLoaded, onLocationChange])
 
+  const handleTypedAddressCommit = useCallback(async () => {
+    const query = inputValue.trim()
+    if (!query || !isLoaded) return
+
+    const result = await geocodeAddress(query)
+    const loc = result?.geometry?.location
+    if (!loc) return
+
+    const lat = loc.lat()
+    const lng = loc.lng()
+    const resolved = result?.formatted_address || query
+    setInputValue(resolved)
+    onLocationChange({ lat, lng }, resolved)
+  }, [inputValue, isLoaded, onLocationChange])
+
   const handleMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng) return
     const lat = e.latLng.lat()
@@ -156,7 +182,12 @@ export function LocationPickerMap({
         }}
         // Evita que Enter envíe el formulario al elegir una sugerencia.
         onKeyDown={(e) => {
-          if (e.key === 'Enter') e.preventDefault()
+          if (e.key !== 'Enter') return
+          e.preventDefault()
+          void handleTypedAddressCommit()
+        }}
+        onBlur={() => {
+          void handleTypedAddressCommit()
         }}
         className="w-full rounded-xl border border-violet-500/20 bg-violet-500/8 py-2.5 pl-9 pr-3 text-sm text-white placeholder-violet-300/30 outline-none transition-colors focus:border-violet-500/70"
       />
